@@ -31,17 +31,22 @@
 
     <style>
         body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; }
+        
+        /* Layout */
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
+        
+        /* Pages */
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
 
-        /* Map */
+        /* Map Styles */
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
         .pin-marker {
             background-color: white; border-radius: 50%; border: 2.5px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: flex; align-items: center; justify-content: center;
             font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative;
         }
         .pin-marker::after {
@@ -55,7 +60,7 @@
         }
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
-        /* Filter Chips */
+        /* Filter Chips (Top Fixed) */
         .filter-bar {
             position: absolute; top: 12px; left: 0; right: 0; z-index: 500;
             display: flex; justify-content: center; pointer-events: none;
@@ -74,10 +79,10 @@
         .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
         .chip:not(.active) { opacity: 0.7; }
 
-        /* GPS Button (Right Top) */
+        /* GPS Button & Hint (Right Bottom - Adjusted Position) */
         .gps-container {
-            position: absolute; right: 16px; top: 80px; z-index: 500; 
-            display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+            position: absolute; right: 16px; bottom: 280px; /* カードの上に配置 */
+            z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
         }
         .gps-btn {
             width: 48px; height: 48px; background: white; border-radius: 50%;
@@ -86,34 +91,42 @@
             border: 1px solid #F0FDFA; transition: transform 0.2s;
         }
         .gps-btn:active { transform: scale(0.9); }
+
         .gps-hint-bubble {
             background: white; padding: 8px 12px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-size: 11px; font-weight: 800; color: #0D9488;
-            white-space: nowrap; pointer-events: none; border: 2px solid #F0FDFA; position: relative; margin-right: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            font-size: 11px; font-weight: 800; color: #0D9488;
+            white-space: nowrap; pointer-events: none; border: 2px solid #F0FDFA;
+            position: relative; margin-right: 4px;
         }
         .gps-hint-bubble::after {
             content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
             border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
         }
 
-        /* Map Cards */
+        /* Map Bottom Scroller (Position Fixed) */
         .card-scroller {
-            position: absolute; bottom: 100px; left: 0; right: 0; 
+            position: absolute; 
+            bottom: 120px; /* ★ここを修正: ナビバーと被らない高さへ */
+            left: 0; right: 0; 
             display: flex; gap: 12px; padding: 0 16px;
             overflow-x: auto; scroll-snap-type: x mandatory; 
             z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
-            height: 160px; pointer-events: auto; -webkit-overflow-scrolling: touch;
+            height: 160px; pointer-events: none; /* マップ操作を阻害しない */
         }
-        @media (min-width: 768px) { .card-scroller { bottom: 30px; justify-content: center; } }
+        .card-scroller > div { pointer-events: auto; } /* カード自体はクリック可能 */
+
+        @media (min-width: 768px) { .card-scroller { bottom: 40px; justify-content: center; } }
+        
         .map-card-horizontal {
-            flex: 0 0 85%; max-width: 300px; scroll-snap-align: center;
+            flex: 0 0 85%; max-width: 320px; scroll-snap-align: center;
             background: white; border-radius: 20px; padding: 14px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 2px solid transparent; 
             transition: transform 0.2s; height: 100%; display: flex; flex-direction: column;
         }
         .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); }
 
-        /* Nav */
+        /* Navigation Bar */
         .nav-container { z-index: 3000; }
         @media (max-width: 767px) {
             .nav-container {
@@ -133,8 +146,14 @@
             .nav-item.active::after { content: ''; width: 4px; height: 4px; background: #0D9488; border-radius: 50%; position: absolute; bottom: 8px; }
         }
         @media (min-width: 768px) {
-            .nav-container { width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; padding-top: 40px; }
-            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+            .nav-container {
+                width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0;
+                display: flex; flex-direction: column; padding-top: 40px;
+            }
+            .nav-item {
+                display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px;
+                color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            }
             .nav-item:hover { background: #F8FAFC; color: #0D9488; }
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
@@ -173,7 +192,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 15.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 16.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -193,10 +212,12 @@
                         <button class="chip active" onclick="toggleMapFilter('cinema', this)"><i class="fas fa-film"></i> 映画</button>
                     </div>
                 </div>
+                
                 <div class="gps-container">
                     <div id="gps-hint" class="gps-hint-bubble animate-bounce-slow">現在地を表示！</div>
                     <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
                 </div>
+
                 <div id="map"></div>
                 <div id="card-scroller" class="card-scroller"></div>
             </div>
@@ -230,21 +251,14 @@
                         <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-400 transition-all">行った</button>
                     </div>
                 </div>
-                
                 <div id="mylist-container" class="p-4 pb-20 md:pb-12 max-w-3xl mx-auto w-full"></div>
-
                 <div class="p-6 border-t border-slate-200 mt-auto bg-slate-50">
                     <h3 class="text-xs font-bold text-slate-400 mb-3 text-center">データバックアップ</h3>
                     <div class="flex gap-3 justify-center">
-                        <button onclick="exportData()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50">
-                            <i class="fas fa-file-export mr-1"></i> 書き出し
-                        </button>
-                        <button onclick="document.getElementById('import-file').click()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50">
-                            <i class="fas fa-file-import mr-1"></i> 読み込み
-                        </button>
+                        <button onclick="exportData()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-file-export mr-1"></i> 保存</button>
+                        <button onclick="document.getElementById('import-file').click()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-file-import mr-1"></i> 復元</button>
                         <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(this)">
                     </div>
-                    <p class="text-[10px] text-slate-400 text-center mt-2">機種変更時などにデータを引き継げます</p>
                 </div>
             </div>
 
@@ -284,10 +298,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- CONSTANTS ---
-        // ★ KEY CHANGE: Fixed name so data persists across updates
-        const STORAGE_KEY = 'handimap_persistent_save_v1'; 
-
+        const STORAGE_KEY = 'handimap_persistent_save_v1';
         const facilitiesData = [
             { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日1150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
             { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
@@ -312,65 +323,46 @@
             { id: 901, name: "イオンシネマ", pref: "全域", area: "各店舗", category: "cinema", lat: null, lng: null, price: "1000円", address: "関東各所", url: "https://www.aeoncinema.com/" }
         ];
 
-        // --- STATE ---
         let map, markers = {};
-        // Load from the PERSISTENT KEY
         let userStatus = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        
         let userCurrentPos = null;
         let activeListCategory = 'all'; 
         let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']);
         let searchQuery = "";
         let currentListTab = 'fav';
 
-        // --- INIT ---
         window.onload = function() {
             initMap();
             renderList();
             renderMyList();
         };
 
-        // --- EXPORT / IMPORT LOGIC ---
         function exportData() {
             const dataStr = JSON.stringify(userStatus);
             const blob = new Blob([dataStr], {type: "application/json"});
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `handimap_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+            const a = document.createElement('a'); a.href = url; a.download = `handimap_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
         }
-
         function importData(input) {
-            const file = input.files[0];
-            if (!file) return;
+            const file = input.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const loadedData = JSON.parse(e.target.result);
                     if(confirm("現在の保存データを上書きしますか？")) {
-                        userStatus = loadedData;
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
-                        renderMyList();
-                        renderList(); // Update statuses in list
-                        alert("読み込みが完了しました");
+                        userStatus = loadedData; localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
+                        renderMyList(); renderList(); alert("読み込みが完了しました");
                     }
-                } catch(err) {
-                    alert("ファイルの読み込みに失敗しました");
-                }
+                } catch(err) { alert("失敗しました"); }
             };
-            reader.readAsText(file);
-            input.value = ''; // reset
+            reader.readAsText(file); input.value = '';
         }
 
-        // --- MAP LOGIC ---
         function initMap() {
             if(map) return;
             map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 9);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
             if (window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
-            
             map.on('moveend', () => updateVisibleSpots());
             map.on('touchstart click', () => { hideGpsHint(); });
             renderAllMarkers();
@@ -382,11 +374,7 @@
             facilitiesData.forEach(spot => {
                 if (!spot.lat) return;
                 if (!activeMapCategories.has(spot.category)) return;
-                const icon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`,
-                    iconSize: [44, 44], iconAnchor: [22, 50]
-                });
+                const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
                 marker.on('click', () => setActiveFacilityOnMap(spot.id));
                 markers[spot.id] = marker;
@@ -394,35 +382,24 @@
         }
 
         function toggleMapFilter(cat, btn) {
-            if (activeMapCategories.has(cat)) {
-                activeMapCategories.delete(cat);
-                btn.classList.remove('active');
-            } else {
-                activeMapCategories.add(cat);
-                btn.classList.add('active');
-            }
-            renderAllMarkers();
-            updateVisibleSpots();
+            if (activeMapCategories.has(cat)) { activeMapCategories.delete(cat); btn.classList.remove('active'); }
+            else { activeMapCategories.add(cat); btn.classList.add('active'); }
+            renderAllMarkers(); updateVisibleSpots();
         }
 
         function updateVisibleSpots() {
             const center = map.getCenter();
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-            const sorted = facilitiesData
-                .filter(f => f.lat && activeMapCategories.has(f.category))
-                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 15);
+            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
+                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist).slice(0, 15);
             renderMapCards(sorted);
         }
 
         function renderMapCards(spots) {
             const scroller = document.getElementById('card-scroller');
             scroller.innerHTML = '';
-            const spacer = document.createElement('div');
-            spacer.style.flex = "0 0 10px";
-            scroller.appendChild(spacer);
+            const spacer = document.createElement('div'); spacer.style.flex = "0 0 10px"; scroller.appendChild(spacer);
             spots.forEach(spot => {
                 const card = document.createElement('div');
                 card.className = "map-card-horizontal bg-white";
@@ -442,17 +419,13 @@
                 `;
                 scroller.appendChild(card);
             });
-            const spacerEnd = document.createElement('div');
-            spacerEnd.style.flex = "0 0 10px";
-            scroller.appendChild(spacerEnd);
+            const spacerEnd = document.createElement('div'); spacerEnd.style.flex = "0 0 10px"; scroller.appendChild(spacerEnd);
         }
 
         function setActiveFacilityOnMap(id) {
-            const spot = facilitiesData.find(f => f.id === id);
-            if(!spot) return;
+            const spot = facilitiesData.find(f => f.id === id); if(!spot) return;
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-            const pin = document.getElementById(`pin-${id}`);
-            if(pin) pin.classList.add('active-pin');
+            const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
             map.flyTo([spot.lat, spot.lng], 14);
         }
 
@@ -471,7 +444,6 @@
 
         function hideGpsHint() { const el = document.getElementById('gps-hint'); if(el) el.style.display = 'none'; }
 
-        // --- LIST & UTILS ---
         function applyListFilter(cat, btn) {
             activeListCategory = cat;
             btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
@@ -480,8 +452,7 @@
         }
 
         function renderList() {
-            const container = document.getElementById('list-container');
-            if(!container) return;
+            const container = document.getElementById('list-container'); if(!container) return;
             container.innerHTML = '';
             let targets = facilitiesData.filter(f => {
                 if (activeListCategory !== 'all') {
@@ -558,7 +529,6 @@
             container.appendChild(item);
         }
 
-        // --- Common ---
         function handleNavClick(lat, lng, name, url) {
             window.tempNavTarget = { lat, lng, name };
             const linkEl = document.getElementById('modal-hp-link');
