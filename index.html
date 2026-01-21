@@ -111,10 +111,9 @@
             border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
         }
 
-        /* Map Bottom Sheet (Card Scroller) */
+        /* Map Bottom Sheet */
         .sheet-wrapper {
             position: absolute; 
-            /* ナビバー(約80px) + 余白分 上げる */
             bottom: 90px; 
             left: 0; right: 0; 
             z-index: 1000; pointer-events: none;
@@ -135,10 +134,15 @@
         .map-card-horizontal {
             flex: 0 0 88%; max-width: 340px; scroll-snap-align: center;
             background: white; border-radius: 24px; padding: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.02);
-            transition: transform 0.2s; height: 100%; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s; height: 100%; display: flex; flex-direction: column;
         }
-        .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); }
+        /* 選択されたカードのスタイル */
+        .map-card-horizontal.active { 
+            border-color: #0D9488; 
+            transform: translateY(-4px); 
+            box-shadow: 0 15px 50px rgba(13, 148, 136, 0.2);
+        }
 
         /* Navigation Bar */
         .nav-container { z-index: 3000; }
@@ -187,7 +191,8 @@
             background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;
         }
-        .btn-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #E2E8F0; color: #64748B; }
+        .btn-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #E2E8F0; color: #64748B; transition: all 0.2s; }
+        .btn-icon:hover { background: #F0FDFA; color: #0D9488; border-color: #0D9488; }
         .tag { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: #F1F5F9; color: #64748B; }
         
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
@@ -214,7 +219,7 @@
                 <h1 class="text-2xl font-extrabold text-teal-800 tracking-tight flex items-center gap-3">
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span> HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 21.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 22.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -429,17 +434,20 @@
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
             if (window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
             
-            map.on('moveend', () => { if (!isSingleCardMode) updateVisibleSpots(); });
-            map.on('click', () => {
-                isSingleCardMode = false;
-                document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-                hideGpsHint();
-                updateVisibleSpots();
+            // Map Move -> Update List
+            map.on('moveend', () => { 
+                updateVisibleSpots(); 
             });
-            renderAllMarkers();
             
-            // 初回全件表示
-            updateVisibleSpots(); 
+            // Map Click (Background) -> Unselect
+            map.on('click', () => {
+                document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
+                document.querySelectorAll('.map-card-horizontal').forEach(el => el.classList.remove('active'));
+                hideGpsHint();
+            });
+            
+            renderAllMarkers();
+            updateVisibleSpots(); // Initial load
         }
 
         function renderAllMarkers() {
@@ -450,7 +458,10 @@
                 if (!activeMapCategories.has(spot.category)) return;
                 const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                marker.on('click', (e) => { L.DomEvent.stopPropagation(e); setActiveFacilityOnMap(spot.id); });
+                marker.on('click', (e) => { 
+                    L.DomEvent.stopPropagation(e); 
+                    setActiveFacilityOnMap(spot.id); 
+                });
                 markers[spot.id] = marker;
             });
         }
@@ -466,12 +477,12 @@
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
             
-            // 全件を対象に距離順ソートし、上位15件を表示
+            // ★ MODIFICATION: REMOVED .slice(0,15) to show ALL valid/filtered spots
             const sorted = facilitiesData
                 .filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 15);
+                .sort((a, b) => a.dist - b.dist);
+            
             renderMapCards(sorted);
         }
 
@@ -481,6 +492,7 @@
             const spacer = document.createElement('div'); spacer.style.flex = "0 0 10px"; scroller.appendChild(spacer);
             spots.forEach(spot => {
                 const card = document.createElement('div');
+                card.id = `map-card-${spot.id}`; // ★ Added ID for scrolling
                 card.className = "map-card-horizontal bg-white";
                 card.onclick = (e) => { 
                     L.DomEvent.stopPropagation(e);
@@ -507,11 +519,19 @@
 
         function setActiveFacilityOnMap(id) {
             const spot = facilitiesData.find(f => f.id === id); if(!spot) return;
-            isSingleCardMode = true;
+            
+            // Highlight Pin
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
-            map.flyTo([spot.lat, spot.lng], 14);
-            renderMapCards([spot]); 
+            
+            // ★ MODIFICATION: SCROLL to card instead of re-rendering
+            const card = document.getElementById(`map-card-${id}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                // Add visual highlight to card
+                document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            }
         }
 
         function locateUserOnMap() {
@@ -523,7 +543,6 @@
                  const icon = L.divIcon({ className: '', html: '<div style="width:20px;height:20px;background:#0D9488;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(13,148,136,0.3);"></div>' });
                  window.userMarker = L.marker([userCurrentPos.lat, userCurrentPos.lng], {icon: icon}).addTo(map);
                  map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
-                 isSingleCardMode = false;
                  updateVisibleSpots();
              });
         }
@@ -604,16 +623,29 @@
                 <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
                 <div class="flex gap-2">
                      ${spot.lat ? 
-                        `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}')" class="btn-primary shadow-sm flex-1"><i class="fas fa-map"></i> 行く</button>` : 
+                        `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}')" class="btn-primary shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>` : 
                         `<a href="${spot.url}" target="_blank" class="btn-primary shadow-sm flex-1 !bg-slate-500"><i class="fas fa-external-link-alt"></i> HP</a>`
                     }
-                    <a href="${spot.url}" target="_blank" class="btn-icon bg-white hover:text-teal-600"><i class="fas fa-globe"></i></a>
+                    ${spot.lat ? 
+                        `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id})" class="btn-icon bg-white hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` :
+                        ''
+                    }
                     <button onclick="toggleStatus(${spot.id}, 'fav')" class="btn-icon bg-white hover:text-pink-500 ${status.fav ? '!text-pink-500 !bg-pink-50 !border-pink-200' : ''}">
                         <i class="${status.fav ? 'fas' : 'far'} fa-heart text-lg"></i>
                     </button>
                 </div>
             `;
             container.appendChild(item);
+        }
+
+        // --- ★ NEW: Jump from List to Map ---
+        function jumpToMap(lat, lng, id) {
+            switchPage('map');
+            // Wait for map resize
+            setTimeout(() => {
+                map.flyTo([lat, lng], 14);
+                setActiveFacilityOnMap(id);
+            }, 300);
         }
 
         // --- Common ---
@@ -638,7 +670,7 @@
             document.getElementById(`page-${pageId}`).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${pageId}`).classList.add('active');
-            if(pageId === 'map') setTimeout(() => map.invalidateSize(), 300);
+            if(pageId === 'map') setTimeout(() => { map.invalidateSize(); updateVisibleSpots(); }, 300); // Update on switch
             if(pageId === 'mylist') renderMyList();
         }
         function handleSearch(val) { searchQuery = val.toLowerCase().trim(); renderList(); }
