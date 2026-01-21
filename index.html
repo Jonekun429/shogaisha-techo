@@ -103,7 +103,7 @@
             background: white; border-radius: 16px; padding: 12px 14px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.12); border: 1px solid #E2E8F0;
             height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            transition: transform 0.3s;
+            transition: transform 0.3s, border-color 0.2s;
         }
         .map-card-compact.active { border-color: #0D9488; transform: scale(1.02); box-shadow: 0 8px 25px rgba(13, 148, 136, 0.15); }
 
@@ -174,7 +174,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 24.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 25.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -295,415 +295,48 @@
     <script>
         const STORAGE_KEY = 'handimap_persistent_save_v1';
         const facilitiesData = [
-    {
-        "id": 101,
-        "name": "東京スカイツリー",
-        "pref": "東京都",
-        "area": "墨田区",
-        "category": "leisure",
-        "lat": 35.71,
-        "lng": 139.8107,
-        "price": "半額 (休日1150円～)",
-        "address": "墨田区押上1-1-2",
-        "url": "https://www.tokyo-skytree.jp/"
-    },
-    {
-        "id": 102,
-        "name": "東京タワー",
-        "pref": "東京都",
-        "area": "港区",
-        "category": "leisure",
-        "lat": 35.6585,
-        "lng": 139.7454,
-        "price": "半額 (600円)",
-        "address": "港区芝公園4-2-8",
-        "url": "https://www.tokyotower.co.jp/"
-    },
-    {
-        "id": 103,
-        "name": "新宿御苑",
-        "pref": "東京都",
-        "area": "新宿区",
-        "category": "park",
-        "lat": 35.6851,
-        "lng": 139.71,
-        "price": "無料 (付添1名含)",
-        "address": "新宿区内藤町11",
-        "url": "https://fng.or.jp/shinjuku/"
-    },
-    {
-        "id": 104,
-        "name": "上野動物園",
-        "pref": "東京都",
-        "area": "台東区",
-        "category": "zoo",
-        "lat": 35.7165,
-        "lng": 139.7713,
-        "price": "無料 (付添1名含)",
-        "address": "台東区上野公園9-83",
-        "url": "https://www.tokyo-zoo.net/zoo/ueno/"
-    },
-    {
-        "id": 105,
-        "name": "葛西臨海水族園",
-        "pref": "東京都",
-        "area": "江戸川区",
-        "category": "aquarium",
-        "lat": 35.6401,
-        "lng": 139.8624,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都江戸川区臨海町6-2-3",
-        "url": "https://www.tokyo-zoo.net/zoo/kasai/"
-    },
-    {
-        "id": 106,
-        "name": "国立科学博物館",
-        "pref": "東京都",
-        "area": "台東区",
-        "category": "museum",
-        "lat": 35.7163,
-        "lng": 139.7766,
-        "price": "無料 (付添1名含)",
-        "address": "台東区上野公園7-20",
-        "url": "https://www.kahaku.go.jp/"
-    },
-    {
-        "id": 107,
-        "name": "日本科学未来館",
-        "pref": "東京都",
-        "area": "江東区",
-        "category": "museum",
-        "lat": 35.6193,
-        "lng": 139.7765,
-        "price": "無料 (付添1名含)",
-        "address": "江東区青海2-3-6",
-        "url": "https://www.miraikan.jst.go.jp/"
-    },
-    {
-        "id": 108,
-        "name": "サンリオピューロランド",
-        "pref": "東京都",
-        "area": "多摩市",
-        "category": "leisure",
-        "lat": 35.6247,
-        "lng": 139.4293,
-        "price": "200円引",
-        "address": "多摩市落合1-31",
-        "url": "https://www.puroland.jp/"
-    },
-    {
-        "id": 109,
-        "name": "TOHOシネマズ",
-        "pref": "東京都",
-        "area": "都内各所",
-        "category": "cinema",
-        "lat": 35.6955,
-        "lng": 139.702,
-        "price": "1000円 (付添1名含)",
-        "address": "新宿ほか都内各所",
-        "url": "https://www.tohotheater.jp/"
-    },
-    {
-        "id": 110,
-        "name": "国立新美術館",
-        "pref": "東京都",
-        "area": "港区",
-        "category": "museum",
-        "lat": 35.6652,
-        "lng": 139.7263,
-        "price": "無料 (企画展含)",
-        "address": "港区六本木",
-        "url": "https://www.nact.jp/"
-    },
-    {
-        "id": 111,
-        "name": "森美術館",
-        "pref": "東京都",
-        "area": "港区",
-        "category": "museum",
-        "lat": 35.6604,
-        "lng": 139.7292,
-        "price": "半額",
-        "address": "港区六本木ヒルズ",
-        "url": "https://www.mori.art.museum/"
-    },
-    {
-        "id": 201,
-        "name": "新江ノ島水族館",
-        "pref": "神奈川県",
-        "area": "藤沢市",
-        "category": "aquarium",
-        "lat": 35.3089,
-        "lng": 139.4819,
-        "price": "半額 (1250円)",
-        "address": "藤沢市片瀬海岸",
-        "url": "https://www.enosui.com/"
-    },
-    {
-        "id": 202,
-        "name": "よこはま動物園ズーラシア",
-        "pref": "神奈川県",
-        "area": "横浜市",
-        "category": "zoo",
-        "lat": 35.4944,
-        "lng": 139.5255,
-        "price": "無料 (付添1名含)",
-        "address": "横浜市旭区",
-        "url": "https://www.hama-midorinokyokai.or.jp/zoo/zoorasia/"
-    },
-    {
-        "id": 204,
-        "name": "横浜・八景島シーパラダイス",
-        "pref": "神奈川県",
-        "area": "横浜市",
-        "category": "leisure",
-        "lat": 35.3367,
-        "lng": 139.6469,
-        "price": "半額 (パス等)",
-        "address": "横浜市金沢区",
-        "url": "https://www.seaparadise.co.jp/"
-    },
-    {
-        "id": 301,
-        "name": "東京ディズニーランド/シー",
-        "pref": "千葉県",
-        "area": "浦安市",
-        "category": "leisure",
-        "lat": 35.6329,
-        "lng": 139.8804,
-        "price": "専用パス (6800円～)",
-        "address": "浦安市舞浜",
-        "url": "https://www.tokyodisneyresort.jp/"
-    },
-    {
-        "id": 302,
-        "name": "鴨川シーワールド",
-        "pref": "千葉県",
-        "area": "鴨川市",
-        "category": "aquarium",
-        "lat": 35.1157,
-        "lng": 140.1189,
-        "price": "半額 (1650円)",
-        "address": "鴨川市東町",
-        "url": "https://www.kamogawa-seaworld.jp/"
-    },
-    {
-        "id": 303,
-        "name": "マザー牧場",
-        "pref": "千葉県",
-        "area": "富津市",
-        "category": "zoo",
-        "lat": 35.2639,
-        "lng": 139.9328,
-        "price": "半額 (750円)",
-        "address": "富津市田倉",
-        "url": "https://www.motherfarm.co.jp/"
-    },
-    {
-        "id": 401,
-        "name": "鉄道博物館",
-        "pref": "埼玉県",
-        "area": "さいたま市",
-        "category": "museum",
-        "lat": 35.9209,
-        "lng": 139.6196,
-        "price": "半額 (660円)",
-        "address": "さいたま市大宮区",
-        "url": "https://www.railway-museum.jp/"
-    },
-    {
-        "id": 403,
-        "name": "西武園ゆうえんち",
-        "pref": "埼玉県",
-        "area": "所沢市",
-        "category": "leisure",
-        "lat": 35.7644,
-        "lng": 139.4447,
-        "price": "割引あり",
-        "address": "所沢市山口",
-        "url": "https://www.seibu-leisure.co.jp/"
-    },
-    {
-        "id": 501,
-        "name": "アクアワールド大洗",
-        "pref": "茨城県",
-        "area": "大洗町",
-        "category": "aquarium",
-        "lat": 36.3134,
-        "lng": 140.5898,
-        "price": "半額 (1150円)",
-        "address": "東茨城郡大洗町",
-        "url": "https://www.aquaworld-oarai.com/"
-    },
-    {
-        "id": 901,
-        "name": "イオンシネマ",
-        "pref": "全域",
-        "area": "各店舗",
-        "category": "cinema",
-        "lat": null,
-        "lng": null,
-        "price": "1000円",
-        "address": "関東各所",
-        "url": "https://www.aeoncinema.com/"
-    },
-    {
-        "id": 1000,
-        "name": "多摩動物公園",
-        "pref": "東京都",
-        "area": "日野市",
-        "category": "zoo",
-        "lat": 35.649538,
-        "lng": 139.402201,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都日野市程久保7-1-1",
-        "url": "https://www.tokyo-zoo.net/zoo/tama/"
-    },
-    {
-        "id": 1001,
-        "name": "井の頭自然文化園",
-        "pref": "東京都",
-        "area": "武蔵野市",
-        "category": "zoo",
-        "lat": 35.700908,
-        "lng": 139.571034,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都武蔵野市御殿山1-17-6",
-        "url": "https://www.tokyo-zoo.net/zoo/ino/"
-    },
-    {
-        "id": 1002,
-        "name": "神代植物公園",
-        "pref": "東京都",
-        "area": "調布市",
-        "category": "park",
-        "lat": 35.672146,
-        "lng": 139.546022,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都調布市深大寺元町5-31-10",
-        "url": "https://www.tokyo-park.or.jp/park/jindai/"
-    },
-    {
-        "id": 1003,
-        "name": "夢の島熱帯植物館",
-        "pref": "東京都",
-        "area": "江東区",
-        "category": "park",
-        "lat": 35.651128,
-        "lng": 139.829413,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都江東区夢の島2-1-2",
-        "url": "https://www.yumenoshima.jp/"
-    },
-    {
-        "id": 1004,
-        "name": "東京都美術館",
-        "pref": "東京都",
-        "area": "台東区",
-        "category": "museum",
-        "lat": 35.717242,
-        "lng": 139.772791,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都台東区上野公園8-36",
-        "url": "https://www.tobikan.jp/"
-    },
-    {
-        "id": 1005,
-        "name": "国立西洋美術館",
-        "pref": "東京都",
-        "area": "台東区",
-        "category": "museum",
-        "lat": 35.715392,
-        "lng": 139.77586,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都台東区上野公園7-7",
-        "url": "https://www.nmwa.go.jp/"
-    },
-    {
-        "id": 1006,
-        "name": "江戸東京たてもの園",
-        "pref": "東京都",
-        "area": "小金井市",
-        "category": "museum",
-        "lat": 35.71271,
-        "lng": 139.512332,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都小金井市桜町3-7-1",
-        "url": "https://www.tatemonoen.jp/"
-    },
-    {
-        "id": 1007,
-        "name": "東京都庭園美術館",
-        "pref": "東京都",
-        "area": "港区",
-        "category": "museum",
-        "lat": 35.636853,
-        "lng": 139.719244,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都港区白金台5-21-9",
-        "url": "https://www.teien-art-museum.ne.jp/"
-    },
-    {
-        "id": 1008,
-        "name": "小石川後楽園",
-        "pref": "東京都",
-        "area": "文京区",
-        "category": "park",
-        "lat": 35.705351,
-        "lng": 139.748979,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都文京区後楽1-6-6",
-        "url": "https://www.tokyo-park.or.jp/park/koishikawakorakuen/"
-    },
-    {
-        "id": 1009,
-        "name": "六義園",
-        "pref": "東京都",
-        "area": "文京区",
-        "category": "park",
-        "lat": 35.733139,
-        "lng": 139.746512,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都文京区本駒込6-16-3",
-        "url": "https://www.tokyo-park.or.jp/park/rikugien/"
-    },
-    {
-        "id": 1010,
-        "name": "浜離宮恩賜庭園",
-        "pref": "東京都",
-        "area": "中央区",
-        "category": "park",
-        "lat": 35.662931,
-        "lng": 139.763149,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都中央区浜離宮庭園1-1",
-        "url": "https://www.tokyo-park.or.jp/park/hamarikyu/"
-    },
-    {
-        "id": 1011,
-        "name": "清澄庭園",
-        "pref": "東京都",
-        "area": "江東区",
-        "category": "park",
-        "lat": 35.680678,
-        "lng": 139.797822,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都江東区清澄3-3-9",
-        "url": "https://www.tokyo-park.or.jp/park/kiyosumi/"
-    },
-    {
-        "id": 1012,
-        "name": "旧古河庭園",
-        "pref": "東京都",
-        "area": "北区",
-        "category": "park",
-        "lat": 35.7425,
-        "lng": 139.7461,
-        "price": "本人および同伴者1名無料（障害者手帳提示）",
-        "address": "東京都北区西ケ原1-27-39",
-        "url": "https://www.tokyo-park.or.jp/park/kyufurukawa/"
-    }
-];
+            {"id": 101, "name": "東京スカイツリー", "pref": "東京都", "area": "墨田区", "category": "leisure", "lat": 35.7100, "lng": 139.8107, "price": "半額 (休日1150円〜)", "address": "墨田区押上1-1-2", "url": "https://www.tokyo-skytree.jp/"},
+            {"id": 102, "name": "東京タワー", "pref": "東京都", "area": "港区", "category": "leisure", "lat": 35.6585, "lng": 139.7454, "price": "半額 (600円)", "address": "港区芝公園4-2-8", "url": "https://www.tokyotower.co.jp/"},
+            {"id": 103, "name": "新宿御苑", "pref": "東京都", "area": "新宿区", "category": "park", "lat": 35.6851, "lng": 139.7100, "price": "無料 (付添1名含)", "address": "新宿区内藤町11", "url": "https://fng.or.jp/shinjuku/"},
+            {"id": 104, "name": "上野動物園", "pref": "東京都", "area": "台東区", "category": "zoo", "lat": 35.7165, "lng": 139.7713, "price": "無料 (付添1名含)", "address": "台東区上野公園9-83", "url": "https://www.tokyo-zoo.net/zoo/ueno/"},
+            {"id": 105, "name": "葛西臨海水族園", "pref": "東京都", "area": "江戸川区", "category": "aquarium", "lat": 35.6401, "lng": 139.8624, "price": "無料 (付添1名含)", "address": "江戸川区臨海町6-2-3", "url": "https://www.tokyo-zoo.net/zoo/kasai/"},
+            {"id": 106, "name": "国立科学博物館", "pref": "東京都", "area": "台東区", "category": "museum", "lat": 35.7163, "lng": 139.7766, "price": "無料 (付添1名含)", "address": "台東区上野公園7-20", "url": "https://www.kahaku.go.jp/"},
+            {"id": 107, "name": "日本科学未来館", "pref": "東京都", "area": "江東区", "category": "museum", "lat": 35.6193, "lng": 139.7765, "price": "無料 (付添1名含)", "address": "江東区青海2-3-6", "url": "https://www.miraikan.jst.go.jp/"},
+            {"id": 108, "name": "サンリオピューロランド", "pref": "東京都", "area": "多摩市", "category": "leisure", "lat": 35.6247, "lng": 139.4293, "price": "200円引", "address": "多摩市落合1-31", "url": "https://www.puroland.jp/"},
+            {"id": 109, "name": "TOHOシネマズ", "pref": "東京都", "area": "都内各所", "category": "cinema", "lat": 35.6955, "lng": 139.7020, "price": "1000円 (付添1名含)", "address": "新宿ほか都内各所", "url": "https://www.tohotheater.jp/"},
+            {"id": 110, "name": "国立新美術館", "pref": "東京都", "area": "港区", "category": "museum", "lat": 35.6652, "lng": 139.7263, "price": "無料 (企画展含)", "address": "港区六本木", "url": "https://www.nact.jp/"},
+            {"id": 111, "name": "森美術館", "pref": "東京都", "area": "港区", "category": "museum", "lat": 35.6604, "lng": 139.7292, "price": "半額", "address": "港区六本木ヒルズ", "url": "https://www.mori.art.museum/"},
+            {"id": 201, "name": "新江ノ島水族館", "pref": "神奈川県", "area": "藤沢市", "category": "aquarium", "lat": 35.3089, "lng": 139.4819, "price": "半額 (1250円)", "address": "藤沢市片瀬海岸", "url": "https://www.enosui.com/"},
+            {"id": 202, "name": "よこはま動物園ズーラシア", "pref": "神奈川県", "area": "横浜市", "category": "zoo", "lat": 35.4944, "lng": 139.5255, "price": "無料 (付添1名含)", "address": "横浜市旭区", "url": "https://www.hama-midorinokyokai.or.jp/zoo/zoorasia/"},
+            {"id": 204, "name": "横浜・八景島シーパラダイス", "pref": "神奈川県", "area": "横浜市", "category": "leisure", "lat": 35.3367, "lng": 139.6469, "price": "半額 (パス等)", "address": "横浜市金沢区", "url": "https://www.seaparadise.co.jp/"},
+            {"id": 301, "name": "東京ディズニーランド/シー", "pref": "千葉県", "area": "浦安市", "category": "leisure", "lat": 35.6329, "lng": 139.8804, "price": "専用パス (6800円〜)", "address": "浦安市舞浜", "url": "https://www.tokyodisneyresort.jp/"},
+            {"id": 302, "name": "鴨川シーワールド", "pref": "千葉県", "area": "鴨川市", "category": "aquarium", "lat": 35.1157, "lng": 140.1189, "price": "半額 (1650円)", "address": "鴨川市東町", "url": "https://www.kamogawa-seaworld.jp/"},
+            {"id": 303, "name": "マザー牧場", "pref": "千葉県", "area": "富津市", "category": "zoo", "lat": 35.2639, "lng": 139.9328, "price": "半額 (750円)", "address": "富津市田倉", "url": "https://www.motherfarm.co.jp/"},
+            {"id": 401, "name": "鉄道博物館", "pref": "埼玉県", "area": "さいたま市", "category": "museum", "lat": 35.9209, "lng": 139.6196, "price": "半額 (660円)", "address": "さいたま市大宮区", "url": "https://www.railway-museum.jp/"},
+            {"id": 403, "name": "西武園ゆうえんち", "pref": "埼玉県", "area": "所沢市", "category": "leisure", "lat": 35.7644, "lng": 139.4447, "price": "割引あり", "address": "所沢市山口", "url": "https://www.seibu-leisure.co.jp/"},
+            {"id": 501, "name": "アクアワールド大洗", "pref": "茨城県", "area": "大洗町", "category": "aquarium", "lat": 36.3134, "lng": 140.5898, "price": "半額 (1150円)", "address": "東茨城郡大洗町", "url": "https://www.aquaworld-oarai.com/"},
+            {"id": 901, "name": "イオンシネマ", "pref": "全域", "area": "各店舗", "category": "cinema", "lat": null, "lng": null, "price": "1000円", "address": "関東各所", "url": "https://www.aeoncinema.com/"},
+            {"id": 1000, "name": "多摩動物公園", "pref": "東京都", "area": "日野市", "category": "zoo", "lat": 35.649538, "lng": 139.402201, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都日野市程久保7-1-1", "url": "https://www.tokyo-zoo.net/zoo/tama/"},
+            {"id": 1001, "name": "井の頭自然文化園", "pref": "東京都", "area": "武蔵野市", "category": "zoo", "lat": 35.700908, "lng": 139.571034, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都武蔵野市御殿山1-17-6", "url": "https://www.tokyo-zoo.net/zoo/ino/"},
+            {"id": 1002, "name": "神代植物公園", "pref": "東京都", "area": "調布市", "category": "park", "lat": 35.672146, "lng": 139.546022, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都調布市深大寺元町5-31-10", "url": "https://www.tokyo-park.or.jp/park/jindai/"},
+            {"id": 1003, "name": "夢の島熱帯植物館", "pref": "東京都", "area": "江東区", "category": "park", "lat": 35.651128, "lng": 139.829413, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都江東区夢の島2-1-2", "url": "https://www.yumenoshima.jp/"},
+            {"id": 1004, "name": "東京都美術館", "pref": "東京都", "area": "台東区", "category": "museum", "lat": 35.717242, "lng": 139.772791, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都台東区上野公園8-36", "url": "https://www.tobikan.jp/"},
+            {"id": 1005, "name": "国立西洋美術館", "pref": "東京都", "area": "台東区", "category": "museum", "lat": 35.715392, "lng": 139.77586, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都台東区上野公園7-7", "url": "https://www.nmwa.go.jp/"},
+            {"id": 1006, "name": "江戸東京たてもの園", "pref": "東京都", "area": "小金井市", "category": "museum", "lat": 35.71271, "lng": 139.512332, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都小金井市桜町3-7-1", "url": "https://www.tatemonoen.jp/"},
+            {"id": 1007, "name": "東京都庭園美術館", "pref": "東京都", "area": "港区", "category": "museum", "lat": 35.636853, "lng": 139.719244, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都港区白金台5-21-9", "url": "https://www.teien-art-museum.ne.jp/"},
+            {"id": 1008, "name": "小石川後楽園", "pref": "東京都", "area": "文京区", "category": "park", "lat": 35.705351, "lng": 139.748979, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都文京区後楽1-6-6", "url": "https://www.tokyo-park.or.jp/park/koishikawakorakuen/"},
+            {"id": 1009, "name": "六義園", "pref": "東京都", "area": "文京区", "category": "park", "lat": 35.733139, "lng": 139.746512, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都文京区本駒込6-16-3", "url": "https://www.tokyo-park.or.jp/park/rikugien/"},
+            {"id": 1010, "name": "浜離宮恩賜庭園", "pref": "東京都", "area": "中央区", "category": "park", "lat": 35.662931, "lng": 139.763149, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都中央区浜離宮庭園1-1", "url": "https://www.tokyo-park.or.jp/park/hamarikyu/"},
+            {"id": 1011, "name": "清澄庭園", "pref": "東京都", "area": "江東区", "category": "park", "lat": 35.680678, "lng": 139.797822, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都江東区清澄3-3-9", "url": "https://www.tokyo-park.or.jp/park/kiyosumi/"},
+            {"id": 1012, "name": "旧古河庭園", "pref": "東京都", "area": "北区", "category": "park", "lat": 35.7425, "lng": 139.7461, "price": "本人および同伴者1名無料（障害者手帳提示）", "address": "東京都北区西ケ原1-27-39", "url": "https://www.tokyo-park.or.jp/park/kyufurukawa/"},
+            {"id": 1013, "name": "向島百花園", "pref": "東京都", "area": "墨田区", "category": "park", "lat": 35.7238, "lng": 139.8161, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都墨田区東向島3-18-3", "url": "https://www.tokyo-park.or.jp/park/mukojima/"},
+            {"id": 1014, "name": "旧岩崎邸庭園", "pref": "東京都", "area": "台東区", "category": "park", "lat": 35.7103, "lng": 139.7706, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都台東区池之端1-3-45", "url": "https://www.tokyo-park.or.jp/park/kyuiwasakitei/"},
+            {"id": 1015, "name": "殿ヶ谷戸庭園", "pref": "東京都", "area": "国分寺市", "category": "park", "lat": 35.6986, "lng": 139.4808, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都国分寺市南町2-16", "url": "https://www.tokyo-park.or.jp/park/tonogayato/"},
+            {"id": 1016, "name": "芝離宮恩賜庭園", "pref": "東京都", "area": "港区", "category": "park", "lat": 35.6550, "lng": 139.7575, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都港区海岸1-4-1", "url": "https://www.tokyo-park.or.jp/park/kyu-shiba-rikyu/"},
+            {"id": 1017, "name": "東京国立博物館", "pref": "東京都", "area": "台東区", "category": "museum", "lat": 35.7188, "lng": 139.7765, "price": "総合文化展は無料（手帳提示）", "address": "東京都台東区上野公園13-9", "url": "https://www.tnm.jp/"},
+            {"id": 1018, "name": "東京国立近代美術館", "pref": "東京都", "area": "千代田区", "category": "museum", "lat": 35.6905, "lng": 139.7547, "price": "所蔵作品展は無料（手帳提示）", "address": "東京都千代田区北の丸公園3-1", "url": "https://www.momat.go.jp/"},
+            {"id": 1019, "name": "国立映画アーカイブ", "pref": "東京都", "area": "中央区", "category": "museum", "lat": 35.6766, "lng": 139.7719, "price": "上映・展示により異なる（手帳提示で割引・無料）", "address": "東京都中央区京橋3-7-6", "url": "https://www.nfaj.go.jp/"}
+        ];
 
         let map, markers = {};
         let userStatus = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
@@ -817,7 +450,11 @@
                 if (!activeMapCategories.has(spot.category)) return;
                 const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                marker.on('click', () => { setActiveFacilityOnMap(spot.id); map.flyTo([spot.lat, spot.lng], 14); });
+                // Tap Pin -> Show Card (and scroll to it)
+                marker.on('click', () => { 
+                    setActiveFacilityOnMap(spot.id); 
+                    map.flyTo([spot.lat, spot.lng], 14); 
+                });
                 markers[spot.id] = marker;
             });
         }
@@ -832,8 +469,9 @@
             const center = map.getCenter();
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
+            // Removed slice(0,15) to show ALL filtered cards
             const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
-                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist).slice(0, 15);
+                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist);
             renderMapCards(sorted);
         }
 
@@ -845,7 +483,7 @@
                 const status = userStatus[spot.id] || {};
                 const card = document.createElement('div');
                 card.className = "map-card-compact bg-white";
-                card.dataset.id = spot.id;
+                card.dataset.id = spot.id; // Important for finding it later
                 card.onclick = () => { map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
                 card.innerHTML = `
                     <div class="flex flex-col justify-center flex-1 mr-2" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">
@@ -870,10 +508,15 @@
             const spot = facilitiesData.find(f => f.id === id); if(!spot) return;
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
+            
+            // Scroll logic
             const cards = document.querySelectorAll('.map-card-compact');
             for(let card of cards) {
                 if(parseInt(card.dataset.id) === id) {
-                    card.scrollIntoView({behavior: "smooth", inline: "center"});
+                    card.scrollIntoView({behavior: "smooth", inline: "center", block: "nearest"});
+                    // Force active class
+                    cards.forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
                     break;
                 }
             }
@@ -1030,27 +673,7 @@
             container.innerHTML = '';
             const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
             if(list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10 font-bold">まだありません</div>`; return; }
-            list.forEach(spot => {
-               // Use same simple-card style for consistency
-                const status = userStatus[spot.id] || {};
-                const card = document.createElement('div');
-                card.className = "simple-card";
-                card.innerHTML = `
-                    <div class="flex-1" onclick="window.open('${spot.url}', '_blank')">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h3 class="font-bold text-slate-800 text-sm line-clamp-1">${spot.name}</h3>
-                            <i class="fas fa-external-link-alt text-xs text-teal-500"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.area}</p>
-                        <p class="text-xs text-red-500 font-bold mt-1">${spot.price}</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="toggleStatus(${spot.id}, '${currentListTab}'); event.stopPropagation();" class="btn-circle btn-circle-fav active"><i class="fas fa-trash"></i></button>
-                        ${spot.lat ? `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="btn-circle btn-circle-nav"><i class="fas fa-location-arrow"></i></button>` : ''}
-                    </div>
-                `;
-                container.appendChild(card); 
-            });
+            list.forEach(spot => renderListItem(spot, container));
         }
         function getDistance(lat1, lng1, lat2, lng2) {
             const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
