@@ -80,7 +80,7 @@
         .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
         .chip:not(.active) { opacity: 0.7; }
 
-        /* GPS Button & Hint (Safe Zone: Top Right, Below Filters) */
+        /* GPS Button & Hint */
         .gps-container {
             position: absolute; right: 16px; top: 80px; /* カテゴリバーの下に配置 */
             z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
@@ -105,13 +105,16 @@
             border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
         }
 
-        /* Map Bottom Scroller */
+        /* Map Bottom Scroller (FIXED) */
         .card-scroller {
-            position: absolute; bottom: 100px; left: 0; right: 0; display: flex; gap: 12px; padding: 0 16px;
-            overflow-x: auto; scroll-snap-type: x mandatory; z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
-            height: 160px; pointer-events: none;
+            position: absolute; bottom: 100px; left: 0; right: 0; 
+            display: flex; gap: 12px; padding: 0 16px;
+            overflow-x: auto; scroll-snap-type: x mandatory; 
+            z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
+            height: 160px; 
+            pointer-events: auto; /* ★ここを修正しました（スクロール有効化） */
+            -webkit-overflow-scrolling: touch; /* iOSでのスムーズスクロール */
         }
-        .card-scroller > div { pointer-events: auto; }
         @media (min-width: 768px) { .card-scroller { bottom: 30px; justify-content: center; } }
         
         .map-card-horizontal {
@@ -200,7 +203,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 13.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 14.0</p>
             </div>
 
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map">
@@ -258,7 +261,8 @@
                     </div>
                     <div id="location-prompt" class="mt-3 hidden animate-pulse-fast bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-teal-100 transition-colors" onclick="locateUserForList()">
                         <div class="flex items-center gap-2 text-xs font-bold text-teal-800">
-                            <i class="fas fa-location-arrow"></i> <span>現在地を取得</span>
+                            <i class="fas fa-location-arrow"></i> 
+                            <span>現在地を取得して、距離を表示する</span>
                         </div>
                         <span class="bg-white px-3 py-1 rounded-full text-[10px] text-teal-600 font-extrabold shadow-sm">ON</span>
                     </div>
@@ -320,7 +324,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- DATA (CSV/Spreadsheet Structure) ---
+        // --- DATA ---
         const facilitiesData = [
             { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日1150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
             { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
@@ -347,7 +351,7 @@
 
         // --- STATE ---
         let map, markers = {};
-        let userStatus = JSON.parse(localStorage.getItem('handimap_v13_status')) || {};
+        let userStatus = JSON.parse(localStorage.getItem('handimap_v14_status')) || {};
         let userCurrentPos = null;
         let activeListCategory = 'all'; 
         let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']); // Multi-select Set
@@ -612,7 +616,7 @@
         function toggleStatus(id, type) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id][type] = !userStatus[id][type];
-            localStorage.setItem('handimap_v13_status', JSON.stringify(userStatus));
+            localStorage.setItem('handimap_v14_status', JSON.stringify(userStatus));
             renderList(); renderMyList();
         }
         function switchListTab(tab) {
