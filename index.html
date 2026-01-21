@@ -20,7 +20,16 @@
                 extend: {
                     fontFamily: { sans: ['"M PLUS Rounded 1c"', 'sans-serif'] },
                     colors: { primary: '#0D9488', secondary: '#F0FDFA', accent: '#F43F5E' },
-                    animation: { 'bounce-slow': 'bounce 3s infinite' }
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                    },
+                    keyframes: {
+                        popIn: {
+                            '0%': { transform: 'scale(0) translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'scale(1) translateY(0)', opacity: '1' },
+                        }
+                    }
                 }
             }
         }
@@ -28,11 +37,8 @@
 
     <style>
         body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; user-select: none; }
-        
-        /* Layout */
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
-        
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
@@ -43,7 +49,7 @@
             background-color: white; border-radius: 50%; border: 2.5px solid #fff;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative; cursor: pointer;
+            font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative;
         }
         .pin-marker::after {
             content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
@@ -78,10 +84,12 @@
             content: ''; position: absolute; left: 50%; top: -6px; transform: translateX(-50%);
             border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 6px solid rgba(13, 148, 136, 0.95);
         }
+        
+        /* Filters with Drag Cursor */
         .filter-section {
             flex: 1; overflow-x: auto; pointer-events: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
             display: flex; gap: 8px; padding-bottom: 10px; padding-top: 2px;
-            cursor: grab; /* PCでのドラッグ示唆 */
+            cursor: grab;
         }
         .filter-section:active { cursor: grabbing; }
 
@@ -89,42 +97,45 @@
             padding: 0 16px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap;
             background: rgba(255,255,255,0.9); color: #64748B; border: 1px solid #E2E8F0; 
             display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05); height: 40px; user-select: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); height: 40px;
         }
         .chip.active { background: #0D9488; color: white; border-color: #0D9488; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25); }
         .chip:not(.active) { opacity: 0.9; }
 
-        /* Map Cards Scroller */
+        /* Map Cards Scroller with Drag Cursor */
         .card-scroller {
             position: absolute; bottom: 100px; left: 0; right: 0; 
             display: flex; gap: 10px; padding: 0 16px;
             overflow-x: auto; scroll-snap-type: x mandatory; 
             z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
-            height: 110px; 
-            pointer-events: auto; /* ★PCでも操作可能に */
-            -webkit-overflow-scrolling: touch;
-            cursor: grab; /* PCでのドラッグ示唆 */
+            height: 110px; pointer-events: auto; -webkit-overflow-scrolling: touch;
+            cursor: grab;
         }
-        .card-scroller.grabbing { cursor: grabbing; scroll-snap-type: none; } /* ドラッグ中はスナップ解除 */
-        @media (min-width: 768px) { 
-            .card-scroller { 
-                bottom: 40px; 
-                /* PCでも左寄せで開始し、操作しやすくする */
-                justify-content: flex-start; 
-            } 
-        }
+        .card-scroller:active { cursor: grabbing; scroll-snap-type: none; } /* Disable snap on drag for smooth feel */
+        @media (min-width: 768px) { .card-scroller { bottom: 40px; justify-content: center; } }
         
         .map-card-compact {
             flex: 0 0 88%; max-width: 340px; scroll-snap-align: center;
             background: white; border-radius: 16px; padding: 12px 14px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.12); border: 1px solid #E2E8F0;
             height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            transition: transform 0.3s; cursor: pointer; user-select: none;
-        }
-        @media (min-width: 768px) {
-            .map-card-compact { flex: 0 0 320px; } /* PCでは固定幅で見やすく */
+            transition: transform 0.3s; position: relative;
         }
         .map-card-compact.active { border-color: #0D9488; transform: scale(1.02); box-shadow: 0 8px 25px rgba(13, 148, 136, 0.15); }
+
+        /* "Here" Badge */
+        .here-badge {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: #F43F5E; color: white; padding: 2px 10px; border-radius: 100px;
+            font-size: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: none; animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            z-index: 10; border: 2px solid white;
+        }
+        .here-badge::after {
+            content: ''; position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%);
+            border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid #F43F5E;
+        }
+        .map-card-compact.highlighted .here-badge { display: block; }
 
         .btn-mini {
             width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
@@ -154,7 +165,7 @@
         }
         @media (min-width: 768px) {
             .nav-container { width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; padding-top: 40px; }
-            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; }
             .nav-item:hover { background: #F8FAFC; color: #0D9488; }
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
@@ -193,7 +204,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 26.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 27.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -208,7 +219,7 @@
                         <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
                         <div id="gps-hint" class="gps-hint-bubble animate-bounce-slow">現在地を表示！</div>
                     </div>
-                    <div class="filter-section" id="filter-scroll-area">
+                    <div class="filter-section" id="filter-scroll">
                         <button class="chip active" onclick="toggleMapFilter('leisure', this)"><i class="fas fa-rocket"></i> 遊園地</button>
                         <button class="chip active" onclick="toggleMapFilter('aquarium', this)"><i class="fas fa-water"></i> 水族館</button>
                         <button class="chip active" onclick="toggleMapFilter('zoo', this)"><i class="fas fa-paw"></i> 動物園</button>
@@ -468,19 +479,11 @@
                     if(diff < minDiff) { minDiff = diff; closest = card; }
                 });
                 if(closest) {
-                    cards.forEach(c => c.classList.remove('active'));
+                    cards.forEach(c => {
+                        c.classList.remove('active');
+                        c.classList.remove('highlighted'); // Remove highlight badge
+                    });
                     closest.classList.add('active');
-                    const id = parseInt(closest.dataset.id);
-                    if(id && id !== window.lastCenteredId) {
-                        window.lastCenteredId = id;
-                        // On slide, pan map to location (optional, user requested)
-                        const spot = facilitiesData.find(f => f.id === id);
-                        if(spot) {
-                            map.panTo([spot.lat, spot.lng], {animate: true, duration: 0.5});
-                            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-                            const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
-                        }
-                    }
                 }
             });
         }
@@ -513,6 +516,7 @@
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
             const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist);
+            // Show ALL filtered cards
             renderMapCards(sorted);
         }
 
@@ -525,9 +529,9 @@
                 const card = document.createElement('div');
                 card.className = "map-card-compact bg-white";
                 card.dataset.id = spot.id;
-                // Click on card -> Pan map
                 card.onclick = () => { map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
                 card.innerHTML = `
+                    <div class="here-badge">📍 こちら</div>
                     <div class="flex flex-col justify-center flex-1 mr-2" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">
                         <div class="flex items-center gap-2 mb-1">
                             <h3 class="font-bold text-slate-800 text-sm line-clamp-1 underline decoration-dotted decoration-teal-500">${spot.name}</h3>
@@ -551,13 +555,17 @@
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
             
-            // Scroll card into view
+            // Scroll card into view & Highlight
             const cards = document.querySelectorAll('.map-card-compact');
             for(let card of cards) {
                 if(parseInt(card.dataset.id) === id) {
                     card.scrollIntoView({behavior: "smooth", inline: "center", block: "nearest"});
-                    cards.forEach(c => c.classList.remove('active'));
+                    cards.forEach(c => {
+                        c.classList.remove('active');
+                        c.classList.remove('highlighted');
+                    });
                     card.classList.add('active');
+                    card.classList.add('highlighted'); // Show "Here" badge
                     break;
                 }
             }
