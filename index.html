@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HandiMap Tokyo - 障害者手帳で楽しむ東京</title>
+    <title>HandiMap Kanto - 障害者手帳で楽しむ関東</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,13 +21,12 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"M PLUS Rounded 1c"', '"Noto Sans JP"', 'sans-serif'], // 丸ゴシック体で優しさを表現
+                        sans: ['"M PLUS Rounded 1c"', '"Noto Sans JP"', 'sans-serif'],
                     },
                     colors: {
-                        primary: '#1E40AF',   // 藍色（信頼感）
-                        secondary: '#F1F5F9', // 背景色
-                        accent: '#F43F5E',    // 珊瑚色（アクセント）
-                        warm: '#FFFBEB',      // 温かい白
+                        primary: '#0F766E',   // テールグリーン（落ち着きと視認性）
+                        secondary: '#F0FDFA', // 背景色
+                        accent: '#F43F5E',    // 珊瑚色
                     },
                     boxShadow: {
                         'float': '0 8px 30px rgba(0,0,0,0.12)',
@@ -40,66 +39,53 @@
 
     <style>
         body { 
-            touch-action: manipulation; 
-            overflow: hidden; 
-            background-color: #F8FAFC;
-            -webkit-font-smoothing: antialiased;
-            color: #334155;
+            touch-action: manipulation; overflow: hidden; background-color: #F8FAFC;
+            -webkit-font-smoothing: antialiased; color: #334155;
         }
 
-        /* --- UI Layout --- */
+        /* Layout */
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
-
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; opacity: 0; transition: opacity 0.3s ease; }
         .page.active { display: flex; opacity: 1; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
 
-        /* --- Map Styling --- */
+        /* Map */
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
-
-        /* Custom Markers */
         .pin-marker {
             background-color: white; border-radius: 50%; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            width: 48px; height: 48px; position: relative;
-            border: 2px solid #fff;
+            font-size: 24px; transition: all 0.3s; width: 48px; height: 48px; position: relative; border: 2px solid #fff;
         }
         .pin-marker::after {
             content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
             width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid white;
         }
         .pin-marker.active-pin {
-            background-color: #1E40AF; color: white; border-color: #1E40AF; 
+            background-color: #0F766E; color: white; border-color: #0F766E; 
             transform: scale(1.2) translateY(-10px); z-index: 3000 !important;
-            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.5);
+            box-shadow: 0 10px 25px rgba(15, 118, 110, 0.5);
         }
-        .pin-marker.active-pin::after { border-top-color: #1E40AF; }
+        .pin-marker.active-pin::after { border-top-color: #0F766E; }
 
         /* Controls */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.8);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-
         .category-filter {
             display: flex; gap: 8px; overflow-x: auto; padding: 6px;
             scrollbar-width: none; -webkit-overflow-scrolling: touch;
         }
         .category-filter::-webkit-scrollbar { display: none; }
-        
         .filter-btn {
-            padding: 10px 20px; border-radius: 100px; font-size: 14px; font-weight: 700; white-space: nowrap;
+            padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 700; white-space: nowrap;
             transition: all 0.2s; background: white; color: #64748B; border: 1px solid #E2E8F0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
             display: flex; align-items: center; gap: 6px;
         }
         .filter-btn.active {
-            background: #1E40AF; color: white; border-color: #1E40AF; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3); transform: translateY(-1px);
+            background: #0F766E; color: white; border-color: #0F766E; transform: translateY(-1px);
         }
 
         /* Cards */
@@ -110,75 +96,59 @@
             -webkit-overflow-scrolling: touch; z-index: 1000;
             padding-bottom: 20px; scrollbar-width: none;
         }
-        @media (min-width: 768px) {
-            .card-scroller { bottom: 30px; justify-content: center; }
-        }
+        @media (min-width: 768px) { .card-scroller { bottom: 30px; justify-content: center; } }
         .card-scroller::-webkit-scrollbar { display: none; }
-
         .map-card {
             flex: 0 0 90%; max-width: 380px;
             background: white; border-radius: 24px; padding: 24px;
             box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);
-            scroll-snap-align: center;
-            transition: transform 0.3s, border 0.3s;
-            border: 3px solid transparent;
-            position: relative; display: flex; flex-direction: column;
+            scroll-snap-align: center; transition: transform 0.3s, border 0.3s;
+            border: 3px solid transparent; position: relative; display: flex; flex-direction: column;
         }
-        .map-card.active { border-color: #1E40AF; transform: translateY(-4px); }
+        .map-card.active { border-color: #0F766E; transform: translateY(-4px); }
 
-        /* Navigation Bar */
+        /* Nav */
         .nav-container { z-index: 3000; }
         @media (max-width: 767px) {
             .nav-container {
                 position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
                 width: 92%; max-width: 400px; height: 70px;
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-                border-radius: 35px;
-                box-shadow: 0 8px 30px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.5);
+                background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+                border-radius: 35px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);
                 display: flex; justify-content: space-evenly; align-items: center;
             }
             .nav-item {
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
                 color: #94A3B8; font-size: 11px; font-weight: bold; width: 70px; height: 100%;
-                gap: 4px; transition: all 0.2s; position: relative;
             }
             .nav-item i { font-size: 22px; transition: transform 0.2s; }
-            .nav-item.active { color: #1E40AF; }
+            .nav-item.active { color: #0F766E; }
             .nav-item.active i { transform: translateY(-2px); }
-            .nav-item.active::after {
-                content: ''; position: absolute; bottom: 8px; width: 5px; height: 5px;
-                background: #1E40AF; border-radius: 50%;
-            }
         }
         @media (min-width: 768px) {
             .nav-container {
-                position: relative; width: 280px; height: 100%;
-                background: white; border-right: 1px solid #F1F5F9;
+                width: 280px; height: 100%; background: white; border-right: 1px solid #F1F5F9;
                 display: flex; flex-direction: column; padding-top: 40px;
             }
             .nav-item {
-                display: flex; align-items: center; gap: 16px;
-                padding: 18px 32px; font-size: 16px; color: #64748B; font-weight: 600;
-                cursor: pointer; transition: all 0.2s;
+                display: flex; align-items: center; gap: 16px; padding: 18px 32px; font-size: 16px;
+                color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s;
             }
-            .nav-item:hover { background: #F8FAFC; color: #1E40AF; }
-            .nav-item.active { background: #EFF6FF; color: #1E40AF; border-right: 4px solid #1E40AF; }
-            .nav-item i { font-size: 20px; width: 24px; text-align: center; }
+            .nav-item:hover { background: #F8FAFC; color: #0F766E; }
+            .nav-item.active { background: #F0FDFA; color: #0F766E; border-right: 4px solid #0F766E; }
         }
 
-        /* Utilities */
+        /* Utils */
         .btn-primary {
-            background: linear-gradient(135deg, #1E40AF, #3B82F6); color: white;
+            background: linear-gradient(135deg, #0F766E, #14B8A6); color: white;
             font-weight: 700; padding: 12px 24px; border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3); transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3); transition: all 0.2s;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .btn-primary:active { transform: scale(0.96); }
-        
-        .tag { font-size: 12px; padding: 6px 12px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-        .tag-discount { background: #ECFDF5; color: #047857; }
-        .tag-category { background: #F1F5F9; color: #475569; }
+        .tag { font-size: 11px; padding: 4px 10px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+        .tag-price { background: #FEF2F2; color: #BE123C; border: 1px solid #FECDD3; }
+        .tag-area { background: #F1F5F9; color: #475569; }
 
         /* Modal */
         .modal-overlay {
@@ -188,9 +158,10 @@
         }
         .modal-overlay.show { display: flex; opacity: 1; }
         .modal-box {
-            background: white; width: 88%; max-width: 380px; border-radius: 28px;
+            background: white; width: 88%; max-width: 400px; border-radius: 28px;
             padding: 32px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
             transform: scale(0.95); transition: transform 0.3s;
+            max-height: 80vh; overflow-y: auto;
         }
         .modal-overlay.show .modal-box { transform: scale(1); }
     </style>
@@ -200,15 +171,15 @@
     <div id="app-container">
         <nav class="nav-container order-2 md:order-1">
             <div class="hidden md:block px-8 mb-8">
-                <h1 class="text-2xl font-bold text-blue-900 tracking-tight flex items-center gap-3">
-                    <span class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-dove"></i></span>
+                <h1 class="text-2xl font-bold text-teal-900 tracking-tight flex items-center gap-3">
+                    <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-map-marked-alt"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-sm text-slate-400 mt-2 font-bold pl-1">東京を楽しむ、みんなの地図</p>
+                <p class="text-sm text-slate-400 mt-2 font-bold pl-1">関東・割引施設マップ</p>
             </div>
 
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map">
-                <i class="fas fa-map-location-dot"></i><span>マップで探す</span>
+                <i class="fas fa-search-location"></i><span>マップ</span>
             </div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list">
                 <i class="fas fa-list-ul"></i><span>施設一覧</span>
@@ -218,8 +189,8 @@
             </div>
             
             <div class="mt-auto p-6 hidden md:block">
-                <button onclick="openMapSettings()" class="w-full py-4 px-4 rounded-xl bg-slate-50 text-slate-500 text-sm font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
-                    <i class="fas fa-cog"></i> 設定
+                <button onclick="openInfoModal()" class="w-full py-4 px-4 rounded-xl bg-slate-50 text-slate-500 text-sm font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 mb-2">
+                    <i class="fas fa-info-circle"></i> 注意事項
                 </button>
             </div>
         </nav>
@@ -232,25 +203,21 @@
                     <div class="glass-panel rounded-full p-1 pointer-events-auto max-w-full overflow-hidden shadow-float">
                         <div class="category-filter">
                             <button onclick="setFilter('all')" id="filter-all" class="filter-btn active">すべて</button>
-                            <button onclick="setFilter('museum')" id="filter-museum" class="filter-btn"><i class="fas fa-landmark text-amber-500"></i>美術館・博物館</button>
                             <button onclick="setFilter('leisure')" id="filter-leisure" class="filter-btn"><i class="fas fa-rocket text-purple-500"></i>レジャー</button>
-                            <button onclick="setFilter('park')" id="filter-park" class="filter-btn"><i class="fas fa-tree text-green-500"></i>公園・庭園</button>
-                            <button onclick="setFilter('cinema')" id="filter-cinema" class="filter-btn"><i class="fas fa-film text-red-500"></i>映画館</button>
+                            <button onclick="setFilter('museum')" id="filter-museum" class="filter-btn"><i class="fas fa-landmark text-amber-500"></i>博物館</button>
+                            <button onclick="setFilter('aquarium')" id="filter-aquarium" class="filter-btn"><i class="fas fa-fish text-blue-500"></i>水族館</button>
+                            <button onclick="setFilter('park')" id="filter-park" class="filter-btn"><i class="fas fa-tree text-green-500"></i>公園</button>
                         </div>
                     </div>
 
                     <div class="flex gap-3 pointer-events-auto self-end md:self-auto">
-                        <button onclick="openMapSettings()" class="w-12 h-12 bg-white rounded-full shadow-float text-slate-400 flex items-center justify-center active:scale-90 transition-transform md:hidden text-lg">
-                            <i class="fas fa-cog"></i>
+                        <button onclick="openInfoModal()" class="w-12 h-12 bg-white rounded-full shadow-float text-slate-400 flex items-center justify-center active:scale-90 transition-transform md:hidden text-lg">
+                            <i class="fas fa-info-circle"></i>
                         </button>
-                        <button onclick="locateUser()" id="gps-btn" class="w-12 h-12 bg-white rounded-full shadow-float text-blue-600 flex items-center justify-center active:scale-90 transition-transform text-lg">
+                        <button onclick="locateUser()" class="w-12 h-12 bg-white rounded-full shadow-float text-teal-600 flex items-center justify-center active:scale-90 transition-transform text-lg">
                             <i class="fas fa-crosshairs"></i>
                         </button>
                     </div>
-                </div>
-
-                <div id="toast" class="absolute top-28 left-1/2 transform -translate-x-1/2 bg-slate-800/95 text-white px-6 py-3 rounded-full text-sm font-bold shadow-xl z-[500] opacity-0 transition-opacity pointer-events-none backdrop-blur-sm whitespace-nowrap">
-                    <i class="fas fa-info-circle mr-2"></i> <span id="toast-msg">通知</span>
                 </div>
 
                 <div id="map"></div>
@@ -260,14 +227,9 @@
             <div id="page-list" class="page overflow-y-auto">
                 <div class="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100 px-6 py-5">
                     <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fas fa-search-location text-blue-600"></i> 東京都の施設一覧
+                        <i class="fas fa-list text-teal-600"></i> エリア別施設一覧
                     </h1>
-                    <div class="flex justify-between items-end mt-2">
-                        <p id="total-count" class="text-sm font-bold text-slate-400">読み込み中...</p>
-                        <a href="https://shogaisha-techo.com/archives/category/tokyo/" target="_blank" class="text-xs font-bold text-blue-500 hover:underline">
-                            情報提供: 障害者手帳で行こう！ <i class="fas fa-external-link-alt"></i>
-                        </a>
-                    </div>
+                    <p id="total-count" class="text-sm font-bold text-slate-400 mt-1">読み込み中...</p>
                 </div>
                 <div id="pref-list-container" class="p-6 pb-28 md:pb-12 max-w-4xl mx-auto w-full"></div>
             </div>
@@ -278,111 +240,104 @@
                         <i class="fas fa-bookmark text-pink-500"></i> お気に入り
                     </h1>
                     <div class="flex bg-slate-100 rounded-lg p-1 gap-1">
-                        <button onclick="switchListTab('fav')" id="tab-fav" class="px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-600 shadow-sm transition-all">行きたい</button>
+                        <button onclick="switchListTab('fav')" id="tab-fav" class="px-4 py-2 text-xs font-bold rounded-md bg-white text-teal-600 shadow-sm transition-all">行きたい</button>
                         <button onclick="switchListTab('visited')" id="tab-visited" class="px-4 py-2 text-xs font-bold rounded-md text-slate-400 transition-all">行った</button>
                     </div>
                 </div>
-                <div id="mylist-container" class="p-6 pb-28 md:pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto w-full"></div>
+                <div id="mylist-container" class="p-6 pb-28 md:pb-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto w-full"></div>
             </div>
 
         </main>
     </div>
 
-    <div id="map-select-modal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-5 text-indigo-500 text-2xl">
-                <i class="fas fa-route"></i>
-            </div>
-            <h3 class="text-xl font-bold mb-3 text-slate-800">ナビアプリの設定</h3>
-            <p class="text-sm text-slate-500 mb-8 leading-relaxed font-medium">「行く」ボタンを押したときに<br>起動する地図アプリを選んでください。</p>
-            
-            <div class="flex flex-col gap-4 mb-6">
-                <button onclick="setMapProvider('google')" class="flex items-center p-5 rounded-2xl border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50 transition-all group text-left relative overflow-hidden">
-                    <div class="w-12 h-12 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center text-2xl mr-4 text-red-500 relative z-10">
-                        <i class="fab fa-google"></i>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="text-base font-bold text-slate-700 group-hover:text-blue-700">Googleマップ</div>
-                        <div class="text-xs text-slate-400 mt-0.5">おすすめ (PC/スマホ共通)</div>
-                    </div>
-                </button>
-
-                <button onclick="setMapProvider('default')" class="flex items-center p-5 rounded-2xl border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50 transition-all group text-left">
-                    <div class="w-12 h-12 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center text-2xl mr-4 text-slate-700">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <div>
-                        <div class="text-base font-bold text-slate-700 group-hover:text-blue-700">標準マップ</div>
-                        <div class="text-xs text-slate-400 mt-0.5">iPhone標準 / Android標準</div>
-                    </div>
-                </button>
-            </div>
-            <button onclick="closeModal('map-select-modal')" class="text-sm text-slate-400 font-bold hover:text-slate-600 py-2 w-full">閉じる</button>
+    <div id="info-modal" class="modal-overlay">
+        <div class="modal-box text-left">
+            <h3 class="text-xl font-bold mb-4 text-slate-800 border-b pb-2">利用上の注意点</h3>
+            <ul class="text-sm text-slate-600 space-y-4 leading-relaxed list-disc pl-4 mb-6">
+                <li><strong>「半額」の表記について:</strong><br>基本的に「本人＋付き添い1名」まで適用される施設が多いですが、詳細は必ず各公式HPをご確認ください。</li>
+                <li><strong>ディズニーリゾート:</strong><br>以前のような窓口割引ではなく、事前にオンラインで「障がいのある方向け」チケットを購入する必要があります。</li>
+                <li><strong>価格の変動:</strong><br>サンリオピューロランドやディズニーリゾートなどは、日によって価格が変わる「変動価格制」のため、記載の金額は目安（または最低価格）となります。</li>
+                <li><strong>手帳の提示:</strong><br>割引を受ける際は、必ず障害者手帳（原本またはミライロID等）の提示が必要です。</li>
+            </ul>
+            <button onclick="closeModal('info-modal')" class="btn-primary w-full">閉じる</button>
         </div>
     </div>
 
-    <div id="region-modal" class="modal-overlay">
+    <div id="map-select-modal" class="modal-overlay">
         <div class="modal-box">
-            <div class="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 text-2xl">
-                <i class="fas fa-map-marker-slash"></i>
+            <h3 class="text-lg font-bold mb-4 text-slate-800">ナビアプリを選択</h3>
+            <div class="flex flex-col gap-3 mb-4">
+                <button onclick="setMapProvider('google')" class="p-4 rounded-xl border hover:bg-blue-50 text-left font-bold text-slate-700">
+                    <i class="fab fa-google text-red-500 mr-2"></i> Googleマップ
+                </button>
+                <button onclick="setMapProvider('default')" class="p-4 rounded-xl border hover:bg-blue-50 text-left font-bold text-slate-700">
+                    <i class="fas fa-mobile-alt text-slate-500 mr-2"></i> 標準マップ
+                </button>
             </div>
-            <h3 class="text-lg font-bold mb-2 text-slate-800">位置情報が取得できません</h3>
-            <p class="text-sm text-slate-500 mb-6 leading-relaxed">端末の設定で位置情報を許可するか、<br>手動でエリアを選択してください。</p>
-            <button onclick="manualLocate(35.6895, 139.6917)" class="btn-primary w-full shadow-none bg-slate-500">
-                東京駅周辺を表示
-            </button>
-            <button onclick="closeModal('region-modal')" class="mt-4 text-sm text-slate-400 font-bold">閉じる</button>
+            <button onclick="closeModal('map-select-modal')" class="text-sm text-slate-400">閉じる</button>
         </div>
     </div>
 
     <script>
-        // --- 東京都の施設データ (Webサイト情報を参考に構築) ---
+        // --- 施設データ (提供リスト + 既存東京データ統合) ---
         const facilities = [
-            // --- 美術館・博物館 ---
-            { id: 101, name: "東京国立近代美術館", area: "千代田区", category: "museum", lat: 35.6905, lng: 139.7547, discount: "無料(要手帳)", address: "千代田区北の丸公園", url: "https://www.momat.go.jp/" },
-            { id: 102, name: "国立科学博物館", area: "台東区", category: "museum", lat: 35.7163, lng: 139.7766, discount: "無料(要手帳)", address: "台東区上野公園", url: "https://www.kahaku.go.jp/" },
-            { id: 103, name: "東京国立博物館", area: "台東区", category: "museum", lat: 35.7188, lng: 139.7765, discount: "無料(要手帳)", address: "台東区上野公園", url: "https://www.tnm.jp/" },
-            { id: 104, name: "国立新美術館", area: "港区", category: "museum", lat: 35.6652, lng: 139.7263, discount: "無料(企画展含)", address: "港区六本木", url: "https://www.nact.jp/" },
-            { id: 105, name: "森美術館", area: "港区", category: "museum", lat: 35.6604, lng: 139.7292, discount: "半額(要手帳)", address: "港区六本木ヒルズ", url: "https://www.mori.art.museum/" },
-            { id: 106, name: "根津美術館", area: "港区", category: "museum", lat: 35.6617, lng: 139.7196, discount: "200円引", address: "港区南青山", url: "https://www.nezu-muse.or.jp/" },
-            { id: 107, name: "サントリー美術館", area: "港区", category: "museum", lat: 35.6661, lng: 139.7310, discount: "100円引(要手帳)", address: "港区赤坂", url: "https://www.suntory.co.jp/sma/" },
-            { id: 108, name: "21_21 DESIGN SIGHT", area: "港区", category: "museum", lat: 35.6669, lng: 139.7303, discount: "無料(要手帳)", address: "港区赤坂", url: "http://www.2121designsight.jp/" },
-
-            // --- レジャー・観光 ---
-            { id: 201, name: "東京タワー", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, discount: "半額(要手帳)", address: "港区芝公園", url: "https://www.tokyotower.co.jp/" },
-            { id: 202, name: "東京スカイツリー", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, discount: "半額(要手帳)", address: "墨田区押上", url: "https://www.tokyo-skytree.jp/" },
-            { id: 203, name: "サンシャイン水族館", area: "豊島区", category: "leisure", lat: 35.7289, lng: 139.7200, discount: "半額(要手帳)", address: "豊島区東池袋", url: "https://sunshinecity.jp/aquarium/" },
-            { id: 204, name: "マクセル アクアパーク品川", area: "港区", category: "leisure", lat: 35.6285, lng: 139.7378, discount: "半額(要手帳)", address: "港区高輪", url: "http://www.aqua-park.jp/aqua/" },
-            { id: 205, name: "恩賜上野動物園", area: "台東区", category: "leisure", lat: 35.7165, lng: 139.7713, discount: "無料(要手帳)", address: "台東区上野公園", url: "https://www.tokyo-zoo.net/zoo/ueno/" },
-            { id: 206, name: "葛西臨海水族園", area: "江戸川区", category: "leisure", lat: 35.6401, lng: 139.8624, discount: "無料(要手帳)", address: "江戸川区臨海町", url: "https://www.tokyo-zoo.net/zoo/kasai/" },
-            { id: 207, name: "SHIBUYA SKY", area: "渋谷区", category: "leisure", lat: 35.6583, lng: 139.7020, discount: "半額(要手帳)", address: "渋谷区スクランブルスクエア", url: "https://www.shibuya-scramble-square.com/sky/" },
-            { id: 208, name: "コスモプラネタリウム渋谷", area: "渋谷区", category: "leisure", lat: 35.6558, lng: 139.7032, discount: "無料(要手帳)", address: "渋谷区桜丘町", url: "https://www.shibu-cul.jp/planetarium" },
-            { id: 209, name: "東京ジョイポリス", area: "港区", category: "leisure", lat: 35.6287, lng: 139.7759, discount: "入場無料/パス割引", address: "港区お台場", url: "https://tokyo-joypolis.com/" },
-
-            // --- 公園・庭園 ---
-            { id: 301, name: "新宿御苑", area: "新宿区", category: "park", lat: 35.6851, lng: 139.7100, discount: "無料(要手帳)", address: "新宿区内藤町", url: "https://fng.or.jp/shinjuku/" },
-            { id: 302, name: "浜離宮恩賜庭園", area: "中央区", category: "park", lat: 35.6596, lng: 139.7634, discount: "無料(要手帳)", address: "中央区浜離宮庭園", url: "https://www.tokyo-park.or.jp/park/format/index028.html" },
-            { id: 303, name: "六義園", area: "文京区", category: "park", lat: 35.7317, lng: 139.7475, discount: "無料(要手帳)", address: "文京区本駒込", url: "https://www.tokyo-park.or.jp/park/format/index031.html" },
-            { id: 304, name: "小石川後楽園", area: "文京区", category: "park", lat: 35.7052, lng: 139.7490, discount: "無料(要手帳)", address: "文京区後楽", url: "https://www.tokyo-park.or.jp/park/format/index030.html" },
-            { id: 305, name: "国営昭和記念公園", area: "立川市", category: "park", lat: 35.7118, lng: 139.3934, discount: "無料(要手帳)", address: "立川市緑町", url: "https://www.showakinen-koen.jp/" },
-
-            // --- 映画館 ---
-            { id: 401, name: "TOHOシネマズ 日比谷", area: "千代田区", category: "cinema", lat: 35.6732, lng: 139.7599, discount: "1000円(要手帳)", address: "千代田区有楽町", url: "https://www.tohotheater.jp/" },
-            { id: 402, name: "TOHOシネマズ 新宿", area: "新宿区", category: "cinema", lat: 35.6955, lng: 139.7020, discount: "1000円(要手帳)", address: "新宿区歌舞伎町", url: "https://www.tohotheater.jp/" },
-            { id: 403, name: "109シネマズプレミアム新宿", area: "新宿区", category: "cinema", lat: 35.6961, lng: 139.7005, discount: "割引あり(要手帳)", address: "新宿区歌舞伎町", url: "https://109cinemas.net/" },
-            { id: 404, name: "グランドシネマサンシャイン池袋", area: "豊島区", category: "cinema", lat: 35.7303, lng: 139.7153, discount: "1000円(要手帳)", address: "豊島区東池袋", url: "https://www.cinemasunshine.co.jp/" },
+            // === 東京都 ===
+            { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日大人1,150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
+            { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (メインデッキ600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
+            { id: 103, name: "新宿御苑", pref: "東京都", area: "新宿区", category: "park", lat: 35.6851, lng: 139.7100, price: "無料 (本人＋付添1名)", address: "新宿区内藤町11", url: "https://fng.or.jp/shinjuku/" },
+            { id: 104, name: "上野動物園", pref: "東京都", area: "台東区", category: "zoo", lat: 35.7165, lng: 139.7713, price: "無料 (本人＋付添1名)", address: "台東区上野公園9-83", url: "https://www.tokyo-zoo.net/zoo/ueno/" },
+            { id: 105, name: "葛西臨海水族園", pref: "東京都", area: "江戸川区", category: "aquarium", lat: 35.6401, lng: 139.8624, price: "無料 (本人＋付添1名)", address: "江戸川区臨海町6-2-3", url: "https://www.tokyo-zoo.net/zoo/kasai/" },
+            { id: 106, name: "国立科学博物館", pref: "東京都", area: "台東区", category: "museum", lat: 35.7163, lng: 139.7766, price: "無料 (本人＋付添1名)", address: "台東区上野公園7-20", url: "https://www.kahaku.go.jp/" },
+            { id: 107, name: "日本科学未来館", pref: "東京都", area: "江東区", category: "museum", lat: 35.6193, lng: 139.7765, price: "無料 (本人＋付添1名)", address: "江東区青海2-3-6", url: "https://www.miraikan.jst.go.jp/" },
+            { id: 108, name: "サンリオピューロランド", pref: "東京都", area: "多摩市", category: "leisure", lat: 35.6247, lng: 139.4293, price: "窓口価格より200円引", address: "多摩市落合1-31", url: "https://www.puroland.jp/" },
+            { id: 109, name: "TOHOシネマズ", pref: "東京都", area: "都内各所", category: "cinema", lat: 35.6955, lng: 139.7020, price: "1,000円 (本人＋付添1名)", address: "新宿ほか都内各所", url: "https://www.tohotheater.jp/" },
             
-            // --- その他主要 ---
-            { id: 501, name: "東京ディズニーランド", area: "千葉県", category: "leisure", lat: 35.6329, lng: 139.8804, discount: "障がい者向けチケット", address: "浦安市舞浜", url: "https://www.tokyodisneyresort.jp/" },
+            // 既存データの補完（東京）
+            { id: 110, name: "国立新美術館", pref: "東京都", area: "港区", category: "museum", lat: 35.6652, lng: 139.7263, price: "無料(企画展含)", address: "港区六本木", url: "https://www.nact.jp/" },
+            { id: 111, name: "森美術館", pref: "東京都", area: "港区", category: "museum", lat: 35.6604, lng: 139.7292, price: "半額(要手帳)", address: "港区六本木ヒルズ", url: "https://www.mori.art.museum/" },
+
+            // === 神奈川県 ===
+            { id: 201, name: "新江ノ島水族館", pref: "神奈川県", area: "藤沢市", category: "aquarium", lat: 35.3089, lng: 139.4819, price: "半額 (大人1,250円)", address: "藤沢市片瀬海岸2-19-1", url: "https://www.enosui.com/" },
+            { id: 202, name: "よこはま動物園ズーラシア", pref: "神奈川県", area: "横浜市", category: "zoo", lat: 35.4944, lng: 139.5255, price: "無料 (本人＋付添1名)", address: "横浜市旭区上白根町1175-1", url: "https://www.hama-midorinokyokai.or.jp/zoo/zoorasia/" },
+            { id: 203, name: "カップヌードルミュージアム", pref: "神奈川県", area: "横浜市", category: "museum", lat: 35.4555, lng: 139.6389, price: "入館料無料 (体験料別)", address: "横浜市中区新港2-3-4", url: "https://www.cupnoodles-museum.jp/" },
+            { id: 204, name: "横浜・八景島シーパラダイス", pref: "神奈川県", area: "横浜市", category: "leisure", lat: 35.3367, lng: 139.6469, price: "半額 (アクアリゾーツパス等)", address: "横浜市金沢区八景島", url: "https://www.seaparadise.co.jp/" },
+
+            // === 千葉県 ===
+            { id: 301, name: "東京ディズニーランド/シー", pref: "千葉県", area: "浦安市", category: "leisure", lat: 35.6329, lng: 139.8804, price: "専用パス (大人6,800円〜)", address: "浦安市舞浜1-1", url: "https://www.tokyodisneyresort.jp/" },
+            { id: 302, name: "鴨川シーワールド", pref: "千葉県", area: "鴨川市", category: "aquarium", lat: 35.1157, lng: 140.1189, price: "半額 (大人1,650円)", address: "鴨川市東町1464-18", url: "https://www.kamogawa-seaworld.jp/" },
+            { id: 303, name: "マザー牧場", pref: "千葉県", area: "富津市", category: "zoo", lat: 35.2639, lng: 139.9328, price: "半額 (大人750円)", address: "富津市田倉940-3", url: "https://www.motherfarm.co.jp/" },
+            { id: 304, name: "東京ドイツ村", pref: "千葉県", area: "袖ケ浦市", category: "leisure", lat: 35.4055, lng: 140.0543, price: "半額 (大人500円)", address: "袖ケ浦市永吉419", url: "https://t-doitsumura.co.jp/" },
+
+            // === 埼玉県 ===
+            { id: 401, name: "鉄道博物館", pref: "埼玉県", area: "さいたま市", category: "museum", lat: 35.9209, lng: 139.6196, price: "半額 (一般660円)", address: "さいたま市大宮区大成町3-47", url: "https://www.railway-museum.jp/" },
+            { id: 402, name: "東武動物公園", pref: "埼玉県", area: "宮代町", category: "zoo", lat: 36.0244, lng: 139.7136, price: "入園料半額 (大人950円)", address: "南埼玉郡宮代町須賀110", url: "https://www.tobuzoo.com/" },
+            { id: 403, name: "西武園ゆうえんち", pref: "埼玉県", area: "所沢市", category: "leisure", lat: 35.7644, lng: 139.4447, price: "割引あり", address: "所沢市山口2964", url: "https://www.seibu-leisure.co.jp/" },
+
+            // === 茨城県 ===
+            { id: 501, name: "アクアワールド大洗", pref: "茨城県", area: "大洗町", category: "aquarium", lat: 36.3134, lng: 140.5898, price: "半額 (大人1,150円)", address: "東茨城郡大洗町磯浜町", url: "https://www.aquaworld-oarai.com/" },
+            { id: 502, name: "国営ひたち海浜公園", pref: "茨城県", area: "ひたちなか市", category: "park", lat: 36.4042, lng: 140.5960, price: "無料 (本人＋付添1名)", address: "ひたちなか市馬渡字大沼", url: "https://hitachikaihin.jp/" },
+
+            // === 栃木県 ===
+            { id: 601, name: "日光江戸村", pref: "栃木県", area: "日光市", category: "leisure", lat: 36.8043, lng: 139.6974, price: "大人3,500円 (通常5,800円)", address: "日光市柄倉470-2", url: "http://edowonderland.net/" },
+            { id: 602, name: "東武ワールドスクウェア", pref: "栃木県", area: "日光市", category: "leisure", lat: 36.8073, lng: 139.7121, price: "半額 (大人1,400円)", address: "日光市鬼怒川温泉大原", url: "https://www.tobuws.co.jp/" },
+
+            // === 群馬県 ===
+            { id: 701, name: "群馬サファリパーク", pref: "群馬県", area: "富岡市", category: "zoo", lat: 36.2628, lng: 138.9100, price: "入園料半額 (大人1,350円)", address: "富岡市岡本1", url: "https://www.safari.co.jp/" },
+            { id: 702, name: "富岡製糸場", pref: "群馬県", area: "富岡市", category: "museum", lat: 36.2550, lng: 138.8986, price: "無料 (本人＋付添1名)", address: "富岡市富岡1-1", url: "https://www.tomioka-silk.jp/" },
+            
+            // === 全域・チェーン（リストのみ表示） ===
+            { id: 901, name: "イオンシネマ", pref: "全域", area: "各店舗", category: "cinema", lat: null, lng: null, price: "1,000円 (本人＋付添1名)", address: "関東各所の劇場", url: "https://www.aeoncinema.com/" },
+            { id: 902, name: "ビッグエコー", pref: "全域", area: "各店舗", category: "other", lat: null, lng: null, price: "室料50%OFF (会員価格より)", address: "関東各所の店舗", url: "https://big-echo.jp/" },
+            { id: 903, name: "カラオケ館", pref: "全域", area: "各店舗", category: "other", lat: null, lng: null, price: "室料50%OFF (一般料金より)", address: "関東各所の店舗", url: "http://karaokekan.jp/" }
         ];
-        
-        // --- アプリ状態管理 ---
+
+        // --- App State ---
         let map;
         let markers = {};
         let currentFilter = 'all';
         let currentListTab = 'fav';
-        let userStatus = JSON.parse(localStorage.getItem('handimap_v5_status')) || {};
-        let mapProvider = localStorage.getItem('handimap_v5_provider') || null; 
+        let userStatus = JSON.parse(localStorage.getItem('handimap_v6_status')) || {};
+        let mapProvider = localStorage.getItem('handimap_v6_provider') || null; 
         let activeFacilityId = null;
         let visibleFacilities = [];
         let userLocationMarker = null;
@@ -393,12 +348,10 @@
             renderMyList();
         });
 
-        // --- マップ機能 ---
         function initMap() {
-            // 初期位置を東京駅周辺に設定
-            map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([35.6895, 139.6917], 11);
+            // 関東全体が見える位置に設定
+            map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([35.6895, 139.6917], 9);
             
-            // 明るくて見やすい地図スタイル
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '© OpenStreetMap © CARTO', maxZoom: 19
             }).addTo(map);
@@ -426,7 +379,12 @@
             markers = {};
             
             facilities.forEach(spot => {
-                if (currentFilter !== 'all' && spot.category !== currentFilter) return;
+                // 座標がないもの（全域チェーンなど）はスキップ
+                if (!spot.lat || !spot.lng) return;
+                
+                // フィルタリング（zooとaquariumはleisure扱いにする簡易ロジック）
+                const displayCategory = (spot.category === 'zoo' || spot.category === 'aquarium') ? 'leisure' : spot.category;
+                if (currentFilter !== 'all' && displayCategory !== currentFilter && spot.category !== currentFilter) return;
 
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
@@ -442,23 +400,29 @@
         }
 
         function updateVisibleSpots(lat, lng) {
-            const sorted = facilities.map(f => {
+            // 座標がある施設のみ対象
+            const validSpots = facilities.filter(f => f.lat && f.lng);
+            
+            const sorted = validSpots.map(f => {
                 const dist = getDistance(lat, lng, f.lat, f.lng);
                 return { ...f, dist };
             }).sort((a, b) => a.dist - b.dist);
 
             let filtered = sorted;
-            if (currentFilter !== 'all') filtered = sorted.filter(f => f.category === currentFilter);
+            if (currentFilter !== 'all') {
+                filtered = sorted.filter(f => {
+                     const displayCategory = (f.category === 'zoo' || f.category === 'aquarium') ? 'leisure' : f.category;
+                     return displayCategory === currentFilter || f.category === currentFilter;
+                });
+            }
             
             visibleFacilities = filtered.slice(0, 15);
             renderCards();
-            showToast(`<i class="fas fa-map-pin"></i> 近くの施設を${visibleFacilities.length}件表示`);
         }
 
         function renderCards() {
             const scroller = document.getElementById('card-scroller');
             scroller.innerHTML = '';
-            
             if (visibleFacilities.length === 0) return;
 
             const spacerStart = document.createElement('div');
@@ -475,15 +439,16 @@
                 const distDisplay = spot.dist < 1 ? `${Math.round(spot.dist * 1000)}m` : `${spot.dist.toFixed(1)}km`;
 
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="tag tag-discount"><i class="fas fa-yen-sign"></i> ${spot.discount}</span>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="tag tag-price">${spot.price.split(' ')[0]}</span>
                         <div class="text-3xl opacity-20 transform rotate-12">${getIcon(spot.category)}</div>
                     </div>
                     
-                    <h3 class="font-bold text-xl text-slate-800 leading-snug mb-1 line-clamp-1">${spot.name}</h3>
-                    <p class="text-sm text-slate-500 font-medium mb-6 flex items-center gap-1">
-                        <i class="fas fa-map-marker-alt text-slate-400"></i> ${spot.area} 
-                        <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-xs ml-2 font-bold">${distDisplay}先</span>
+                    <h3 class="font-bold text-lg text-slate-800 leading-snug mb-1 line-clamp-1">${spot.name}</h3>
+                    <p class="text-xs text-slate-500 font-bold mb-1">${spot.price}</p>
+                    <p class="text-xs text-slate-400 mb-4 flex items-center">
+                        <i class="fas fa-map-marker-alt mr-1"></i>${spot.pref} ${spot.area} 
+                        <span class="text-teal-600 ml-2 font-bold">(${distDisplay}先)</span>
                     </p>
                     
                     <div class="mt-auto flex gap-3">
@@ -494,11 +459,9 @@
                             <i class="${status.fav ? 'fas' : 'far'} fa-heart text-lg"></i>
                         </button>
                     </div>
-                    <a href="${spot.url}" target="_blank" class="absolute top-5 right-5 text-slate-300 hover:text-blue-500 p-2"><i class="fas fa-external-link-alt"></i></a>
                 `;
                 scroller.appendChild(card);
             });
-
             const spacerEnd = document.createElement('div');
             spacerEnd.style.flex = "0 0 10px";
             scroller.appendChild(spacerEnd);
@@ -507,15 +470,14 @@
         function setActiveFacility(id) {
             if (activeFacilityId === id) return;
             activeFacilityId = id;
-            
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`);
             if(pin) pin.classList.add('active-pin');
 
             const spot = facilities.find(f => f.id === id);
-            if(spot) {
+            if(spot && spot.lat) {
                 const isDesktop = window.innerWidth >= 768;
-                const offset = isDesktop ? 0 : map.getSize().y * 0.25; // カードの分だけ地図中心をずらす
+                const offset = isDesktop ? 0 : map.getSize().y * 0.25;
                 const targetPoint = map.project([spot.lat, spot.lng], map.getZoom()).subtract([0, -offset]);
                 map.flyTo(map.unproject(targetPoint, map.getZoom()), 14, { duration: 0.8 });
             }
@@ -541,88 +503,52 @@
             if(closestId && closestId !== activeFacilityId) setActiveFacility(closestId);
         }
 
-        // --- ナビ機能 ---
-        function handleNavClick(lat, lng, name) {
-            event.stopPropagation();
-            if (!mapProvider) {
-                window.tempNavTarget = { lat, lng, name };
-                document.getElementById('map-select-modal').classList.add('show');
-            } else {
-                openMap(lat, lng, name);
-            }
-        }
-
-        function setMapProvider(provider) {
-            mapProvider = provider;
-            localStorage.setItem('handimap_v5_provider', provider);
-            document.getElementById('map-select-modal').classList.remove('show');
-            
-            if (window.tempNavTarget) {
-                const t = window.tempNavTarget;
-                openMap(t.lat, t.lng, t.name);
-                window.tempNavTarget = null;
-            } else {
-                showToast("設定を保存しました");
-            }
-        }
-
-        function openMapSettings() { document.getElementById('map-select-modal').classList.add('show'); }
-
-        function openMap(lat, lng, name) {
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            let url = "";
-            if (mapProvider === 'google') {
-                url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(name)}`;
-            } else {
-                if (isIOS) url = `http://maps.apple.com/?q=${encodeURIComponent(name)}&ll=${lat},${lng}`;
-                else url = `geo:${lat},${lng}?q=${encodeURIComponent(name)}`;
-            }
-            window.open(url, '_blank');
-        }
-
-        // --- リスト表示 ---
         function renderList() {
             const container = document.getElementById('pref-list-container');
             container.innerHTML = '';
             
-            // カテゴリごとにグループ化
+            // 都道府県ごとにグループ化
             const grouped = {};
+            // 順序指定
+            const prefOrder = ["東京都", "神奈川県", "千葉県", "埼玉県", "茨城県", "栃木県", "群馬県", "全域"];
+            
             facilities.forEach(f => {
-                if(!grouped[f.category]) grouped[f.category] = [];
-                grouped[f.category].push(f);
+                if(!grouped[f.pref]) grouped[f.pref] = [];
+                grouped[f.pref].push(f);
             });
             document.getElementById('total-count').innerText = `全 ${facilities.length} 件`;
 
-            const catNames = { museum: "美術館・博物館", leisure: "レジャー・観光", park: "公園・庭園", cinema: "映画館" };
-            
-            Object.keys(grouped).forEach(cat => {
+            prefOrder.forEach(pref => {
+                if(!grouped[pref]) return;
+
                 const section = document.createElement('div');
                 section.className = "mb-8";
-                section.innerHTML = `<h2 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 border-l-4 border-blue-500 pl-3">${getIcon(cat)} ${catNames[cat] || cat}</h2>`;
+                section.innerHTML = `<h2 class="text-lg font-bold text-teal-900 mb-4 flex items-center gap-2 border-l-4 border-teal-500 pl-3">${pref}</h2>`;
                 
                 const grid = document.createElement('div');
-                grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+                grid.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
 
-                grouped[cat].forEach(spot => {
+                grouped[pref].forEach(spot => {
                     const status = userStatus[spot.id] || {};
                     const item = document.createElement('div');
-                    item.className = "bg-white rounded-2xl p-5 shadow-card border border-slate-100 hover:shadow-lg transition-shadow";
+                    item.className = "bg-white rounded-2xl p-5 shadow-card border border-slate-100";
                     item.innerHTML = `
                         <div class="flex justify-between items-start mb-2">
-                            <span class="tag tag-category">${spot.area}</span>
-                            <a href="${spot.url}" target="_blank" class="text-slate-300 hover:text-blue-500"><i class="fas fa-external-link-alt"></i></a>
+                            <span class="tag tag-area">${spot.area}</span>
+                            <div class="text-xl">${getIcon(spot.category)}</div>
                         </div>
                         <h3 class="font-bold text-lg text-slate-800 mb-1">${spot.name}</h3>
-                        <p class="text-sm text-slate-500 mb-4"><i class="fas fa-map-marker-alt text-slate-300"></i> ${spot.address}</p>
-                        
-                        <div class="bg-blue-50 rounded-lg p-3 mb-4 flex items-center gap-2">
-                            <i class="fas fa-wheelchair text-blue-500"></i>
-                            <span class="text-sm font-bold text-blue-700">${spot.discount}</span>
+                        <div class="bg-red-50 text-red-700 text-sm font-bold p-2 rounded mb-3">
+                            <i class="fas fa-yen-sign"></i> ${spot.price}
                         </div>
+                        <p class="text-xs text-slate-400 mb-4"><i class="fas fa-map-marker-alt"></i> ${spot.address}</p>
 
                         <div class="flex gap-2">
-                            <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}')" class="btn-primary text-xs flex-1 py-2 bg-slate-800"><i class="fas fa-location-arrow"></i> 行く</button>
-                            <button onclick="toggleStatus(${spot.id}, 'fav')" class="py-2 px-4 rounded-xl border border-slate-200 text-slate-400 font-bold hover:bg-pink-50 hover:text-pink-500 hover:border-pink-200 transition-colors ${status.fav ? '!bg-pink-50 !text-pink-500 !border-pink-200' : ''}">
+                            ${spot.lat ? 
+                                `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}')" class="btn-primary text-xs flex-1 py-2"><i class="fas fa-location-arrow"></i> 行く</button>` : 
+                                `<a href="${spot.url}" target="_blank" class="btn-primary text-xs flex-1 py-2 bg-slate-600"><i class="fas fa-external-link-alt"></i> 公式HP</a>`
+                            }
+                            <button onclick="toggleStatus(${spot.id}, 'fav')" class="py-2 px-4 rounded-xl border border-slate-200 text-slate-400 hover:bg-pink-50 hover:text-pink-500 hover:border-pink-200 transition-colors ${status.fav ? '!bg-pink-50 !text-pink-500 !border-pink-200' : ''}">
                                 <i class="${status.fav ? 'fas' : 'far'} fa-heart"></i>
                             </button>
                         </div>
@@ -640,29 +566,25 @@
             const list = facilities.filter(f => userStatus[f.id]?.[currentListTab]);
             
             if(list.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-12 bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">
-                            <i class="far fa-folder-open"></i>
-                        </div>
-                        <p class="text-slate-500 font-bold">まだ登録がありません</p>
-                        <p class="text-xs text-slate-400 mt-1">「♡」ボタンを押すとここに追加されます</p>
-                    </div>`;
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-bold">まだ登録がありません</div>`;
                 return;
             }
             
             list.forEach(spot => {
                 const el = document.createElement('div');
-                el.className = "bg-white rounded-2xl p-5 shadow-card border border-slate-100 relative";
+                el.className = "bg-white rounded-2xl p-5 shadow-card border border-slate-100";
                 el.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
-                         <span class="tag bg-slate-100 text-slate-500">${spot.area}</span>
+                         <span class="tag bg-slate-100 text-slate-500">${spot.pref}</span>
                          <span class="text-2xl">${getIcon(spot.category)}</span>
                     </div>
                     <h3 class="font-bold text-lg text-slate-800 mb-1">${spot.name}</h3>
-                    <p class="text-sm text-slate-400 mb-4">${spot.discount}</p>
+                    <p class="text-xs text-red-500 font-bold mb-4">${spot.price}</p>
                     <div class="flex gap-2 mt-auto">
-                        <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}')" class="flex-1 bg-blue-50 text-blue-600 font-bold py-2 rounded-xl text-sm hover:bg-blue-100"><i class="fas fa-location-arrow"></i> 行く</button>
+                        ${spot.lat ? 
+                            `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}')" class="flex-1 bg-teal-50 text-teal-700 font-bold py-2 rounded-xl text-sm"><i class="fas fa-location-arrow"></i> 行く</button>` : 
+                            `<a href="${spot.url}" target="_blank" class="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-xl text-sm text-center">HP</a>`
+                        }
                         <button onclick="toggleStatus(${spot.id}, '${currentListTab}')" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"><i class="fas fa-trash-alt"></i></button>
                     </div>
                 `;
@@ -670,98 +592,68 @@
             });
         }
 
-        // --- 共通 ---
-        window.locateUser = function() {
-            showToast("現在地を探しています...");
-            if(!navigator.geolocation) { document.getElementById('region-modal').classList.add('show'); return; }
-            
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const lat = pos.coords.latitude; const lng = pos.coords.longitude;
-                if(userLocationMarker) map.removeLayer(userLocationMarker);
-                
-                const pulseIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="width:24px;height:24px;background:#1E40AF;border-radius:50%;border:4px solid white;box-shadow:0 0 0 4px rgba(30,64,175,0.3);"></div>', iconSize: [24, 24] });
-                userLocationMarker = L.marker([lat, lng], {icon: pulseIcon}).addTo(map);
-                
-                map.flyTo([lat, lng], 14, { duration: 1.5 });
-                updateVisibleSpots(lat, lng);
-                showToast("現在地を表示しました");
-            }, (err) => { document.getElementById('region-modal').classList.add('show'); }, { timeout: 8000 });
-        };
-        
-        window.manualLocate = function(lat, lng) {
-            closeModal('region-modal');
-            map.flyTo([lat, lng], 13);
-            updateVisibleSpots(lat, lng);
+        // --- Utils ---
+        function handleNavClick(lat, lng, name) {
+            event.stopPropagation();
+            if (!mapProvider) { window.tempNavTarget = { lat, lng, name }; document.getElementById('map-select-modal').classList.add('show'); } 
+            else { openMap(lat, lng, name); }
         }
-
-        window.setFilter = function(type) {
-            currentFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById(`filter-${type}`);
-            if(btn) btn.classList.add('active');
-            
-            renderAllMarkers();
-            const center = map.getCenter();
-            updateVisibleSpots(center.lat, center.lng);
-        };
-
-        window.toggleStatus = function(id, type) {
+        function setMapProvider(provider) {
+            mapProvider = provider; localStorage.setItem('handimap_v6_provider', provider);
+            document.getElementById('map-select-modal').classList.remove('show');
+            if (window.tempNavTarget) { openMap(window.tempNavTarget.lat, window.tempNavTarget.lng, window.tempNavTarget.name); window.tempNavTarget = null; }
+        }
+        function openMap(lat, lng, name) {
+            if (mapProvider === 'google') window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(name)}`, '_blank');
+            else {
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if (isIOS) window.open(`http://maps.apple.com/?q=${encodeURIComponent(name)}&ll=${lat},${lng}`, '_system');
+                else window.open(`geo:${lat},${lng}?q=${encodeURIComponent(name)}`, '_system');
+            }
+        }
+        function toggleStatus(id, type) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id][type] = !userStatus[id][type];
-            localStorage.setItem('handimap_v5_status', JSON.stringify(userStatus));
-            
-            const center = map.getCenter();
-            updateVisibleSpots(center.lat, center.lng); 
-            renderList();
-            renderMyList();
-            
-            if(userStatus[id][type]) showToast(type === 'fav' ? "お気に入りに追加しました" : "訪問済みにしました");
+            localStorage.setItem('handimap_v6_status', JSON.stringify(userStatus));
+            const center = map.getCenter(); updateVisibleSpots(center.lat, center.lng); renderList(); renderMyList();
         }
-
-        window.switchPage = function(pageId) {
+        function switchPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(`page-${pageId}`).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${pageId}`).classList.add('active');
             if(pageId === 'map') setTimeout(() => map.invalidateSize(), 300);
         }
-
-        window.switchListTab = function(tab) {
+        function switchListTab(tab) {
             currentListTab = tab;
-            const t1 = document.getElementById('tab-fav');
-            const t2 = document.getElementById('tab-visited');
-            
-            if(tab === 'fav') {
-                t1.className = "px-4 py-2 text-xs font-bold rounded-md bg-white text-blue-600 shadow-sm transition-all";
-                t2.className = "px-4 py-2 text-xs font-bold rounded-md text-slate-400 transition-all";
-            } else {
-                t1.className = "px-4 py-2 text-xs font-bold rounded-md text-slate-400 transition-all";
-                t2.className = "px-4 py-2 text-xs font-bold rounded-md bg-white text-green-600 shadow-sm transition-all";
-            }
+            document.getElementById('tab-fav').className = `px-4 py-2 text-xs font-bold rounded-md transition-all ${tab==='fav' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-400'}`;
+            document.getElementById('tab-visited').className = `px-4 py-2 text-xs font-bold rounded-md transition-all ${tab==='visited' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`;
             renderMyList();
         }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-msg').innerHTML = msg;
-            t.style.opacity = '1'; t.style.transform = 'translate(-50%, 0)';
-            setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translate(-50%, -10px)'; }, 2500);
+        function setFilter(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`filter-${type}`).classList.add('active');
+            renderAllMarkers(); const center = map.getCenter(); updateVisibleSpots(center.lat, center.lng);
         }
-
-        window.closeModal = function(id) { document.getElementById(id).classList.remove('show'); }
-
+        window.locateUser = function() {
+            if(!navigator.geolocation) { return; }
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude; const lng = pos.coords.longitude;
+                if(userLocationMarker) map.removeLayer(userLocationMarker);
+                const pulseIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="width:24px;height:24px;background:#0F766E;border-radius:50%;border:4px solid white;box-shadow:0 0 0 4px rgba(15,118,110,0.3);"></div>', iconSize: [24, 24] });
+                userLocationMarker = L.marker([lat, lng], {icon: pulseIcon}).addTo(map);
+                map.flyTo([lat, lng], 13); updateVisibleSpots(lat, lng);
+            });
+        };
         function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371; 
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lng2 - lng1) * Math.PI / 180;
+            const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
-
-        function getIcon(cat) {
-            const icons = { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳' };
-            return icons[cat] || '📍';
-        }
+        function getIcon(cat) { const icons = { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳', other:'🎤' }; return icons[cat] || '📍'; }
+        function openInfoModal() { document.getElementById('info-modal').classList.add('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
     </script>
 </body>
 </html>
