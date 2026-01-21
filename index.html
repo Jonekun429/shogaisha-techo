@@ -27,9 +27,12 @@
     </script>
 
     <style>
-        body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; }
+        body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; user-select: none; }
+        
+        /* Layout */
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
+        
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
@@ -40,7 +43,7 @@
             background-color: white; border-radius: 50%; border: 2.5px solid #fff;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative;
+            font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative; cursor: pointer;
         }
         .pin-marker::after {
             content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
@@ -63,7 +66,7 @@
             width: 44px; height: 44px; background: white; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #0D9488; font-size: 20px;
-            border: 1px solid #E2E8F0; transition: transform 0.2s;
+            border: 1px solid #E2E8F0; transition: transform 0.2s; cursor: pointer;
         }
         .gps-btn:active { transform: scale(0.9); }
         .gps-hint-bubble {
@@ -78,38 +81,54 @@
         .filter-section {
             flex: 1; overflow-x: auto; pointer-events: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
             display: flex; gap: 8px; padding-bottom: 10px; padding-top: 2px;
+            cursor: grab; /* PCでのドラッグ示唆 */
         }
+        .filter-section:active { cursor: grabbing; }
+
         .chip {
             padding: 0 16px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap;
             background: rgba(255,255,255,0.9); color: #64748B; border: 1px solid #E2E8F0; 
             display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05); height: 40px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); height: 40px; user-select: none;
         }
         .chip.active { background: #0D9488; color: white; border-color: #0D9488; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25); }
         .chip:not(.active) { opacity: 0.9; }
 
-        /* Map Cards */
+        /* Map Cards Scroller */
         .card-scroller {
             position: absolute; bottom: 100px; left: 0; right: 0; 
             display: flex; gap: 10px; padding: 0 16px;
             overflow-x: auto; scroll-snap-type: x mandatory; 
             z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
-            height: 110px; pointer-events: auto; -webkit-overflow-scrolling: touch;
+            height: 110px; 
+            pointer-events: auto; /* ★PCでも操作可能に */
+            -webkit-overflow-scrolling: touch;
+            cursor: grab; /* PCでのドラッグ示唆 */
         }
-        @media (min-width: 768px) { .card-scroller { bottom: 40px; justify-content: center; } }
+        .card-scroller.grabbing { cursor: grabbing; scroll-snap-type: none; } /* ドラッグ中はスナップ解除 */
+        @media (min-width: 768px) { 
+            .card-scroller { 
+                bottom: 40px; 
+                /* PCでも左寄せで開始し、操作しやすくする */
+                justify-content: flex-start; 
+            } 
+        }
         
         .map-card-compact {
             flex: 0 0 88%; max-width: 340px; scroll-snap-align: center;
             background: white; border-radius: 16px; padding: 12px 14px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.12); border: 1px solid #E2E8F0;
             height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            transition: transform 0.3s, border-color 0.2s;
+            transition: transform 0.3s; cursor: pointer; user-select: none;
+        }
+        @media (min-width: 768px) {
+            .map-card-compact { flex: 0 0 320px; } /* PCでは固定幅で見やすく */
         }
         .map-card-compact.active { border-color: #0D9488; transform: scale(1.02); box-shadow: 0 8px 25px rgba(13, 148, 136, 0.15); }
 
         .btn-mini {
             width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
-            border: 1px solid #F1F5F9; color: #64748B; font-size: 14px; transition: all 0.2s;
+            border: 1px solid #F1F5F9; color: #64748B; font-size: 14px; transition: all 0.2s; cursor: pointer;
         }
         .btn-mini-nav { background: #0D9488; color: white; border-color: #0D9488; box-shadow: 0 2px 5px rgba(13,148,136,0.3); }
         .btn-mini:active { transform: scale(0.95); }
@@ -126,7 +145,7 @@
             }
             .nav-item {
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; height: 100%;
+                color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; height: 100%; cursor: pointer;
             }
             .nav-item i { font-size: 20px; margin-bottom: 2px; }
             .nav-item.active { color: #0D9488; }
@@ -135,7 +154,7 @@
         }
         @media (min-width: 768px) {
             .nav-container { width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; padding-top: 40px; }
-            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; }
+            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s; }
             .nav-item:hover { background: #F8FAFC; color: #0D9488; }
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
@@ -154,8 +173,8 @@
         .search-status.show { display: block; }
         
         .simple-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 10px; border: 1px solid #F1F5F9; display: flex; justify-content: space-between; align-items: center; }
-        .btn-primary { background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
-        .btn-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-primary { background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; cursor: pointer; }
+        .btn-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
         .btn-circle-nav { background: #0D9488; color: white; }
         .btn-circle-fav { background: white; border: 1px solid #F1F5F9; color: #CBD5E1; }
         .btn-circle-fav.active { background: #FEF2F2; border-color: #FECDD3; color: #F43F5E; }
@@ -174,7 +193,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 25.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 26.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -189,7 +208,7 @@
                         <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
                         <div id="gps-hint" class="gps-hint-bubble animate-bounce-slow">現在地を表示！</div>
                     </div>
-                    <div class="filter-section">
+                    <div class="filter-section" id="filter-scroll-area">
                         <button class="chip active" onclick="toggleMapFilter('leisure', this)"><i class="fas fa-rocket"></i> 遊園地</button>
                         <button class="chip active" onclick="toggleMapFilter('aquarium', this)"><i class="fas fa-water"></i> 水族館</button>
                         <button class="chip active" onclick="toggleMapFilter('zoo', this)"><i class="fas fa-paw"></i> 動物園</button>
@@ -241,9 +260,7 @@
                         <button onclick="openBackupModal('export')" class="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> コードを表示</button>
                         <button onclick="openBackupModal('import')" class="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> コードを入力</button>
                     </div>
-                    <button onclick="downloadCSV()" class="text-[10px] text-slate-300 hover:text-slate-500 underline">
-                        管理者用データダウンロード
-                    </button>
+                    <button onclick="downloadCSV()" class="text-[10px] text-slate-300 hover:text-slate-500 underline">管理者用データダウンロード</button>
                 </div>
             </div>
 
@@ -332,7 +349,7 @@
             {"id": 1013, "name": "向島百花園", "pref": "東京都", "area": "墨田区", "category": "park", "lat": 35.7238, "lng": 139.8161, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都墨田区東向島3-18-3", "url": "https://www.tokyo-park.or.jp/park/mukojima/"},
             {"id": 1014, "name": "旧岩崎邸庭園", "pref": "東京都", "area": "台東区", "category": "park", "lat": 35.7103, "lng": 139.7706, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都台東区池之端1-3-45", "url": "https://www.tokyo-park.or.jp/park/kyuiwasakitei/"},
             {"id": 1015, "name": "殿ヶ谷戸庭園", "pref": "東京都", "area": "国分寺市", "category": "park", "lat": 35.6986, "lng": 139.4808, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都国分寺市南町2-16", "url": "https://www.tokyo-park.or.jp/park/tonogayato/"},
-            {"id": 1016, "name": "芝離宮恩賜庭園", "pref": "東京都", "area": "港区", "category": "park", "lat": 35.6550, "lng": 139.7575, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都港区海岸1-4-1", "url": "https://www.tokyo-park.or.jp/park/kyu-shiba-rikyu/"},
+            {"id": 1016, "name": "芝離宮恩賜庭園", "pref": "東京都", "area": "港区", "category": "park", "lat": 35.655, "lng": 139.7575, "price": "本人および同伴者1名無料（手帳提示）", "address": "東京都港区海岸1-4-1", "url": "https://www.tokyo-park.or.jp/park/kyu-shiba-rikyu/"},
             {"id": 1017, "name": "東京国立博物館", "pref": "東京都", "area": "台東区", "category": "museum", "lat": 35.7188, "lng": 139.7765, "price": "総合文化展は無料（手帳提示）", "address": "東京都台東区上野公園13-9", "url": "https://www.tnm.jp/"},
             {"id": 1018, "name": "東京国立近代美術館", "pref": "東京都", "area": "千代田区", "category": "museum", "lat": 35.6905, "lng": 139.7547, "price": "所蔵作品展は無料（手帳提示）", "address": "東京都千代田区北の丸公園3-1", "url": "https://www.momat.go.jp/"},
             {"id": 1019, "name": "国立映画アーカイブ", "pref": "東京都", "area": "中央区", "category": "museum", "lat": 35.6766, "lng": 139.7719, "price": "上映・展示により異なる（手帳提示で割引・無料）", "address": "東京都中央区京橋3-7-6", "url": "https://www.nfaj.go.jp/"}
@@ -347,10 +364,35 @@
         let currentListTab = 'fav';
         let searchDebounceTimer;
 
+        // --- MOUSE DRAG SCROLL LOGIC ---
+        function enableDragScroll(el) {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            el.addEventListener('mousedown', (e) => {
+                isDown = true;
+                el.classList.add('grabbing');
+                startX = e.pageX - el.offsetLeft;
+                scrollLeft = el.scrollLeft;
+            });
+            el.addEventListener('mouseleave', () => { isDown = false; el.classList.remove('grabbing'); });
+            el.addEventListener('mouseup', () => { isDown = false; el.classList.remove('grabbing'); });
+            el.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - el.offsetLeft;
+                const walk = (x - startX) * 2; // scroll-fast
+                el.scrollLeft = scrollLeft - walk;
+            });
+        }
+
         window.onload = function() {
             initMap();
             renderList();
             renderMyList();
+            // Enable drag for desktop
+            const scrollers = document.querySelectorAll('.chip-scroll, .card-scroller');
+            scrollers.forEach(el => enableDragScroll(el));
         };
 
         // --- CSV DOWNLOAD (Protected) ---
@@ -431,6 +473,7 @@
                     const id = parseInt(closest.dataset.id);
                     if(id && id !== window.lastCenteredId) {
                         window.lastCenteredId = id;
+                        // On slide, pan map to location (optional, user requested)
                         const spot = facilitiesData.find(f => f.id === id);
                         if(spot) {
                             map.panTo([spot.lat, spot.lng], {animate: true, duration: 0.5});
@@ -450,10 +493,9 @@
                 if (!activeMapCategories.has(spot.category)) return;
                 const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                // Tap Pin -> Show Card (and scroll to it)
                 marker.on('click', () => { 
                     setActiveFacilityOnMap(spot.id); 
-                    map.flyTo([spot.lat, spot.lng], 14); 
+                    // Map pan is handled inside setActiveFacilityOnMap
                 });
                 markers[spot.id] = marker;
             });
@@ -469,7 +511,6 @@
             const center = map.getCenter();
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-            // Removed slice(0,15) to show ALL filtered cards
             const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist);
             renderMapCards(sorted);
@@ -483,7 +524,8 @@
                 const status = userStatus[spot.id] || {};
                 const card = document.createElement('div');
                 card.className = "map-card-compact bg-white";
-                card.dataset.id = spot.id; // Important for finding it later
+                card.dataset.id = spot.id;
+                // Click on card -> Pan map
                 card.onclick = () => { map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
                 card.innerHTML = `
                     <div class="flex flex-col justify-center flex-1 mr-2" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">
@@ -509,12 +551,11 @@
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
             
-            // Scroll logic
+            // Scroll card into view
             const cards = document.querySelectorAll('.map-card-compact');
             for(let card of cards) {
                 if(parseInt(card.dataset.id) === id) {
                     card.scrollIntoView({behavior: "smooth", inline: "center", block: "nearest"});
-                    // Force active class
                     cards.forEach(c => c.classList.remove('active'));
                     card.classList.add('active');
                     break;
@@ -673,7 +714,27 @@
             container.innerHTML = '';
             const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
             if(list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10 font-bold">まだありません</div>`; return; }
-            list.forEach(spot => renderListItem(spot, container));
+            list.forEach(spot => {
+               // Reuse same simple-card style for consistency
+                const status = userStatus[spot.id] || {};
+                const card = document.createElement('div');
+                card.className = "simple-card";
+                card.innerHTML = `
+                    <div class="flex-1" onclick="window.open('${spot.url}', '_blank')">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-bold text-slate-800 text-sm line-clamp-1">${spot.name}</h3>
+                            <i class="fas fa-external-link-alt text-xs text-teal-500"></i>
+                        </div>
+                        <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.area}</p>
+                        <p class="text-xs text-red-500 font-bold mt-1">${spot.price}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="toggleStatus(${spot.id}, '${currentListTab}'); event.stopPropagation();" class="btn-circle btn-circle-fav active"><i class="fas fa-trash"></i></button>
+                        ${spot.lat ? `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="btn-circle btn-circle-nav"><i class="fas fa-location-arrow"></i></button>` : ''}
+                    </div>
+                `;
+                container.appendChild(card); 
+            });
         }
         function getDistance(lat1, lng1, lat2, lng2) {
             const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
