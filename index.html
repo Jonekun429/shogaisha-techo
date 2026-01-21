@@ -33,6 +33,8 @@
         /* Layout */
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
+        
+        /* Pages */
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
@@ -48,9 +50,16 @@
 
         /* UI Components */
         
-        /* Filter Bar (Centered) */
+        /* Filter Bar (Top Centered) */
         .filter-bar { position: absolute; top: 16px; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; }
-        .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; pointer-events: auto; max-width: 80%; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); scrollbar-width: none; }
+        .chip-scroll { 
+            display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; 
+            pointer-events: auto; max-width: 90%; 
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); 
+            border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            scrollbar-width: none; 
+            margin-left: 60px; /* ★GPSボタンとの被りを防ぐための左マージン */
+        }
         .chip { padding: 8px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
         .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
 
@@ -59,7 +68,7 @@
         .gps-btn { width: 48px; height: 48px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 20px; transition: transform 0.2s; border: 1px solid #F0FDFA; }
         .gps-btn:active { transform: scale(0.9); }
         
-        /* GPS Hint (Left side style) */
+        /* GPS Hint */
         .gps-hint { 
             background: white; padding: 6px 12px; border-radius: 12px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-size: 11px; font-weight: 800; color: #0D9488; 
@@ -70,14 +79,14 @@
             border-right: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
         }
         
-        /* Map Cards (Bottom Scroller) - FIXED SCROLLING */
+        /* Map Cards (Bottom Scroller) */
         .card-scroller { 
             position: absolute; bottom: 100px; left: 0; right: 0; 
             display: flex; gap: 12px; padding: 0 16px; 
             overflow-x: auto; scroll-snap-type: x mandatory; 
             z-index: 1000; height: 160px; 
-            pointer-events: auto; /* ★ここを修正：スクロール操作を有効化 */
-            -webkit-overflow-scrolling: touch; /* iOSで滑らかに */
+            pointer-events: auto; 
+            -webkit-overflow-scrolling: touch; 
         }
         
         .map-card-horizontal { 
@@ -91,7 +100,7 @@
         /* Navigation Bar */
         .nav-container { z-index: 3000; }
         @media (max-width: 767px) {
-            .nav-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; height: 68px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 34px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); display: flex; justify-content: space-evenly; align-items: center; }
+            .nav-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; height: 68px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 34px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); display: flex; justify-content: space-evenly; align-items: center; border: 1px solid rgba(255,255,255,0.5); }
             .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; }
             .nav-item.active { color: #0D9488; }
             .nav-item i { font-size: 22px; margin-bottom: 2px; }
@@ -103,7 +112,7 @@
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
 
-        /* List & Search */
+        /* Search & Utils */
         .search-area { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #E2E8F0; padding: 12px 16px; position: sticky; top: 0; z-index: 50; }
         .search-input { width: 100%; padding: 12px 16px 12px 40px; border-radius: 14px; border: 2px solid #F1F5F9; background: #F8FAFC; font-weight: bold; color: #334155; }
         .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94A3B8; }
@@ -116,6 +125,13 @@
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
         .modal-overlay.show { display: flex; }
         .modal-box { background: white; width: 85%; max-width: 360px; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        
+        /* Admin Button (Hidden-ish) */
+        .admin-trigger {
+            position: absolute; bottom: 100px; right: 16px; 
+            font-size: 10px; color: #E2E8F0; font-weight: bold; 
+            cursor: pointer; z-index: 100;
+        }
     </style>
 </head>
 <body class="text-slate-700">
@@ -127,7 +143,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 21.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 22.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -154,7 +170,6 @@
                 </div>
 
                 <div id="map"></div>
-                
                 <div id="card-scroller" class="card-scroller"></div>
             </div>
 
@@ -164,7 +179,7 @@
                         <i class="fas fa-search search-icon"></i>
                         <input type="text" id="search-input" class="search-input" placeholder="キーワード検索..." oninput="handleSearch(this.value)">
                     </div>
-                    <div class="chip-scroll">
+                    <div class="chip-scroll" style="margin-left:0">
                         <button class="chip active" onclick="applyListFilter('all', this)">すべて</button>
                         <button class="chip" onclick="applyListFilter('leisure', this)">遊園地</button>
                         <button class="chip" onclick="applyListFilter('aquarium', this)">水族館</button>
@@ -189,13 +204,7 @@
                 </div>
                 <div id="mylist-container" class="p-4 pb-20 md:pb-12 max-w-3xl mx-auto w-full"></div>
                 
-                <div class="p-6 border-t border-slate-200 mt-auto bg-slate-50 text-center">
-                    <h3 class="text-xs font-bold text-slate-400 mb-3">データのバックアップ</h3>
-                    <div class="flex gap-3 justify-center">
-                        <button onclick="openBackupModal('export')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-copy mr-1"></i> 保存用コード</button>
-                        <button onclick="openBackupModal('import')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-paste mr-1"></i> コード入力</button>
-                    </div>
-                </div>
+                <div class="admin-trigger" onclick="openAdminAuth()">Admin</div>
             </div>
         </main>
     </div>
@@ -218,16 +227,6 @@
         </div>
     </div>
 
-    <div id="backup-modal" class="modal-overlay">
-        <div class="modal-box text-left">
-            <h3 id="backup-title" class="text-lg font-bold mb-2 text-slate-800 text-center">データ保存</h3>
-            <p id="backup-desc" class="text-xs text-slate-500 mb-4 text-center">以下のコードをコピーして保存してください。</p>
-            <textarea id="backup-text" class="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono mb-4 resize-none focus:outline-none"></textarea>
-            <button id="backup-action-btn" class="btn-primary mb-3">コピーする</button>
-            <button onclick="closeModal('backup-modal')" class="text-xs text-slate-400 font-bold w-full py-2">閉じる</button>
-        </div>
-    </div>
-
     <div id="region-modal" class="modal-overlay">
         <div class="modal-box">
             <h3 class="text-lg font-bold mb-2 text-slate-800">位置情報エラー</h3>
@@ -236,10 +235,36 @@
         </div>
     </div>
 
+    <div id="admin-modal" class="modal-overlay">
+        <div class="modal-box text-left">
+            <h3 class="text-lg font-bold mb-4 text-slate-800 text-center">管理者メニュー</h3>
+            
+            <div id="admin-login-view">
+                <input type="password" id="admin-pass" class="search-input mb-3" placeholder="パスコード">
+                <button onclick="checkAdmin()" class="btn-primary mb-2">ログイン</button>
+            </div>
+
+            <div id="admin-panel-view" style="display:none;">
+                <button onclick="downloadCSV()" class="w-full p-3 bg-blue-50 text-blue-600 font-bold rounded-xl mb-3 flex items-center justify-center gap-2"><i class="fas fa-download"></i> CSVダウンロード</button>
+                
+                <div class="border-t border-slate-100 pt-3">
+                    <p class="text-[10px] text-slate-400 mb-2">CSVファイルを選択してデータを更新</p>
+                    <input type="file" id="csv-upload" accept=".csv" class="text-xs mb-2">
+                    <button onclick="uploadCSV()" class="btn-primary"><i class="fas fa-upload mr-1"></i> データ更新</button>
+                </div>
+            </div>
+            
+            <button onclick="closeModal('admin-modal')" class="text-xs text-slate-400 font-bold w-full py-2 mt-2">閉じる</button>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const STORAGE_KEY = 'handimap_persistent_save_v1';
-        const facilitiesData = [
+        // CSV Key Mapping
+        const CSV_HEADER = "id,name,pref,area,category,lat,lng,price,address,url";
+        
+        let facilitiesData = [
             { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日1150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
             { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
             { id: 103, name: "新宿御苑", pref: "東京都", area: "新宿区", category: "park", lat: 35.6851, lng: 139.7100, price: "無料 (付添1名含)", address: "新宿区内藤町11", url: "https://fng.or.jp/shinjuku/" },
@@ -265,6 +290,10 @@
 
         let map, markers = {};
         let userStatus = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        // Load custom Data if exists
+        const customData = localStorage.getItem('handimap_custom_facilities');
+        if(customData) { facilitiesData.push(...JSON.parse(customData)); }
+
         let userCurrentPos = null;
         let activeListCategory = 'all'; 
         let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']);
@@ -274,20 +303,55 @@
 
         window.onload = function() { initMap(); renderList(); renderMyList(); };
 
-        function openBackupModal(type) {
-            const modal = document.getElementById('backup-modal');
-            const title = document.getElementById('backup-title');
-            const desc = document.getElementById('backup-desc');
-            const textarea = document.getElementById('backup-text');
-            const btn = document.getElementById('backup-action-btn');
-            modal.classList.add('show');
-            if(type === 'export') {
-                title.innerText = "保存用コード"; desc.innerText = "以下のコードをコピーしてメモ帳に保存してください。";
-                textarea.value = JSON.stringify(userStatus); btn.innerText = "コピー"; btn.onclick = () => { textarea.select(); document.execCommand('copy'); alert("コピーしました"); };
+        // --- ADMIN Logic ---
+        function openAdminAuth() {
+            document.getElementById('admin-login-view').style.display = 'block';
+            document.getElementById('admin-panel-view').style.display = 'none';
+            document.getElementById('admin-pass').value = '';
+            document.getElementById('admin-modal').classList.add('show');
+        }
+        function checkAdmin() {
+            const pass = document.getElementById('admin-pass').value;
+            if(pass === '19870429') {
+                document.getElementById('admin-login-view').style.display = 'none';
+                document.getElementById('admin-panel-view').style.display = 'block';
             } else {
-                title.innerText = "データの復元"; desc.innerText = "保存したコードを貼り付けてください。";
-                textarea.value = ""; btn.innerText = "復元"; btn.onclick = () => { try { userStatus = JSON.parse(textarea.value); localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus)); renderMyList(); renderList(); alert("復元しました"); closeModal('backup-modal'); } catch(e) { alert("エラー"); } };
+                alert('パスコードが違います');
             }
+        }
+        function downloadCSV() {
+            let csv = CSV_HEADER + '\n';
+            facilitiesData.forEach(row => {
+                csv += `${row.id},${row.name},${row.pref},${row.area},${row.category},${row.lat},${row.lng},${row.price},${row.address},${row.url}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'handimap_facilities.csv'; a.click();
+        }
+        function uploadCSV() {
+            const input = document.getElementById('csv-upload');
+            if(!input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n').slice(1); // skip header
+                const newData = [];
+                rows.forEach(row => {
+                    const cols = row.split(',');
+                    if(cols.length >= 10) {
+                        newData.push({
+                            id: parseInt(cols[0]), name: cols[1], pref: cols[2], area: cols[3], category: cols[4],
+                            lat: parseFloat(cols[5]), lng: parseFloat(cols[6]), price: cols[7], address: cols[8], url: cols[9].trim()
+                        });
+                    }
+                });
+                if(newData.length > 0) {
+                    localStorage.setItem('handimap_custom_facilities', JSON.stringify(newData));
+                    alert('データを更新しました。リロードします。');
+                    location.reload();
+                }
+            };
+            reader.readAsText(input.files[0]);
         }
 
         // --- MAP LOGIC ---
@@ -304,6 +368,7 @@
                 updateVisibleSpots();
             });
             renderAllMarkers();
+            updateVisibleSpots();
         }
 
         function renderAllMarkers() {
@@ -325,11 +390,8 @@
         }
 
         function updateVisibleSpots() {
-            const center = map.getCenter();
-            const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
-            const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
-                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist).slice(0, 15);
+            // 全件表示モード (ただしアクティブカテゴリのみ)
+            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category));
             renderMapCards(sorted);
         }
 
@@ -352,7 +414,7 @@
                             <div class="text-xl cursor-pointer" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${getIcon(spot.category)}</div>
                         </div>
                         <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
-                        <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'}先</p>
+                        <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.pref} ${spot.area}</p>
                     </div>
                     <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
                         <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="btn-primary text-xs py-2 shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>
@@ -369,7 +431,26 @@
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
             map.flyTo([spot.lat, spot.lng], 14);
-            renderMapCards([spot]); 
+            // Single card view
+            const scroller = document.getElementById('card-scroller');
+            scroller.innerHTML = ''; // Clear list
+            const card = document.createElement('div');
+            card.className = "map-card-horizontal bg-white mx-auto"; // Center it
+            card.onclick = () => { map.flyTo([spot.lat, spot.lng], 14); };
+            card.innerHTML = `
+                <div class="flex-1">
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-bold text-slate-800 text-base line-clamp-1 cursor-pointer underline decoration-dotted decoration-teal-500" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${spot.name}<i class="fas fa-external-link-alt text-xs text-teal-500 ml-1"></i></h3>
+                        <div class="text-xl">${getIcon(spot.category)}</div>
+                    </div>
+                    <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
+                    <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.address}</p>
+                </div>
+                <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
+                    <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="btn-primary text-xs py-2 shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>
+                </div>
+            `;
+            scroller.appendChild(card);
         }
 
         function locateUserOnMap() {
