@@ -150,6 +150,8 @@
         }
         .search-input:focus { background: white; border-color: #0D9488; outline: none; }
         .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94A3B8; }
+        .search-status { font-size: 11px; color: #0D9488; font-weight: bold; margin-top: 4px; display: none; }
+        .search-status.show { display: block; }
         
         .simple-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 10px; border: 1px solid #F1F5F9; display: flex; justify-content: space-between; align-items: center; }
         .btn-primary { background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
@@ -158,13 +160,9 @@
         .btn-circle-fav { background: white; border: 1px solid #F1F5F9; color: #CBD5E1; }
         .btn-circle-fav.active { background: #FEF2F2; border-color: #FECDD3; color: #F43F5E; }
         
-        /* Modals */
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
         .modal-overlay.show { display: flex; }
         .modal-box { background: white; width: 85%; max-width: 360px; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        
-        .search-status { font-size: 11px; color: #0D9488; font-weight: bold; margin-top: 4px; display: none; }
-        .search-status.show { display: block; }
     </style>
 </head>
 <body class="text-slate-700">
@@ -176,7 +174,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 22.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 23.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -208,12 +206,11 @@
                 <div class="search-area">
                     <div class="relative w-full mb-3">
                         <i class="fas fa-search search-icon"></i>
-                        <input type="text" id="search-input" class="search-input" placeholder="施設名、駅名、ホテル名..." 
+                        <input type="text" id="search-input" class="search-input" placeholder="施設名、地名、ジャンル..." 
                                onkeydown="if(event.key === 'Enter') searchLocationAndSort(this.value)"
                                oninput="handleSearchDebounced(this.value)">
                     </div>
                     <div id="search-status" class="search-status"><i class="fas fa-spinner fa-spin"></i> 場所を検索中...</div>
-                    
                     <div class="chip-scroll" style="display:flex; gap:8px; overflow-x:auto;">
                         <button class="chip active" onclick="applyListFilter('all', this)">すべて</button>
                         <button class="chip" onclick="applyListFilter('leisure', this)">遊園地</button>
@@ -239,10 +236,15 @@
                 </div>
                 <div id="mylist-container" class="p-4 pb-20 md:pb-12 max-w-3xl mx-auto w-full"></div>
                 <div class="p-6 border-t border-slate-200 mt-auto bg-slate-50 text-center">
-                    <h3 class="text-xs font-bold text-slate-400 mb-3">データ引き継ぎ</h3>
-                    <div class="flex gap-3 justify-center">
-                        <button onclick="openBackupModal('export')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> コードを表示</button>
-                        <button onclick="openBackupModal('import')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> コードを入力</button>
+                    <h3 class="text-xs font-bold text-slate-400 mb-3">設定・データ管理</h3>
+                    <div class="flex flex-col gap-3 justify-center">
+                        <button onclick="downloadCSV()" class="w-full px-4 py-3 bg-teal-50 border border-teal-200 rounded-lg text-xs font-bold text-teal-700 shadow-sm hover:bg-teal-100">
+                            <i class="fas fa-file-csv mr-2"></i> 施設データをCSVでダウンロード (管理者用)
+                        </button>
+                        <div class="flex gap-3 justify-center w-full">
+                            <button onclick="openBackupModal('export')" class="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> バックアップ</button>
+                            <button onclick="openBackupModal('import')" class="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> 復元</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -294,7 +296,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const STORAGE_KEY = 'handimap_persistent_save_v1';
-        // 施設データは省略せずに維持します
         const facilitiesData = [
             { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日1150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
             { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
@@ -334,7 +335,41 @@
             renderMyList();
         };
 
-        // --- BACKUP ---
+        // --- CSV DOWNLOAD ---
+        function downloadCSV() {
+            // Header
+            const headers = ['id', 'name', 'pref', 'area', 'category', 'lat', 'lng', 'price', 'address', 'url'];
+            let csvContent = "\uFEFF" + headers.join(",") + "\n"; // BOM for Excel
+
+            // Data Rows
+            facilitiesData.forEach(item => {
+                const row = headers.map(header => {
+                    const val = item[header] !== undefined && item[header] !== null ? item[header] : "";
+                    // Escape commas and quotes
+                    const stringVal = String(val);
+                    if (stringVal.includes(",") || stringVal.includes('"') || stringVal.includes("\n")) {
+                        return `"${stringVal.replace(/"/g, '""')}"`;
+                    }
+                    return stringVal;
+                });
+                csvContent += row.join(",") + "\n";
+            });
+
+            // Create Blob and Link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "handimap_data.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // --- BACKUP LOGIC (Text Base) ---
         function openBackupModal(type) {
             const modal = document.getElementById('backup-modal');
             const title = document.getElementById('backup-title');
@@ -363,7 +398,7 @@
             }
         }
 
-        // --- MAP ---
+        // --- MAP LOGIC ---
         function initMap() {
             if(map) return;
             map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 9);
@@ -373,7 +408,6 @@
             map.on('touchstart click', () => { hideGpsHint(); });
             renderAllMarkers();
             
-            // Map Card Scroller Logic (Active State)
             const scroller = document.getElementById('card-scroller');
             scroller.addEventListener('scroll', () => {
                 let center = scroller.scrollLeft + (scroller.offsetWidth / 2);
@@ -386,9 +420,16 @@
                 if(closest) {
                     cards.forEach(c => c.classList.remove('active'));
                     closest.classList.add('active');
-                    // Optional: Pan map to active card? (might be too jumpy)
-                    // const id = parseInt(closest.dataset.id);
-                    // if(id) setActiveFacilityOnMap(id, false); 
+                    const id = parseInt(closest.dataset.id);
+                    if(id && id !== window.lastCenteredId) {
+                        window.lastCenteredId = id;
+                        const spot = facilitiesData.find(f => f.id === id);
+                        if(spot) {
+                            map.panTo([spot.lat, spot.lng], {animate: true, duration: 0.5});
+                            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
+                            const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
+                        }
+                    }
                 }
             });
         }
@@ -430,9 +471,7 @@
                 const card = document.createElement('div');
                 card.className = "map-card-compact bg-white";
                 card.dataset.id = spot.id;
-                // Slide -> Pan Map Logic
                 card.onclick = () => { map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
-                
                 card.innerHTML = `
                     <div class="flex flex-col justify-center flex-1 mr-2" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">
                         <div class="flex items-center gap-2 mb-1">
@@ -450,39 +489,20 @@
                 scroller.appendChild(card);
             });
             const spacerEnd = document.createElement('div'); spacerEnd.style.flex = "0 0 10px"; scroller.appendChild(spacerEnd);
-            
-            // Add Scroll Listener for auto-pan
-            const scrollHandler = () => {
-                const center = scroller.scrollLeft + (scroller.offsetWidth / 2);
-                let closestSpot = null; let minDiff = Infinity;
-                
-                Array.from(scroller.children).forEach((child, index) => {
-                    if(!child.classList.contains('map-card-compact')) return;
-                    const childCenter = child.offsetLeft + (child.offsetWidth / 2);
-                    const diff = Math.abs(center - childCenter);
-                    if(diff < minDiff) { minDiff = diff; closestSpot = spots[index-1]; } // index-1 because of spacer
-                });
-
-                if(closestSpot && closestSpot.id !== window.lastCenteredId) {
-                    window.lastCenteredId = closestSpot.id;
-                    map.panTo([closestSpot.lat, closestSpot.lng], {animate: true, duration: 0.5});
-                    setActiveFacilityOnMap(closestSpot.id, false); // Don't fly, just highlight
-                }
-            };
-            
-            // Debounce scroll event
-            let scrollTimeout;
-            scroller.onscroll = () => {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(scrollHandler, 150); // Wait for scroll end/pause
-            };
         }
 
-        function setActiveFacilityOnMap(id, moveMap = true) {
+        function setActiveFacilityOnMap(id) {
             const spot = facilitiesData.find(f => f.id === id); if(!spot) return;
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
-            if(moveMap) map.flyTo([spot.lat, spot.lng], 14);
+            // scroll to card
+            const cards = document.querySelectorAll('.map-card-compact');
+            for(let card of cards) {
+                if(parseInt(card.dataset.id) === id) {
+                    card.scrollIntoView({behavior: "smooth", inline: "center"});
+                    break;
+                }
+            }
         }
 
         function locateUserOnMap() {
@@ -500,48 +520,34 @@
 
         function hideGpsHint() { const el = document.getElementById('gps-hint'); if(el) el.style.display = 'none'; }
 
-        // --- SEARCH LOGIC (Nominatim) ---
+        // --- SEARCH & LOCATION ---
         function handleSearchDebounced(val) {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(() => {
-                if(val.length > 0) searchLocationAndSort(val); // Auto search after delay? 
-                // Or just local search? Let's do local first for speed
-                searchQuery = val.toLowerCase().trim();
-                renderList();
+                if(val.length > 0) searchLocationAndSort(val); 
+                else { searchQuery = ""; renderList(); }
             }, 800);
         }
 
         async function searchLocationAndSort(query) {
             searchQuery = query.toLowerCase().trim();
-            renderList(); // First render local matches
-            
-            // Show loading
             const statusEl = document.getElementById('search-status');
             statusEl.classList.add('show');
-
             try {
-                // Call Nominatim API for location search
+                // Search Facilities Local
+                renderList(); 
+                
+                // Then Search Place
                 const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
                 const data = await response.json();
-                
                 if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
-                    
-                    // Set as "current pos" for sorting purposes temporarily
-                    userCurrentPos = { lat: lat, lng: lon };
-                    
-                    // Re-render list sorted by distance to searched location
+                    userCurrentPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
                     renderList();
-                    statusEl.innerText = `「${data[0].display_name.split(',')[0]}」周辺の施設を表示`;
+                    statusEl.innerText = `「${data[0].display_name.split(',')[0]}」周辺`;
                 } else {
-                    statusEl.innerText = "場所が見つかりませんでした (施設名検索のみ表示)";
+                    statusEl.innerText = "施設名で検索中...";
                 }
-            } catch (e) {
-                statusEl.innerText = "検索エラー (通信を確認してください)";
-            }
-            
-            // Hide status after a while
+            } catch (e) { statusEl.innerText = "検索中..."; }
             setTimeout(() => { statusEl.classList.remove('show'); statusEl.innerText = '検索中...'; }, 4000);
         }
 
@@ -556,45 +562,24 @@
         function renderList() {
             const container = document.getElementById('list-container'); if(!container) return;
             container.innerHTML = '';
-            
-            // 1. Local Filter
             let targets = facilitiesData.filter(f => {
                 if (activeListCategory !== 'all') {
                     if (activeListCategory === 'leisure' && (f.category === 'zoo' || f.category === 'aquarium')) return true;
                     if (f.category !== activeListCategory) return false;
                 }
-                // Text match (name, area, pref)
                 if (searchQuery) {
-                    return f.name.toLowerCase().includes(searchQuery) || f.pref.toLowerCase().includes(searchQuery) || f.area.toLowerCase().includes(searchQuery);
+                    const q = searchQuery;
+                    return f.name.toLowerCase().includes(q) || f.pref.toLowerCase().includes(q) || f.area.toLowerCase().includes(q);
                 }
                 return true;
             });
-
-            // 2. If search mode with location (from GPS or Nominatim), include ALL facilities sorted by distance
-            //    (Overriding text filter if user searched for a PLACE)
-            if (userCurrentPos && searchQuery) {
-                // If we have a location search result, show EVERYTHING sorted by distance
-                // But we should probably still respect category filter?
-                // Let's keep it simple: if searching place, show nearest facilities regardless of name match
-                targets = facilitiesData.filter(f => {
-                     if (activeListCategory !== 'all') {
-                        if (activeListCategory === 'leisure' && (f.category === 'zoo' || f.category === 'aquarium')) return true;
-                        if (f.category !== activeListCategory) return false;
-                    }
-                    return true;
-                });
-            }
-
-            // Sort
             if (userCurrentPos) {
                 targets = targets.map(f => {
                     if(!f.lat) return {...f, dist: Infinity};
                     return {...f, dist: getDistance(userCurrentPos.lat, userCurrentPos.lng, f.lat, f.lng)};
                 }).sort((a,b) => a.dist - b.dist);
             }
-
             if (targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold">該当なし</div>`; return; }
-
             targets.forEach(spot => {
                 const status = userStatus[spot.id] || {};
                 let distStr = "";
@@ -675,7 +660,6 @@
             const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
             if(list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10 font-bold">まだありません</div>`; return; }
             list.forEach(spot => {
-                // Reuse same logic but no distance unless pos
                 const status = userStatus[spot.id] || {};
                 const card = document.createElement('div');
                 card.className = "simple-card";
