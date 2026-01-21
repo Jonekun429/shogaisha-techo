@@ -60,10 +60,30 @@
         }
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
-        /* GPS Button & Hint (Right Bottom) */
+        /* Filter Chips (Top Fixed) */
+        .filter-bar {
+            position: absolute; top: 12px; left: 0; right: 0; z-index: 500;
+            display: flex; justify-content: center; pointer-events: none;
+        }
+        .chip-scroll { 
+            display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; 
+            scrollbar-width: none; pointer-events: auto; max-width: 95%;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.8);
+        }
+        .chip {
+            padding: 8px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap;
+            background: #F1F5F9; color: #94A3B8; border: 1px solid transparent; 
+            display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;
+        }
+        /* Active State (Multi-select) */
+        .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
+        .chip:not(.active) { opacity: 0.7; }
+
+        /* GPS Button & Hint (Safe Zone: Top Right, Below Filters) */
         .gps-container {
-            position: absolute; right: 16px; bottom: 180px; /* カードスクローラーの上に配置 */
-            z-index: 500; display: flex; flex-direction: column; align-items: end; gap: 8px;
+            position: absolute; right: 16px; top: 80px; /* カテゴリバーの下に配置 */
+            z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
         }
         .gps-btn {
             width: 48px; height: 48px; background: white; border-radius: 50%;
@@ -75,37 +95,34 @@
 
         .gps-hint-bubble {
             background: white; padding: 8px 12px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); margin-bottom: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             font-size: 11px; font-weight: 800; color: #0D9488;
             white-space: nowrap; pointer-events: none; border: 2px solid #F0FDFA;
             position: relative; margin-right: 4px;
         }
         .gps-hint-bubble::after {
-            content: ''; position: absolute; right: 14px; bottom: -6px;
-            border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid white;
+            content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+            border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
         }
 
-        /* Filter Chips (Top Scroll) */
-        .filter-bar {
-            position: absolute; top: 16px; left: 0; right: 0; z-index: 500;
-            display: flex; justify-content: center; pointer-events: none;
+        /* Map Bottom Scroller */
+        .card-scroller {
+            position: absolute; bottom: 100px; left: 0; right: 0; display: flex; gap: 12px; padding: 0 16px;
+            overflow-x: auto; scroll-snap-type: x mandatory; z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
+            height: 160px; pointer-events: none;
         }
-        .chip-scroll { 
-            display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px; 
-            scrollbar-width: none; pointer-events: auto; max-width: 95%;
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
-            border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.8);
+        .card-scroller > div { pointer-events: auto; }
+        @media (min-width: 768px) { .card-scroller { bottom: 30px; justify-content: center; } }
+        
+        .map-card-horizontal {
+            flex: 0 0 85%; max-width: 300px; scroll-snap-align: center;
+            background: white; border-radius: 20px; padding: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 2px solid transparent; 
+            transition: transform 0.2s; height: 100%; display: flex; flex-direction: column;
         }
-        .chip {
-            padding: 8px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap;
-            background: transparent; color: #94A3B8; border: 1px solid transparent; 
-            display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;
-        }
-        /* 未選択は薄く、選択中は濃く */
-        .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
-        .chip:not(.active):hover { background: #F1F5F9; }
+        .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); }
 
-        /* Navigation */
+        /* Navigation Bar */
         .nav-container { z-index: 3000; }
         @media (max-width: 767px) {
             .nav-container {
@@ -137,7 +154,7 @@
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
 
-        /* Search Area (List Page) */
+        /* Search Area */
         .search-area {
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
             border-bottom: 1px solid #E2E8F0; padding: 12px 16px;
@@ -150,27 +167,8 @@
         .search-input:focus { background: white; border-color: #0D9488; outline: none; }
         .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94A3B8; }
 
-        /* Cards & Utils */
+        /* Utils & Modal */
         .map-card { background: white; border-radius: 20px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 12px; border: 1px solid #F1F5F9; }
-        
-        /* Map Bottom Scroller */
-        .card-scroller {
-            position: absolute; bottom: 100px; left: 0; right: 0; display: flex; gap: 12px; padding: 0 16px;
-            overflow-x: auto; scroll-snap-type: x mandatory; z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
-            height: 150px; pointer-events: none;
-        }
-        .card-scroller > div { pointer-events: auto; }
-
-        @media (min-width: 768px) { .card-scroller { bottom: 30px; justify-content: center; } }
-        
-        .map-card-horizontal {
-            flex: 0 0 85%; max-width: 300px; scroll-snap-align: center;
-            background: white; border-radius: 20px; padding: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 2px solid transparent; 
-            transition: transform 0.2s; height: 100%; display: flex; flex-direction: column;
-        }
-        .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); }
-        
         .btn-primary {
             background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;
@@ -202,7 +200,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 12.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 13.0</p>
             </div>
 
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map">
@@ -257,18 +255,14 @@
                         <button class="chip" onclick="applyListFilter('aquarium', this)"><i class="fas fa-water"></i> 水族館</button>
                         <button class="chip" onclick="applyListFilter('zoo', this)"><i class="fas fa-paw"></i> 動物園</button>
                         <button class="chip" onclick="applyListFilter('museum', this)"><i class="fas fa-landmark"></i> 博物館</button>
-                        <button class="chip" onclick="applyListFilter('cinema', this)"><i class="fas fa-film"></i> 映画</button>
                     </div>
-                    
                     <div id="location-prompt" class="mt-3 hidden animate-pulse-fast bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-teal-100 transition-colors" onclick="locateUserForList()">
                         <div class="flex items-center gap-2 text-xs font-bold text-teal-800">
-                            <i class="fas fa-location-arrow"></i> 
-                            <span>現在地を取得して、距離を表示する</span>
+                            <i class="fas fa-location-arrow"></i> <span>現在地を取得</span>
                         </div>
                         <span class="bg-white px-3 py-1 rounded-full text-[10px] text-teal-600 font-extrabold shadow-sm">ON</span>
                     </div>
                 </div>
-                
                 <div id="list-container" class="p-4 pb-28 md:pb-12 max-w-3xl mx-auto w-full min-h-[50vh]"></div>
             </div>
 
@@ -326,7 +320,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- DATA ---
+        // --- DATA (CSV/Spreadsheet Structure) ---
         const facilitiesData = [
             { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日1150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
             { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
@@ -353,10 +347,10 @@
 
         // --- STATE ---
         let map, markers = {};
-        let userStatus = JSON.parse(localStorage.getItem('handimap_v12_status')) || {};
+        let userStatus = JSON.parse(localStorage.getItem('handimap_v13_status')) || {};
         let userCurrentPos = null;
-        let activeListCategory = 'all'; // For List View (Single select)
-        let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']); // For Map View (Multi select)
+        let activeListCategory = 'all'; 
+        let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']); // Multi-select Set
         let searchQuery = "";
         let currentListTab = 'fav';
 
@@ -385,7 +379,7 @@
 
             facilitiesData.forEach(spot => {
                 if (!spot.lat) return;
-                // Multi-select Logic for Map
+                // Check if category is active
                 if (!activeMapCategories.has(spot.category)) return;
 
                 const icon = L.divIcon({
@@ -408,6 +402,7 @@
                 btn.classList.add('active');
             }
             renderAllMarkers();
+            updateVisibleSpots();
         }
 
         function updateVisibleSpots() {
@@ -415,7 +410,6 @@
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
 
-            // Only show cards for currently visible/active categories
             const sorted = facilitiesData
                 .filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
@@ -437,6 +431,7 @@
                 card.className = "map-card-horizontal bg-white";
                 card.onclick = () => { map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
 
+                // Icon & Name Click -> HP
                 card.innerHTML = `
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-1">
@@ -488,7 +483,7 @@
             if(el) el.style.display = 'none';
         }
 
-        // --- LIST LOGIC ---
+        // --- LIST & UTILS ---
         function applyListFilter(cat, btn) {
             activeListCategory = cat;
             btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
@@ -580,14 +575,13 @@
             container.appendChild(item);
         }
 
+        // --- Common ---
         function handleNavClick(lat, lng, name, url) {
-            event.stopPropagation();
             window.tempNavTarget = { lat, lng, name };
             const linkEl = document.getElementById('modal-hp-link');
             if(linkEl) linkEl.href = url;
             document.getElementById('map-select-modal').classList.add('show');
         }
-
         function confirmNavigation(provider) {
             document.getElementById('map-select-modal').classList.remove('show');
             if (window.tempNavTarget) {
@@ -598,7 +592,6 @@
                 else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`, '_system');
             }
         }
-
         function switchPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(`page-${pageId}`).classList.add('active');
@@ -607,12 +600,7 @@
             if(pageId === 'map') setTimeout(() => map.invalidateSize(), 300);
             if(pageId === 'mylist') renderMyList();
         }
-
-        function handleSearch(val) {
-            searchQuery = val.toLowerCase().trim();
-            renderList();
-        }
-
+        function handleSearch(val) { searchQuery = val.toLowerCase().trim(); renderList(); }
         function locateUserForList() {
             if(!navigator.geolocation) { document.getElementById('region-modal').classList.add('show'); return; }
             navigator.geolocation.getCurrentPosition((pos) => {
@@ -621,21 +609,18 @@
                 renderList();
             });
         }
-
         function toggleStatus(id, type) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id][type] = !userStatus[id][type];
-            localStorage.setItem('handimap_v12_status', JSON.stringify(userStatus));
+            localStorage.setItem('handimap_v13_status', JSON.stringify(userStatus));
             renderList(); renderMyList();
         }
-
         function switchListTab(tab) {
             currentListTab = tab;
             document.getElementById('tab-fav').className = `px-3 py-1.5 text-xs font-bold rounded-md transition-all ${tab==='fav' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-400'}`;
             document.getElementById('tab-visited').className = `px-3 py-1.5 text-xs font-bold rounded-md transition-all ${tab==='visited' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`;
             renderMyList();
         }
-
         function renderMyList() {
             const container = document.getElementById('mylist-container');
             container.innerHTML = '';
@@ -643,7 +628,6 @@
             if(list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10 font-bold">まだありません</div>`; return; }
             list.forEach(spot => renderListItem(spot, container));
         }
-
         function getDistance(lat1, lng1, lat2, lng2) {
             const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
