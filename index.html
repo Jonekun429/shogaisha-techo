@@ -20,9 +20,7 @@
                 extend: {
                     fontFamily: { sans: ['"M PLUS Rounded 1c"', 'sans-serif'] },
                     colors: { primary: '#0D9488', secondary: '#F0FDFA', accent: '#F43F5E' },
-                    animation: {
-                        'bounce-slow': 'bounce 3s infinite',
-                    }
+                    animation: { 'bounce-slow': 'bounce 3s infinite' }
                 }
             }
         }
@@ -30,22 +28,17 @@
 
     <style>
         body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; }
-        
-        /* Layout */
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
-        
-        /* Pages */
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
 
-        /* Map Styles */
+        /* Map */
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
         .pin-marker {
             background-color: white; border-radius: 50%; border: 2.5px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;
             font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative;
         }
         .pin-marker::after {
@@ -59,16 +52,12 @@
         }
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
-        /* --- TOP CONTROL BAR (GPS + Filters) --- */
+        /* Top Controls */
         .top-control-bar {
             position: absolute; top: 12px; left: 12px; right: 12px; z-index: 500;
             display: flex; align-items: flex-start; gap: 8px; pointer-events: none;
         }
-        
-        /* GPS Area (Left) */
-        .gps-section {
-            display: flex; flex-direction: column; align-items: center; pointer-events: auto;
-        }
+        .gps-section { display: flex; flex-direction: column; align-items: center; pointer-events: auto; }
         .gps-btn {
             width: 44px; height: 44px; background: white; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
@@ -76,86 +65,76 @@
             border: 1px solid #E2E8F0; transition: transform 0.2s;
         }
         .gps-btn:active { transform: scale(0.9); }
-
         .gps-hint-bubble {
-            margin-top: 6px;
-            background: rgba(13, 148, 136, 0.9); padding: 4px 8px; border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            font-size: 10px; font-weight: bold; color: white;
+            margin-top: 6px; background: rgba(13, 148, 136, 0.9); padding: 4px 8px; border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 10px; font-weight: bold; color: white;
             white-space: nowrap; position: relative;
         }
         .gps-hint-bubble::after {
             content: ''; position: absolute; left: 50%; top: -4px; transform: translateX(-50%);
             border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 4px solid rgba(13, 148, 136, 0.9);
         }
-
-        /* Filter Area (Right) */
         .filter-section {
-            flex: 1; overflow-x: auto; pointer-events: auto;
-            scrollbar-width: none; -webkit-overflow-scrolling: touch;
-            display: flex; gap: 6px; padding: 2px 2px 10px 2px; /* Bottom padding for shadow */
+            flex: 1; overflow-x: auto; pointer-events: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+            display: flex; gap: 6px; padding: 2px 2px 10px 2px;
         }
         .chip {
-            padding: 10px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap;
+            padding: 8px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; white-space: nowrap;
             background: white; color: #64748B; border: 1px solid #F1F5F9; 
-            display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05); height: 40px;
+            display: flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); height: 36px;
         }
         .chip.active { background: #0D9488; color: white; border-color: #0D9488; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25); }
-        .chip:not(.active) { opacity: 0.8; }
+        .chip:not(.active) { opacity: 0.9; }
 
-        /* Map Bottom Scroller (Compact) */
+        /* Map Bottom Scroller (Compact & Slidable) */
         .card-scroller {
-            position: absolute; 
-            bottom: 100px; /* ナビバーの上 */
-            left: 0; right: 0; 
+            position: absolute; bottom: 100px; left: 0; right: 0; 
             display: flex; gap: 10px; padding: 0 16px;
             overflow-x: auto; scroll-snap-type: x mandatory; 
             z-index: 1000; padding-bottom: 10px; scrollbar-width: none;
-            height: 120px; /* 高さ制限 */
-            pointer-events: none; 
+            height: 110px; pointer-events: auto; /* ★ここ重要: スライド有効化 */
+            -webkit-overflow-scrolling: touch;
         }
-        .card-scroller > div { pointer-events: auto; }
-
-        @media (min-width: 768px) { .card-scroller { bottom: 40px; justify-content: center; } }
-        
         .map-card-compact {
-            flex: 0 0 85%; max-width: 320px; scroll-snap-align: center;
-            background: white; border-radius: 16px; padding: 12px 16px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1); border: 1px solid #E2E8F0;
-            transition: transform 0.2s; height: 100%; 
-            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            flex: 0 0 88%; max-width: 340px; scroll-snap-align: center;
+            background: white; border-radius: 16px; padding: 12px 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12); border: 1px solid #E2E8F0;
+            height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            transition: transform 0.2s;
         }
-        .map-card-compact.active { border-color: #0D9488; transform: translateY(-2px); }
+        .map-card-compact.active { border-color: #0D9488; transform: scale(1.02); }
+
+        /* Action Buttons in Card */
+        .card-actions { display: flex; gap: 8px; align-items: center; }
+        .btn-mini {
+            width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid #F1F5F9; color: #64748B; font-size: 14px; transition: all 0.2s;
+        }
+        .btn-mini-nav { background: #0D9488; color: white; border-color: #0D9488; box-shadow: 0 2px 5px rgba(13,148,136,0.3); }
+        .btn-mini:active { transform: scale(0.95); }
 
         /* Navigation Bar */
         .nav-container { z-index: 3000; }
         @media (max-width: 767px) {
             .nav-container {
                 position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-                width: 92%; max-width: 400px; height: 68px;
+                width: 92%; max-width: 400px; height: 64px;
                 background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-                border-radius: 34px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+                border-radius: 32px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
                 display: flex; justify-content: space-evenly; align-items: center; border: 1px solid rgba(255,255,255,0.5);
             }
             .nav-item {
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; height: 100%;
+                color: #94A3B8; font-size: 9px; font-weight: bold; width: 70px; height: 100%;
             }
-            .nav-item i { font-size: 22px; transition: transform 0.2s; margin-bottom: 2px; }
+            .nav-item i { font-size: 20px; margin-bottom: 2px; }
             .nav-item.active { color: #0D9488; }
-            .nav-item.active i { transform: translateY(-3px); }
-            .nav-item.active::after { content: ''; width: 4px; height: 4px; background: #0D9488; border-radius: 50%; position: absolute; bottom: 8px; }
+            .nav-item.active::after { content: ''; width: 4px; height: 4px; background: #0D9488; border-radius: 50%; position: absolute; bottom: 6px; }
         }
         @media (min-width: 768px) {
-            .nav-container {
-                width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0;
-                display: flex; flex-direction: column; padding-top: 40px;
-            }
-            .nav-item {
-                display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px;
-                color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s;
-            }
+            .nav-container { width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; padding-top: 40px; }
+            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; }
             .nav-item:hover { background: #F8FAFC; color: #0D9488; }
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
@@ -163,21 +142,19 @@
         /* Search & Utils */
         .search-area {
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
-            border-bottom: 1px solid #E2E8F0; padding: 12px 16px;
-            position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border-bottom: 1px solid #E2E8F0; padding: 12px 16px; position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
         }
         .search-input {
             width: 100%; padding: 12px 16px 12px 40px; border-radius: 14px; border: 2px solid #F1F5F9;
-            background: #F8FAFC; font-weight: bold; color: #334155; transition: all 0.2s; font-size: 14px;
+            background: #F8FAFC; font-weight: bold; color: #334155; font-size: 14px;
         }
-        .search-input:focus { background: white; border-color: #0D9488; outline: none; }
         .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94A3B8; }
+        
         .map-card { background: white; border-radius: 20px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 12px; border: 1px solid #F1F5F9; }
         .btn-primary {
             background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;
         }
-        .btn-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #E2E8F0; color: #64748B; }
         .tag { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: #F1F5F9; color: #64748B; }
         
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
@@ -194,7 +171,7 @@
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span>
                     HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 18.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 19.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -211,7 +188,7 @@
                             <i class="fas fa-crosshairs"></i>
                         </button>
                         <div id="gps-hint" class="gps-hint-bubble animate-bounce-slow">
-                            現在地を表示！
+                            現在地！
                         </div>
                     </div>
 
@@ -261,10 +238,10 @@
                 </div>
                 <div id="mylist-container" class="p-4 pb-20 md:pb-12 max-w-3xl mx-auto w-full"></div>
                 <div class="p-6 border-t border-slate-200 mt-auto bg-slate-50 text-center">
-                    <h3 class="text-xs font-bold text-slate-400 mb-3">データ引き継ぎ（バックアップ）</h3>
+                    <h3 class="text-xs font-bold text-slate-400 mb-3">データ引き継ぎ</h3>
                     <div class="flex gap-3 justify-center">
-                        <button onclick="openBackupModal('export')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> コードを表示（保存）</button>
-                        <button onclick="openBackupModal('import')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> コードを入力（復元）</button>
+                        <button onclick="openBackupModal('export')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> コードを表示</button>
+                        <button onclick="openBackupModal('import')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> コードを入力</button>
                     </div>
                 </div>
             </div>
@@ -354,51 +331,41 @@
             renderMyList();
         };
 
-        // --- BACKUP LOGIC (Text Base) ---
+        // --- BACKUP ---
         function openBackupModal(type) {
             const modal = document.getElementById('backup-modal');
             const title = document.getElementById('backup-title');
             const desc = document.getElementById('backup-desc');
             const textarea = document.getElementById('backup-text');
             const btn = document.getElementById('backup-action-btn');
-
             modal.classList.add('show');
             
             if(type === 'export') {
                 title.innerText = "データを保存（書き出し）";
-                desc.innerText = "以下のコードをすべてコピーして、メモ帳などに大切に保管してください。";
+                desc.innerText = "以下のコードをコピーして保存してください。";
                 textarea.value = JSON.stringify(userStatus);
                 textarea.readOnly = true;
                 btn.innerText = "コードをコピー";
-                btn.onclick = function() {
-                    textarea.select();
-                    document.execCommand('copy');
-                    alert("コピーしました！");
-                };
+                btn.onclick = function() { textarea.select(); document.execCommand('copy'); alert("コピーしました！"); };
             } else {
                 title.innerText = "データを復元（読み込み）";
-                desc.innerText = "保存していたコードをここに貼り付けて、復元ボタンを押してください。";
+                desc.innerText = "保存していたコードを貼り付けてください。";
                 textarea.value = "";
                 textarea.readOnly = false;
                 btn.innerText = "復元する";
                 btn.onclick = function() {
                     try {
                         const data = JSON.parse(textarea.value);
-                        if(confirm("本当に復元しますか？")) {
-                            userStatus = data;
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
-                            renderMyList(); renderList();
-                            alert("復元しました！");
-                            closeModal('backup-modal');
+                        if(confirm("データを上書きしますか？")) {
+                            userStatus = data; localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
+                            renderMyList(); renderList(); alert("復元しました！"); closeModal('backup-modal');
                         }
-                    } catch(e) {
-                        alert("コードが正しくありません。");
-                    }
+                    } catch(e) { alert("コードが正しくありません。"); }
                 };
             }
         }
 
-        // --- MAP LOGIC ---
+        // --- MAP ---
         function initMap() {
             if(map) return;
             map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 9);
@@ -449,12 +416,13 @@
                 card.innerHTML = `
                     <div class="flex-1 overflow-hidden" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">
                         <h3 class="font-bold text-slate-800 text-sm line-clamp-1 underline decoration-dotted decoration-teal-500">${spot.name}</h3>
-                        <p class="text-[10px] text-slate-400 mt-1"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'}</p>
+                        <p class="text-[10px] text-slate-400 mt-1"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'} <span class="ml-1 text-teal-600 opacity-60 text-[9px]">${spot.url.replace(/^https?:\/\//, '').split('/')[0]}</span></p>
                         <p class="text-xs text-red-500 font-bold mt-1 line-clamp-1">${spot.price}</p>
                     </div>
-                    <div class="flex flex-col gap-2 shrink-0">
-                        <button onclick="event.stopPropagation(); toggleStatus(${spot.id}, 'fav')" class="w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${status.fav ? 'border-pink-200 bg-pink-50 text-pink-500' : 'border-slate-100 text-slate-300'}"><i class="${status.fav ? 'fas' : 'far'} fa-heart"></i></button>
-                        <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-sm"><i class="fas fa-location-arrow"></i></button>
+                    <div class="card-actions">
+                        <button onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();" class="btn-mini hover:bg-slate-50"><i class="fas fa-globe"></i></button>
+                        <button onclick="toggleStatus(${spot.id}, 'fav'); event.stopPropagation();" class="btn-mini hover:bg-pink-50 ${status.fav ? '!text-pink-500 !bg-pink-50 !border-pink-200' : ''}"><i class="${status.fav ? 'fas' : 'far'} fa-heart"></i></button>
+                        <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="btn-mini btn-mini-nav"><i class="fas fa-location-arrow"></i></button>
                     </div>
                 `;
                 scroller.appendChild(card);
@@ -484,7 +452,7 @@
 
         function hideGpsHint() { const el = document.getElementById('gps-hint'); if(el) el.style.display = 'none'; }
 
-        // --- LIST & UTILS ---
+        // --- LIST ---
         function applyListFilter(cat, btn) {
             activeListCategory = cat;
             btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
