@@ -88,10 +88,10 @@
         .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
         .chip:not(.active) { opacity: 0.7; }
 
-        /* GPS Button (Moved UP to avoid card) */
+        /* GPS Button */
         .gps-container {
             position: absolute; right: 16px; 
-            bottom: 320px; /* ★ カードよりかなり上に配置 */
+            bottom: 300px; /* カードの上 */
             z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
         }
         .gps-btn {
@@ -111,30 +111,25 @@
             border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
         }
 
-        /* Map Bottom Sheet (Visual Handle) */
+        /* Map Bottom Sheet (Card Scroller) */
         .sheet-wrapper {
-            position: absolute; bottom: 100px; left: 0; right: 0; 
+            position: absolute; 
+            /* ナビバー(約80px) + 余白分 上げる */
+            bottom: 90px; 
+            left: 0; right: 0; 
             z-index: 1000; pointer-events: none;
             display: flex; flex-direction: column; justify-content: flex-end;
         }
-        /* The Visual "Handle" Bar */
         .sheet-handle-bar {
             width: 40px; height: 5px; background: rgba(0,0,0,0.2); border-radius: 10px;
-            margin: 0 auto 8px auto; 
-            box-shadow: 0 1px 2px rgba(255,255,255,0.5);
+            margin: 0 auto 8px auto; box-shadow: 0 1px 2px rgba(255,255,255,0.5);
         }
-
-        /* Card Scroller */
         .card-scroller {
             display: flex; gap: 12px; padding: 0 16px;
             overflow-x: auto; scroll-snap-type: x mandatory; 
             padding-bottom: 10px; scrollbar-width: none;
-            height: 170px; pointer-events: auto; /* Clickable */
+            height: 170px; pointer-events: auto; 
             -webkit-overflow-scrolling: touch;
-        }
-        @media (min-width: 768px) { 
-            .card-scroller { justify-content: center; } 
-            .sheet-wrapper { bottom: 40px; }
         }
         
         .map-card-horizontal {
@@ -186,7 +181,7 @@
         .search-input:focus { background: white; border-color: #0D9488; outline: none; }
         .search-icon { position: absolute; left: 14px; bottom: 12px; color: #94A3B8; }
 
-        /* Utils & Modal */
+        /* Utils */
         .map-card { background: white; border-radius: 20px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 12px; border: 1px solid #F1F5F9; }
         .btn-primary {
             background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%;
@@ -219,7 +214,7 @@
                 <h1 class="text-2xl font-extrabold text-teal-800 tracking-tight flex items-center gap-3">
                     <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span> HandiMap
                 </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 20.0</p>
+                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 21.0</p>
             </div>
             <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
             <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
@@ -442,6 +437,9 @@
                 updateVisibleSpots();
             });
             renderAllMarkers();
+            
+            // 初回全件表示
+            updateVisibleSpots(); 
         }
 
         function renderAllMarkers() {
@@ -467,8 +465,13 @@
             const center = map.getCenter();
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
-                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) })).sort((a, b) => a.dist - b.dist).slice(0, 15);
+            
+            // 全件を対象に距離順ソートし、上位15件を表示
+            const sorted = facilitiesData
+                .filter(f => f.lat && activeMapCategories.has(f.category))
+                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
+                .sort((a, b) => a.dist - b.dist)
+                .slice(0, 15);
             renderMapCards(sorted);
         }
 
