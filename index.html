@@ -11,154 +11,58 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['"M PLUS Rounded 1c"', 'sans-serif'] },
                     colors: { primary: '#0D9488', secondary: '#F0FDFA', accent: '#F43F5E' },
-                    animation: {
-                        'bounce-slow': 'bounce 3s infinite',
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    }
+                    animation: { 'bounce-slow': 'bounce 3s infinite', 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
                 }
             }
         }
     </script>
-
     <style>
-        /* Base & Safe Area Fixes */
-        body { 
-            touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; 
-            -webkit-font-smoothing: antialiased; color: #334155;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        
+        body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
-        
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
-
-        /* Map */
+        
+        /* Map & Pins */
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
-        .pin-marker {
-            background-color: white; border-radius: 50%; border: 2.5px solid #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative;
-        }
-        .pin-marker::after {
-            content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white;
-        }
-        .pin-marker.active-pin {
-            background-color: #0D9488; color: white; border-color: #0D9488; 
-            transform: scale(1.25) translateY(-8px); z-index: 3000 !important;
-            box-shadow: 0 10px 25px rgba(13, 148, 136, 0.4);
-        }
+        .pin-marker { background-color: white; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative; }
+        .pin-marker::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white; }
+        .pin-marker.active-pin { background-color: #0D9488; color: white; border-color: #0D9488; transform: scale(1.25) translateY(-8px); z-index: 3000 !important; box-shadow: 0 10px 25px rgba(13, 148, 136, 0.4); }
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
-        /* Filter Chips */
-        .filter-bar {
-            position: absolute; top: 10px; left: 0; right: 0; z-index: 500;
-            display: flex; justify-content: center; pointer-events: none;
-        }
-        @supports (padding-top: env(safe-area-inset-top)) {
-            .filter-bar { top: env(safe-area-inset-top); margin-top: 10px; }
-        }
-        .chip-scroll { 
-            display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; 
-            scrollbar-width: none; pointer-events: auto; max-width: 95%;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
-            border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.8);
-        }
-        .chip {
-            padding: 8px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap;
-            background: #F1F5F9; color: #94A3B8; border: 1px solid transparent; 
-            display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;
-        }
+        /* UI Elements */
+        .filter-bar { position: absolute; top: 10px; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; }
+        @supports (padding-top: env(safe-area-inset-top)) { .filter-bar { top: env(safe-area-inset-top); margin-top: 10px; } }
+        .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.8); }
+        .chip { padding: 8px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
         .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
         .chip:not(.active) { opacity: 0.7; }
-
-        /* GPS Button */
-        .gps-container {
-            position: absolute; right: 16px; 
-            bottom: 300px; /* カードの上 */
-            z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
-        }
-        .gps-btn {
-            width: 48px; height: 48px; background: white; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 20px;
-            border: 1px solid #F0FDFA; transition: transform 0.2s;
-        }
-        .gps-btn:active { transform: scale(0.9); }
-        .gps-hint-bubble {
-            background: white; padding: 8px 12px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-size: 11px; font-weight: 800; color: #0D9488;
-            white-space: nowrap; pointer-events: none; border: 2px solid #F0FDFA; position: relative; margin-right: 4px;
-        }
-        .gps-hint-bubble::after {
-            content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
-            border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-        }
-
-        /* Map Bottom Sheet */
-        .sheet-wrapper {
-            position: absolute; 
-            bottom: 90px; 
-            left: 0; right: 0; 
-            z-index: 1000; pointer-events: none;
-            display: flex; flex-direction: column; justify-content: flex-end;
-        }
-        .sheet-handle-bar {
-            width: 40px; height: 5px; background: rgba(0,0,0,0.2); border-radius: 10px;
-            margin: 0 auto 8px auto; box-shadow: 0 1px 2px rgba(255,255,255,0.5);
-        }
-        .card-scroller {
-            display: flex; gap: 12px; padding: 0 16px;
-            overflow-x: auto; scroll-snap-type: x mandatory; 
-            padding-bottom: 10px; scrollbar-width: none;
-            height: 170px; pointer-events: auto; 
-            -webkit-overflow-scrolling: touch;
-        }
         
-        .map-card-horizontal {
-            flex: 0 0 88%; max-width: 340px; scroll-snap-align: center;
-            background: white; border-radius: 24px; padding: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 2px solid transparent;
-            transition: transform 0.2s, border-color 0.2s; height: 100%; display: flex; flex-direction: column;
-        }
-        /* 選択されたカードのスタイル */
-        .map-card-horizontal.active { 
-            border-color: #0D9488; 
-            transform: translateY(-4px); 
-            box-shadow: 0 15px 50px rgba(13, 148, 136, 0.2);
-        }
+        .gps-container { position: absolute; right: 16px; bottom: 300px; z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+        .gps-btn { width: 48px; height: 48px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 20px; border: 1px solid #F0FDFA; transition: transform 0.2s; }
+        .gps-btn:active { transform: scale(0.9); }
+        .gps-hint-bubble { background: white; padding: 8px 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-size: 11px; font-weight: 800; color: #0D9488; white-space: nowrap; pointer-events: none; border: 2px solid #F0FDFA; position: relative; margin-right: 4px; }
+        .gps-hint-bubble::after { content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%); border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
 
-        /* Navigation Bar */
+        .sheet-wrapper { position: absolute; bottom: 90px; left: 0; right: 0; z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; }
+        .sheet-handle-bar { width: 40px; height: 5px; background: rgba(0,0,0,0.2); border-radius: 10px; margin: 0 auto 8px auto; box-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+        .card-scroller { display: flex; gap: 12px; padding: 0 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; scrollbar-width: none; height: 170px; pointer-events: auto; -webkit-overflow-scrolling: touch; }
+        .map-card-horizontal { flex: 0 0 88%; max-width: 340px; scroll-snap-align: center; background: white; border-radius: 24px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s; height: 100%; display: flex; flex-direction: column; }
+        .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); box-shadow: 0 15px 50px rgba(13, 148, 136, 0.2); }
+
         .nav-container { z-index: 3000; }
         @media (max-width: 767px) {
-            .nav-container {
-                position: fixed; bottom: 0; left: 0; right: 0;
-                height: calc(70px + env(safe-area-inset-bottom));
-                padding-bottom: env(safe-area-inset-bottom);
-                background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-                border-top: 1px solid rgba(0,0,0,0.05); box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-                display: flex; justify-content: space-evenly; align-items: center;
-            }
-            .nav-item {
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; height: 100%;
-            }
+            .nav-container { position: fixed; bottom: 0; left: 0; right: 0; height: calc(70px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: flex; justify-content: space-evenly; align-items: center; }
+            .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; height: 100%; }
             .nav-item i { font-size: 22px; transition: transform 0.2s; margin-bottom: 2px; }
             .nav-item.active { color: #0D9488; }
             .nav-item.active i { transform: translateY(-3px); }
@@ -171,26 +75,13 @@
             .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
         }
 
-        /* Search Area */
-        .search-area {
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
-            border-bottom: 1px solid #E2E8F0; padding: 12px 16px;
-            position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            padding-top: max(12px, env(safe-area-inset-top)); 
-        }
-        .search-input {
-            width: 100%; padding: 12px 16px 12px 40px; border-radius: 14px; border: 2px solid #F1F5F9;
-            background: #F8FAFC; font-weight: bold; color: #334155; transition: all 0.2s; font-size: 14px;
-        }
+        .search-area { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #E2E8F0; padding: 12px 16px; position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.03); padding-top: max(12px, env(safe-area-inset-top)); }
+        .search-input { width: 100%; padding: 12px 16px 12px 40px; border-radius: 14px; border: 2px solid #F1F5F9; background: #F8FAFC; font-weight: bold; color: #334155; transition: all 0.2s; font-size: 14px; }
         .search-input:focus { background: white; border-color: #0D9488; outline: none; }
         .search-icon { position: absolute; left: 14px; bottom: 12px; color: #94A3B8; }
 
-        /* Utils */
         .map-card { background: white; border-radius: 20px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 12px; border: 1px solid #F1F5F9; }
-        .btn-primary {
-            background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%;
-            display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;
-        }
+        .btn-primary { background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
         .btn-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #E2E8F0; color: #64748B; transition: all 0.2s; }
         .btn-icon:hover { background: #F0FDFA; color: #0D9488; border-color: #0D9488; }
         .tag { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: #F1F5F9; color: #64748B; }
@@ -199,11 +90,7 @@
         .modal-overlay.show { display: flex; }
         .modal-box { background: white; width: 85%; max-width: 360px; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         
-        #pwa-prompt {
-            position: fixed; top: 0; left: 0; right: 0; background: #0D9488; color: white; z-index: 9999;
-            padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top));
-            display: none; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
+        #pwa-prompt { position: fixed; top: 0; left: 0; right: 0; background: #0D9488; color: white; z-index: 9999; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); display: none; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body class="text-slate-700">
@@ -227,7 +114,6 @@
         </nav>
 
         <main class="flex-1 relative h-full order-1 md:order-2 overflow-hidden bg-slate-50">
-            
             <div id="page-map" class="page active">
                 <div class="filter-bar">
                     <div class="chip-scroll">
@@ -239,14 +125,11 @@
                         <button class="chip active" onclick="toggleMapFilter('cinema', this)"><i class="fas fa-film"></i> 映画</button>
                     </div>
                 </div>
-                
                 <div class="gps-container">
                     <div id="gps-hint" class="gps-hint-bubble animate-bounce-slow">現在地を表示！</div>
                     <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
                 </div>
-
                 <div id="map"></div>
-                
                 <div class="sheet-wrapper">
                     <div class="sheet-handle-bar"></div>
                     <div id="card-scroller" class="card-scroller"></div>
@@ -290,7 +173,6 @@
                         <button onclick="openBackupModal('export')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> コードを表示</button>
                         <button onclick="openBackupModal('import')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> コードを入力</button>
                     </div>
-
                     <div class="border-t border-slate-200 pt-4">
                         <div id="passcode-area" class="flex flex-col items-center gap-2">
                             <p class="text-[10px] text-slate-400">管理者メニュー</p>
@@ -299,7 +181,6 @@
                                 <button onclick="checkAdminPasscode()" class="bg-slate-300 text-white text-[10px] px-2 py-1 rounded font-bold hover:bg-slate-400">解除</button>
                             </div>
                         </div>
-
                         <div id="csv-admin-controls" class="hidden mt-2 animate-pulse-fast bg-teal-50 border border-teal-200 rounded-xl p-3">
                             <p class="text-xs font-bold text-teal-700 mb-2">管理者モード有効</p>
                             <div class="flex gap-2 justify-center">
@@ -313,7 +194,6 @@
                     </div>
                 </div>
             </div>
-
         </main>
     </div>
 
@@ -323,18 +203,12 @@
             <p class="text-xs text-slate-400 mb-6 text-center">移動前に最新情報をご確認ください</p>
             <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-center">
                 <p class="text-xs font-bold text-blue-800 mb-2">⚠️ 料金・営業時間に変更がある場合があります</p>
-                <a id="modal-hp-link" href="#" target="_blank" class="block w-full bg-white text-blue-600 font-bold py-3 rounded-lg border border-blue-200 text-xs hover:bg-blue-600 hover:text-white transition-colors">
-                    <i class="fas fa-external-link-alt mr-2"></i> 公式ホームページを確認
-                </a>
+                <a id="modal-hp-link" href="#" target="_blank" class="block w-full bg-white text-blue-600 font-bold py-3 rounded-lg border border-blue-200 text-xs hover:bg-blue-600 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-2"></i> 公式ホームページを確認</a>
             </div>
             <div class="text-xs font-bold text-slate-400 mb-2 pl-1">マップアプリを選択:</div>
             <div class="flex flex-col gap-3 mb-4">
-                <button onclick="confirmNavigation('google')" class="p-3 rounded-xl border-2 border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center group bg-white">
-                    <i class="fab fa-google text-lg mr-3 text-red-500"></i><div class="flex-1 text-sm font-bold text-slate-700">Googleマップ</div><i class="fas fa-chevron-right text-slate-300"></i>
-                </button>
-                <button onclick="confirmNavigation('default')" class="p-3 rounded-xl border-2 border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center group bg-white">
-                    <i class="fas fa-mobile-alt text-lg mr-3 text-slate-600"></i><div class="flex-1 text-sm font-bold text-slate-700">標準マップ</div><i class="fas fa-chevron-right text-slate-300"></i>
-                </button>
+                <button onclick="confirmNavigation('google')" class="p-3 rounded-xl border-2 border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center group bg-white"><i class="fab fa-google text-lg mr-3 text-red-500"></i><div class="flex-1 text-sm font-bold text-slate-700">Googleマップ</div><i class="fas fa-chevron-right text-slate-300"></i></button>
+                <button onclick="confirmNavigation('default')" class="p-3 rounded-xl border-2 border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center group bg-white"><i class="fas fa-mobile-alt text-lg mr-3 text-slate-600"></i><div class="flex-1 text-sm font-bold text-slate-700">標準マップ</div><i class="fas fa-chevron-right text-slate-300"></i></button>
             </div>
             <button onclick="closeModal('map-select-modal')" class="text-sm text-slate-400 font-bold w-full py-2">閉じる</button>
         </div>
@@ -360,80 +234,90 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const STORAGE_KEY = 'handimap_persistent_save_v1';
-        const ADMIN_CODE = '19870429';
-        const facilitiesData = [
-{ id: 1001, name: "旭川市旭山動物園", pref: "北海道", area: "旭川市", category: "zoo", lat: 43.7684, lng: 142.4800, price: "本人と介護者1名", address: "北海道旭川市東旭川町倉沼", url: "" },
-{ id: 1002, name: "札幌市円山動物園", pref: "北海道", area: "札幌市", category: "zoo", lat: 43.0526, lng: 141.3082, price: "本人と介護者1名", address: "北海道札幌市中央区宮ヶ丘3番地1", url: "" },
-{ id: 1003, name: "北海道開拓の村", pref: "北海道", area: "札幌市", category: "museum", lat: 43.0493, lng: 141.4983, price: "本人と介護者1名", address: "北海道札幌市厚別区厚別町小野幌50-1", url: "" },
-{ id: 1004, name: "三内丸山遺跡センター", pref: "青森県", area: "青森市", category: "museum", lat: 40.8122, lng: 140.6970, price: "本人と付添人1名", address: "青森県青森市三内字丸山305", url: "" },
-{ id: 1005, name: "盛岡市動物公園 ZOOMA", pref: "岩手県", area: "盛岡市", category: "park", lat: 39.7214, lng: 141.1923, price: "本人と介護者1名", address: "岩手県盛岡市新庄字下八木田60-18", url: "" },
-{ id: 1006, name: "仙台市博物館", pref: "宮城県", area: "仙台市", category: "museum", lat: 38.2562, lng: 140.8566, price: "本人と介護者1名", address: "宮城県仙台市青葉区川内26", url: "" },
-{ id: 1007, name: "アクアマリンふくしま", pref: "福島県", area: "いわき市", category: "aquarium", lat: 36.9427, lng: 140.9032, price: "本人と介護者1名", address: "福島県いわき市小名浜字辰巳町50", url: "" },
-{ id: 1008, name: "鶴ヶ城（会津若松城）", pref: "福島県", area: "会津若松市", category: "museum", lat: 37.4875, lng: 139.9297, price: "本人と付添人1名", address: "福島県会津若松市追手町1-1", url: "" },
-{ id: 1009, name: "国営ひたち海浜公園", pref: "茨城県", area: "ひたちなか市", category: "park", lat: 36.4027, lng: 140.5927, price: "本人と付添人1名", address: "茨城県ひたちなか市馬渡字大沼605-4", url: "" },
-{ id: 1010, name: "日光田母沢御用邸記念公園", pref: "栃木県", area: "日光市", category: "park", lat: 36.7533, lng: 139.5936, price: "本人と付添人1名", address: "栃木県日光市本町8-27", url: "" },
-{ id: 1011, name: "富岡製糸場", pref: "群馬県", area: "富岡市", category: "museum", lat: 36.2553, lng: 138.8925, price: "本人と介護者1名", address: "群馬県富岡市富岡1-1", url: "" },
-{ id: 1012, name: "群馬県立自然史博物館", pref: "群馬県", area: "富岡市", category: "museum", lat: 36.2647, lng: 138.8833, price: "本人と介護者1名", address: "群馬県富岡市上黒岩1674-1", url: "" },
-{ id: 1013, name: "さいたま水族館", pref: "埼玉県", area: "羽生市", category: "aquarium", lat: 36.1736, lng: 139.5925, price: "本人と介護者1名", address: "埼玉県羽生市三田ヶ谷751-1", url: "" },
-{ id: 1014, name: "千葉市動物公園", pref: "千葉県", area: "千葉市", category: "park", lat: 35.6369, lng: 140.1222, price: "本人と介護者1名", address: "千葉県千葉市若葉区源町280", url: "" },
-{ id: 1015, name: "東京国立博物館", pref: "東京都", area: "台東区", category: "museum", lat: 35.7187, lng: 139.7765, price: "本人と介護者1名", address: "東京都台東区上野公園13-9", url: "" },
-{ id: 1016, name: "国立科学博物館", pref: "東京都", area: "台東区", category: "museum", lat: 35.7163, lng: 139.7766, price: "本人と介護者1名", address: "東京都台東区上野公園7-20", url: "" },
-{ id: 1017, name: "恩賜上野動物園", pref: "東京都", area: "台東区", category: "zoo", lat: 35.7165, lng: 139.7713, price: "本人と付添人1名", address: "東京都台東区上野公園9-83", url: "" },
-{ id: 1018, name: "新宿御苑", pref: "東京都", area: "新宿区", category: "museum", lat: 35.6851, lng: 139.7100, price: "本人と介助者1名", address: "東京都新宿区内藤町11", url: "" },
-{ id: 1019, name: "葛西臨海水族園", pref: "東京都", area: "江戸川区", category: "museum", lat: 35.6401, lng: 139.8624, price: "本人と付添人1名", address: "東京都江戸川区臨海町6-2-3", url: "" },
-{ id: 1020, name: "よこはま動物園ズーラシア", pref: "神奈川県", area: "横浜市", category: "zoo", lat: 35.4944, lng: 139.5255, price: "本人と介護者2名まで", address: "神奈川県横浜市旭区上白根町1175-1", url: "" },
-{ id: 1021, name: "川崎市藤子・F・不二雄ミュージアム", pref: "神奈川県", area: "川崎市", category: "leisure", lat: 35.6103, lng: 139.5732, price: "本人と介助者1名", address: "神奈川県川崎市多摩区長尾2-8-1", url: "" },
-{ id: 1022, name: "新潟市水族館 マリンピア日本海", pref: "新潟県", area: "新潟市", category: "aquarium", lat: 37.9239, lng: 139.0322, price: "本人と介助者1名", address: "新潟県新潟市中央区西船見町5932-445", url: "" },
-{ id: 1023, name: "兼六園", pref: "石川県", area: "金沢市", category: "park", lat: 36.5620, lng: 136.6625, price: "本人と介護者1名", address: "石川県金沢市兼六町1", url: "" },
-{ id: 1024, name: "福井県立恐竜博物館", pref: "福井県", area: "勝山市", category: "museum", lat: 36.0545, lng: 136.5033, price: "本人と介護者1名", address: "福井県勝山市村岡町寺尾51-11", url: "" },
-{ id: 1025, name: "山梨県立リニア見学センター", pref: "山梨県", area: "都留市", category: "museum", lat: 35.5670, lng: 138.9372, price: "本人と介助者1名", address: "山梨県都留市小形山2381", url: "" },
-{ id: 1026, name: "国宝 松本城", pref: "長野県", area: "松本市", category: "museum", lat: 36.2387, lng: 137.9691, price: "本人と介助者1名", address: "長野県松本市丸の内4-1", url: "" },
-{ id: 1027, name: "岐阜城", pref: "岐阜県", area: "岐阜市", category: "museum", lat: 35.4339, lng: 136.7821, price: "本人と介護者1名", address: "岐阜県岐阜市金華山天守閣18", url: "" },
-{ id: 1028, name: "浜松市動物園", pref: "静岡県", area: "浜松市", category: "zoo", lat: 34.7644, lng: 137.6622, price: "本人と介護者1名", address: "静岡県浜松市西区舘山寺町199", url: "" },
-{ id: 1029, name: "名古屋城", pref: "愛知県", area: "名古屋市", category: "museum", lat: 35.1847, lng: 136.9000, price: "本人と介護者2名まで", address: "愛知県名古屋市中区本丸1-1", url: "" },
-{ id: 1030, name: "東山動植物園", pref: "愛知県", area: "名古屋市", category: "museum", lat: 35.1565, lng: 136.9744, price: "本人と介護者2名まで", address: "愛知県名古屋市千種区東山元町3-70", url: "" },
-{ id: 1031, name: "トヨタ産業技術記念館", pref: "愛知県", area: "名古屋市", category: "museum", lat: 35.1828, lng: 136.8753, price: "本人と付添人1名", address: "愛知県名古屋市西区則武新町4-1-35", url: "" },
-{ id: 1032, name: "彦根城", pref: "滋賀県", area: "彦根市", category: "museum", lat: 35.2766, lng: 136.2517, price: "本人と付添人1名", address: "滋賀県彦根市金亀町1-1", url: "" },
-{ id: 1033, name: "元離宮二条城", pref: "京都府", area: "京都市", category: "museum", lat: 35.0142, lng: 135.7482, price: "本人と介護者1名", address: "京都府京都市中京区二条通堀川西入二条城町541", url: "" },
-{ id: 1034, name: "京都国立博物館", pref: "京都府", area: "京都市", category: "museum", lat: 34.9906, lng: 135.7725, price: "本人と介護者1名", address: "京都府京都市東山区茶屋町527", url: "" },
-{ id: 1035, name: "京都市動物園", pref: "京都府", area: "京都市", category: "zoo", lat: 35.0116, lng: 135.7836, price: "本人と介護者1名", address: "京都府京都市左京区岡崎法勝寺町岡崎公園内", url: "" },
-{ id: 1036, name: "大阪城天守閣", pref: "大阪府", area: "大阪市", category: "museum", lat: 34.6873, lng: 135.5262, price: "本人と介護者1名", address: "大阪府大阪市中央区大阪城1-1", url: "" },
-{ id: 1037, name: "天王寺動物園", pref: "大阪府", area: "大阪市", category: "zoo", lat: 34.6506, lng: 135.5103, price: "本人と付添人1名", address: "大阪府大阪市天王寺区茶臼山町1-108", url: "" },
-{ id: 1038, name: "万博記念公園", pref: "大阪府", area: "吹田市", category: "park", lat: 34.8028, lng: 135.5367, price: "本人と介助者1名", address: "大阪府吹田市千里万博公園", url: "" },
-{ id: 1039, name: "姫路城", pref: "兵庫県", area: "姫路市", category: "museum", lat: 34.8394, lng: 134.6939, price: "本人と介助者1名", address: "兵庫県姫路市本町68", url: "" },
-{ id: 1040, name: "神戸市立王子動物園", pref: "兵庫県", area: "神戸市", category: "zoo", lat: 34.7126, lng: 135.2166, price: "本人と介護者1名", address: "兵庫県神戸市灘区王子町3-1", url: "" },
-{ id: 1041, name: "奈良国立博物館", pref: "奈良県", area: "奈良市", category: "museum", lat: 34.6836, lng: 135.8358, price: "本人と介護者1名", address: "奈良県奈良市登大路町50", url: "" },
-{ id: 1042, name: "和歌山城", pref: "和歌山県", area: "和歌山市", category: "museum", lat: 34.2255, lng: 135.1706, price: "本人と付添人1名", address: "和歌山県和歌山市一番丁3", url: "" },
-{ id: 1043, name: "鳥取砂丘 砂の美術館", pref: "鳥取県", area: "鳥取市", category: "museum", lat: 35.5404, lng: 134.2382, price: "本人と介護者1名", address: "鳥取県鳥取市福部町湯山2083-17", url: "" },
-{ id: 1044, name: "松江城", pref: "島根県", area: "松江市", category: "museum", lat: 35.4753, lng: 133.0505, price: "本人と介助者1名", address: "島根県松江市殿町1-5", url: "" },
-{ id: 1045, name: "岡山後楽園", pref: "岡山県", area: "岡山市", category: "park", lat: 34.6669, lng: 133.9358, price: "本人と介護者1名", address: "岡山県岡山市北区後楽園1-5", url: "" },
-{ id: 1046, name: "広島平和記念資料館", pref: "広島県", area: "広島市", category: "museum", lat: 34.3916, lng: 132.4519, price: "本人と介護者1名", address: "広島県広島市中区中島町1-2", url: "" },
-{ id: 1047, name: "海響館（市立しものせき水族館）", pref: "山口県", area: "下関市", category: "aquarium", lat: 33.9538, lng: 130.9436, price: "本人と介護者1名", address: "山口県下関市あるかぽーと6-1", url: "" },
-{ id: 1048, name: "栗林公園", pref: "香川県", area: "高松市", category: "park", lat: 34.3323, lng: 134.0439, price: "本人と介護者1名", address: "香川県高松市栗林町1-20-16", url: "" },
-{ id: 1049, name: "松山城", pref: "愛媛県", area: "松山市", category: "museum", lat: 33.8455, lng: 132.7663, price: "本人と介助者2名まで", address: "愛媛県松山市丸之内1", url: "" },
-{ id: 1050, name: "愛媛県立とべ動物園", pref: "愛媛県", area: "砥部町", category: "zoo", lat: 33.7667, lng: 132.7961, price: "本人と介護者1名", address: "愛媛県伊予郡砥部町上原町240", url: "" },
-{ id: 1051, name: "高知城", pref: "高知県", area: "高知市", category: "museum", lat: 33.5607, lng: 133.5312, price: "本人と介護者1名", address: "高知県高知市丸ノ内1-2-1", url: "" },
-{ id: 1052, name: "九州国立博物館", pref: "福岡県", area: "太宰府市", category: "museum", lat: 33.5186, lng: 130.5242, price: "本人と介護者1名", address: "福岡県太宰府市石坂4-7-2", url: "" },
-{ id: 1053, name: "海の中道海浜公園", pref: "福岡県", area: "福岡市", category: "park", lat: 33.6558, lng: 130.3664, price: "本人と付添人1名", address: "福岡県福岡市東区大字西戸崎18-25", url: "" },
-{ id: 1054, name: "グラバー園", pref: "長崎県", area: "長崎市", category: "park", lat: 32.7341, lng: 129.8696, price: "本人と介護者1名", address: "長崎県長崎市南山手町8-1", url: "" },
-{ id: 1055, name: "熊本城", pref: "熊本県", area: "熊本市", category: "museum", lat: 32.8062, lng: 130.7058, price: "本人と付添人1名", address: "熊本県熊本市中央区本丸1-1", url: "" },
-{ id: 1056, name: "フェニックス自然動物園", pref: "宮崎県", area: "宮崎市", category: "zoo", lat: 31.9567, lng: 131.4722, price: "本人と介護者1名", address: "宮崎県宮崎市塩路浜山3083-42", url: "" },
-{ id: 1057, name: "いおワールドかごしま水族館", pref: "鹿児島県", area: "鹿児島市", category: "aquarium", lat: 31.5947, lng: 130.5636, price: "本人と介護者1名", address: "鹿児島県鹿児島市本港新町3-1", url: "" },
-{ id: 1058, name: "沖縄美ら海水族館", pref: "沖縄県", area: "本部町", category: "aquarium", lat: 26.6943, lng: 127.8779, price: "本人と付添人1名", address: "沖縄県国頭郡本部町石川424", url: "" },
-{ id: 1059, name: "首里城公園", pref: "沖縄県", area: "那覇市", category: "museum", lat: 26.2170, lng: 127.7196, price: "本人と介助者1名", address: "沖縄県那覇市首里金城町1-2", url: "" },
-        ];
+        // --- CONFIG & CONSTANTS ---
+        const CONFIG = {
+            STORAGE_KEY: 'handimap_persistent_save_v1',
+            ADMIN_CODE: '19870429',
+            DEFAULT_POS: [36.2048, 138.2529], // Center of Japan
+            DEFAULT_ZOOM: 5
+        };
 
+        // --- DATA MANAGEMENT (Embedded CSV) ---
+        // ここにCSVデータを貼り付けるだけで更新可能になります
+        const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
+1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名,北海道旭川市東旭川町倉沼,,43.7684,142.4800
+1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
+1003,北海道開拓の村,北海道,札幌市,museum,本人と介護者1名,北海道札幌市厚別区厚別町小野幌50-1,,43.0493,141.4983
+1004,三内丸山遺跡センター,青森県,青森市,museum,本人と付添人1名,青森県青森市三内字丸山305,,40.8122,140.6970
+1005,盛岡市動物公園 ZOOMA,岩手県,盛岡市,park,本人と介護者1名,岩手県盛岡市新庄字下八木田60-18,,39.7214,141.1923
+1006,仙台市博物館,宮城県,仙台市,museum,本人と介護者1名,宮城県仙台市青葉区川内26,,38.2562,140.8566
+1007,アクアマリンふくしま,福島県,いわき市,aquarium,本人と介護者1名,福島県いわき市小名浜字辰巳町50,,36.9427,140.9032
+1008,鶴ヶ城（会津若松城）,福島県,会津若松市,museum,本人と付添人1名,福島県会津若松市追手町1-1,,37.4875,139.9297
+1009,国営ひたち海浜公園,茨城県,ひたちなか市,park,本人と付添人1名,茨城県ひたちなか市馬渡字大沼605-4,,36.4027,140.5927
+1010,日光田母沢御用邸記念公園,栃木県,日光市,park,本人と付添人1名,栃木県日光市本町8-27,,36.7533,139.5936
+1011,富岡製糸場,群馬県,富岡市,museum,本人と介護者1名,群馬県富岡市富岡1-1,,36.2553,138.8925
+1012,群馬県立自然史博物館,群馬県,富岡市,museum,本人と介護者1名,群馬県富岡市上黒岩1674-1,,36.2647,138.8833
+1013,さいたま水族館,埼玉県,羽生市,aquarium,本人と介護者1名,埼玉県羽生市三田ヶ谷751-1,,36.1736,139.5925
+1014,千葉市動物公園,千葉県,千葉市,park,本人と介護者1名,千葉県千葉市若葉区源町280,,35.6369,140.1222
+1015,東京国立博物館,東京都,台東区,museum,本人と介護者1名（総合文化展）,東京都台東区上野公園13-9,,35.7187,139.7765
+1016,国立科学博物館,東京都,台東区,museum,本人と介護者1名,東京都台東区上野公園7-20,,35.7163,139.7766
+1017,恩賜上野動物園,東京都,台東区,zoo,本人と付添人1名,東京都台東区上野公園9-83,,35.7165,139.7713
+1018,新宿御苑,東京都,新宿区,museum,本人と介助者1名,東京都新宿区内藤町11,,35.6851,139.7100
+1019,葛西臨海水族園,東京都,江戸川区,museum,本人と付添人1名,東京都江戸川区臨海町6-2-3,,35.6401,139.8624
+1020,よこはま動物園ズーラシア,神奈川県,横浜市,zoo,本人と介護者2名まで,神奈川県横浜市旭区上白根町1175-1,,35.4944,139.5255
+1021,川崎市藤子・F・不二雄ミュージアム,神奈川県,川崎市,leisure,本人と介助者1名（要予約）,神奈川県川崎市多摩区長尾2-8-1,,35.6103,139.5732
+1022,新潟市水族館 マリンピア日本海,新潟県,新潟市,aquarium,本人と介助者1名,新潟県新潟市中央区西船見町5932-445,,37.9239,139.0322
+1023,兼六園,石川県,金沢市,park,本人と介護者1名,石川県金沢市兼六町1,,36.5620,136.6625
+1024,福井県立恐竜博物館,福井県,勝山市,museum,本人と介護者1名（常設展）,福井県勝山市村岡町寺尾51-11,,36.0545,136.5033
+1025,山梨県立リニア見学センター,山梨県,都留市,museum,本人と介助者1名,山梨県都留市小形山2381,,35.5670,138.9372
+1026,国宝 松本城,長野県,松本市,museum,本人と介助者1名,長野県松本市丸の内4-1,,36.2387,137.9691
+1027,岐阜城,岐阜県,岐阜市,museum,本人と介護者1名,岐阜県岐阜市金華山天守閣18,,35.4339,136.7821
+1028,浜松市動物園,静岡県,浜松市,zoo,本人と介護者1名,静岡県浜松市西区舘山寺町199,,34.7644,137.6622
+1029,名古屋城,愛知県,名古屋市,museum,本人と介護者2名まで,愛知県名古屋市中区本丸1-1,,35.1847,136.9000
+1030,東山動植物園,愛知県,名古屋市,museum,本人と介護者2名まで,愛知県名古屋市千種区東山元町3-70,,35.1565,136.9744
+1031,トヨタ産業技術記念館,愛知県,名古屋市,museum,本人と付添人1名,愛知県名古屋市西区則武新町4-1-35,,35.1828,136.8753
+1032,彦根城,滋賀県,彦根市,museum,本人と付添人1名,滋賀県彦根市金亀町1-1,,35.2766,136.2517
+1033,元離宮二条城,京都府,京都市,museum,本人と介護者1名,京都府京都市中京区二条通堀川西入二条城町541,,35.0142,135.7482
+1034,京都国立博物館,京都府,京都市,museum,本人と介護者1名（名品ギャラリー）,京都府京都市東山区茶屋町527,,34.9906,135.7725
+1035,京都市動物園,京都府,京都市,zoo,本人と介護者1名,京都府京都市左京区岡崎法勝寺町岡崎公園内,,35.0116,135.7836
+1036,大阪城天守閣,大阪府,大阪市,museum,本人と介護者1名,大阪府大阪市中央区大阪城1-1,,34.6873,135.5262
+1037,天王寺動物園,大阪府,大阪市,zoo,本人と付添人1名,大阪府大阪市天王寺区茶臼山町1-108,,34.6506,135.5103
+1038,万博記念公園,大阪府,吹田市,park,本人と介助者1名,大阪府吹田市千里万博公園,,34.8028,135.5367
+1039,姫路城,兵庫県,姫路市,museum,本人と介助者1名,兵庫県姫路市本町68,,34.8394,134.6939
+1040,神戸市立王子動物園,兵庫県,神戸市,zoo,本人と介護者1名,兵庫県神戸市灘区王子町3-1,,34.7126,135.2166
+1041,奈良国立博物館,奈良県,奈良市,museum,本人と介護者1名,奈良県奈良市登大路町50,,34.6836,135.8358
+1042,和歌山城,和歌山県,和歌山市,museum,本人と付添人1名,和歌山県和歌山市一番丁3,,34.2255,135.1706
+1043,鳥取砂丘 砂の美術館,鳥取県,鳥取市,museum,本人と介護者1名,鳥取県鳥取市福部町湯山2083-17,,35.5404,134.2382
+1044,松江城,島根県,松江市,museum,本人と介助者1名,島根県松江市殿町1-5,,35.4753,133.0505
+1045,岡山後楽園,岡山県,岡山市,park,本人と介護者1名,岡山県岡山市北区後楽園1-5,,34.6669,133.9358
+1046,広島平和記念資料館,広島県,広島市,museum,本人と介護者1名,広島県広島市中区中島町1-2,,34.3916,132.4519
+1047,海響館（市立しものせき水族館）,山口県,下関市,aquarium,本人と介護者1名,山口県下関市あるかぽーと6-1,,33.9538,130.9436
+1048,栗林公園,香川県,高松市,park,本人と介護者1名,香川県高松市栗林町1-20-16,,34.3323,134.0439
+1049,松山城,愛媛県,松山市,museum,本人と介助者2名まで,愛媛県松山市丸之内1,,33.8455,132.7663
+1050,愛媛県立とべ動物園,愛媛県,砥部町,zoo,本人と介護者1名,愛媛県伊予郡砥部町上原町240,,33.7667,132.7961
+1051,高知城,高知県,高知市,museum,本人と介護者1名,高知県高知市丸ノ内1-2-1,,33.5607,133.5312
+1052,九州国立博物館,福岡県,太宰府市,museum,本人と介護者1名（文化交流展）,福岡県太宰府市石坂4-7-2,,33.5186,130.5242
+1053,海の中道海浜公園,福岡県,福岡市,park,本人と付添人1名,福岡県福岡市東区大字西戸崎18-25,,33.6558,130.3664
+1054,グラバー園,長崎県,長崎市,park,本人と介護者1名,長崎県長崎市南山手町8-1,,32.7341,129.8696
+1055,熊本城,熊本県,熊本市,museum,本人と付添人1名,熊本県熊本市中央区本丸1-1,,32.8062,130.7058
+1056,フェニックス自然動物園,宮崎県,宮崎市,zoo,本人と介護者1名,宮崎県宮崎市塩路浜山3083-42,,31.9567,131.4722
+1057,いおワールドかごしま水族館,鹿児島県,鹿児島市,aquarium,本人と介護者1名,鹿児島県鹿児島市本港新町3-1,,31.5947,130.5636
+1058,沖縄美ら海水族館,沖縄県,本部町,aquarium,本人と付添人1名,沖縄県国頭郡本部町石川424,,26.6943,127.8779
+1059,首里城公園,沖縄県,那覇市,museum,本人と介助者1名,沖縄県那覇市首里金城町1-2,,26.2170,127.7196`;
+
+        // --- GLOBAL STATE ---
         let map, markers = {};
-        let userStatus = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        let userStatus = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)) || {};
         let userCurrentPos = null;
-        let activeListCategory = 'all'; 
+        let activeListCategory = 'all';
         let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']);
         let searchQuery = "";
         let currentListTab = 'fav';
-        let isSingleCardMode = false;
+        let facilitiesData = [];
 
+        // --- INITIALIZATION ---
         window.onload = function() {
+            facilitiesData = parseCSV(MASTER_CSV);
             initMap();
             renderList();
             renderMyList();
@@ -442,190 +326,80 @@
             }
         };
 
-        function closePwaPrompt() { document.getElementById('pwa-prompt').style.display = 'none'; }
+        // --- DATA HELPERS ---
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const result = [];
+            // Skip header (i=1)
+            for (let i = 1; i < lines.length; i++) {
+                // Handle potential commas in fields (basic)
+                const row = lines[i].split(',').map(c => c.trim()); 
+                if (row.length < 2) continue;
+                result.push({
+                    id: parseInt(row[0]),
+                    name: row[1],
+                    pref: row[2],
+                    area: row[3],
+                    category: row[4],
+                    price: row[5],
+                    address: row[6],
+                    url: row[7],
+                    lat: row[8] ? parseFloat(row[8]) : null,
+                    lng: row[9] ? parseFloat(row[9]) : null
+                });
+            }
+            return result;
+        }
 
-        // --- BACKUP LOGIC ---
-        function openBackupModal(type) {
-            const modal = document.getElementById('backup-modal');
-            const title = document.getElementById('backup-title');
-            const desc = document.getElementById('backup-desc');
-            const textarea = document.getElementById('backup-text');
-            const btn = document.getElementById('backup-action-btn');
+        // --- UI GENERATORS (Refactored for DRY) ---
+        function getIcon(cat) { const icons = { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳' }; return icons[cat] || '📍'; }
+        
+        function getDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
 
-            modal.classList.add('show');
+        function createActionButtonsHTML(spot, isMap = false) {
+            const status = userStatus[spot.id] || {};
+            const navBtn = spot.lat ? 
+                `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); ${isMap ? 'event.stopPropagation();' : ''}" class="btn-primary text-xs py-2 shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>` : 
+                `<a href="${spot.url}" target="_blank" class="btn-primary shadow-sm flex-1 !bg-slate-500"><i class="fas fa-external-link-alt"></i> HP</a>`;
             
-            if(type === 'export') {
-                title.innerText = "データを保存（書き出し）";
-                desc.innerText = "以下のコードをすべてコピーして、メモ帳などに大切に保管してください。";
-                textarea.value = JSON.stringify(userStatus);
-                textarea.readOnly = true;
-                btn.innerText = "コードをコピー";
-                btn.onclick = function() {
-                    textarea.select();
-                    document.execCommand('copy');
-                    alert("コピーしました！");
-                };
-            } else {
-                title.innerText = "データを復元（読み込み）";
-                desc.innerText = "保存していたコードをここに貼り付けて、復元ボタンを押してください。";
-                textarea.value = "";
-                textarea.readOnly = false;
-                btn.innerText = "復元する";
-                btn.onclick = function() {
-                    try {
-                        const data = JSON.parse(textarea.value);
-                        if(confirm("データを復元しますか？現在のデータは上書きされます。")) {
-                            userStatus = data;
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
-                            renderMyList(); renderList();
-                            alert("復元しました！");
-                            closeModal('backup-modal');
-                        }
-                    } catch(e) {
-                        alert("コードが正しくありません。");
-                    }
-                };
-            }
-        }
-
-        // --- CSV & ADMIN LOGIC (New) ---
-        function checkAdminPasscode() {
-            const input = document.getElementById('admin-passcode');
-            if(input.value === ADMIN_CODE) {
-                document.getElementById('passcode-area').style.display = 'none';
-                document.getElementById('csv-admin-controls').classList.remove('hidden');
-                alert("管理者認証に成功しました");
-            } else {
-                alert("コードが正しくありません");
-                input.value = "";
-            }
-        }
-
-        function downloadCSV() {
-            // Header: ID, Name, Pref, Area, Category, Price, Address, URL, Lat, Lng, Want, Visited
-            const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
+            const jumpBtn = (!isMap && spot.lat) ? 
+                `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id})" class="btn-icon bg-white hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : '';
             
-            // Body (Export ALL items)
-            facilitiesData.forEach(f => {
-                const s = userStatus[f.id] || {};
-                rows.push([
-                    f.id,
-                    f.name,
-                    f.pref,
-                    f.area,
-                    f.category,
-                    f.price,
-                    f.address,
-                    f.url,
-                    f.lat,
-                    f.lng,
-                    s.fav ? "1" : "0",
-                    s.visited ? "1" : "0"
-                ]);
-            });
+            // Map card doesn't show heart button in this design, list does. 
+            const favBtn = !isMap ? 
+                `<button onclick="toggleStatus(${spot.id}, 'fav')" class="btn-icon bg-white hover:text-pink-500 ${status.fav ? '!text-pink-500 !bg-pink-50 !border-pink-200' : ''}"><i class="${status.fav ? 'fas' : 'far'} fa-heart text-lg"></i></button>` : '';
 
-            if(rows.length <= 1) {
-                alert("データがありません");
-                return;
-            }
-
-            let csvContent = "\uFEFF"; // BOM for Excel
-            rows.forEach(r => {
-                csvContent += r.map(e => `"${e}"`).join(",") + "\n";
-            });
-
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `handimap_data_${new Date().toISOString().slice(0,10)}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function handleCSVUpload(input) {
-            const file = input.files[0];
-            if(!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                try {
-                    const lines = text.split(/\r\n|\n/);
-                    // Skip header (index 0)
-                    let count = 0;
-                    for(let i=1; i<lines.length; i++) {
-                        const line = lines[i].trim();
-                        if(!line) continue;
-                        
-                        // Handle quotes if necessary, but simple split for now
-                        const cols = line.split(",").map(c => c.replace(/^"|"$/g, ''));
-                        // Expect at least 12 columns now (ID is index 0, fav is 10, visited is 11)
-                        if(cols.length < 12) continue;
-
-                        const id = parseInt(cols[0]);
-                        const isFav = cols[10] === "1";
-                        const isVisited = cols[11] === "1";
-
-                        if(id) {
-                            if(!userStatus[id]) userStatus[id] = {};
-                            userStatus[id].fav = isFav;
-                            userStatus[id].visited = isVisited;
-                            count++;
-                        }
-                    }
-
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
-                    renderMyList();
-                    renderList();
-                    alert(`${count}件のユーザー情報を更新しました`);
-                    input.value = ""; // Reset input
-                } catch(err) {
-                    alert("CSVファイルの読み込みに失敗しました");
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file);
+            return `<div class="flex gap-2">${navBtn}${jumpBtn}${favBtn}</div>`;
         }
 
         // --- MAP LOGIC ---
         function initMap() {
             if(map) return;
-            // Center map on Japan (roughly center or Tokyo)
-            map = L.map('map', { zoomControl: false }).setView([36.2048, 138.2529], 5);
+            map = L.map('map', { zoomControl: false }).setView(CONFIG.DEFAULT_POS, CONFIG.DEFAULT_ZOOM);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
             if (window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
-            
-            // Map Move -> Update List
-            map.on('moveend', () => { 
-                updateVisibleSpots(); 
-            });
-            
-            // Map Click (Background) -> Unselect
+            map.on('moveend', updateVisibleSpots);
             map.on('click', () => {
                 document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
                 document.querySelectorAll('.map-card-horizontal').forEach(el => el.classList.remove('active'));
                 hideGpsHint();
             });
-            
             renderAllMarkers();
-            updateVisibleSpots(); // Initial load
+            updateVisibleSpots();
         }
 
         function renderAllMarkers() {
             Object.values(markers).forEach(m => map.removeLayer(m));
             markers = {};
             facilitiesData.forEach(spot => {
-                if (!spot.lat) return;
-                if (!activeMapCategories.has(spot.category)) return;
+                if (!spot.lat || !activeMapCategories.has(spot.category)) return;
                 const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                marker.on('click', (e) => { 
-                    L.DomEvent.stopPropagation(e); 
-                    setActiveFacilityOnMap(spot.id); 
-                });
+                marker.on('click', (e) => { L.DomEvent.stopPropagation(e); setActiveFacilityOnMap(spot.id); });
                 markers[spot.id] = marker;
             });
         }
@@ -640,12 +414,10 @@
             const center = map.getCenter();
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-            
             const sorted = facilitiesData
                 .filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
                 .sort((a, b) => a.dist - b.dist);
-            
             renderMapCards(sorted);
         }
 
@@ -657,11 +429,7 @@
                 const card = document.createElement('div');
                 card.id = `map-card-${spot.id}`; 
                 card.className = "map-card-horizontal bg-white";
-                card.onclick = (e) => { 
-                    L.DomEvent.stopPropagation(e);
-                    map.flyTo([spot.lat, spot.lng], 14); 
-                    setActiveFacilityOnMap(spot.id); 
-                };
+                card.onclick = (e) => { L.DomEvent.stopPropagation(e); map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
                 card.innerHTML = `
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-1">
@@ -671,9 +439,7 @@
                         <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
                         <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'}先</p>
                     </div>
-                    <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
-                        <button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); event.stopPropagation();" class="btn-primary text-xs py-2 shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>
-                    </div>
+                    <div class="mt-2 pt-2 border-t border-slate-100">${createActionButtonsHTML(spot, true)}</div>
                 `;
                 scroller.appendChild(card);
             });
@@ -681,13 +447,8 @@
         }
 
         function setActiveFacilityOnMap(id) {
-            const spot = facilitiesData.find(f => f.id === id); if(!spot) return;
-            
-            // Highlight Pin
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
-            
-            // Scroll to Card
             const card = document.getElementById(`map-card-${id}`);
             if (card) {
                 card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
@@ -709,8 +470,6 @@
              });
         }
 
-        function hideGpsHint() { const el = document.getElementById('gps-hint'); if(el) el.style.display = 'none'; }
-
         // --- LIST & UTILS ---
         function applyListFilter(cat, btn) {
             activeListCategory = cat;
@@ -723,97 +482,62 @@
             const container = document.getElementById('list-container'); if(!container) return;
             container.innerHTML = '';
             let targets = facilitiesData.filter(f => {
-                if (activeListCategory !== 'all') {
-                    if (activeListCategory === 'leisure' && (f.category === 'zoo' || f.category === 'aquarium')) return true;
-                    if (f.category !== activeListCategory) return false;
-                }
-                if (searchQuery) {
-                    const q = searchQuery;
-                    return f.name.toLowerCase().includes(q) || f.pref.toLowerCase().includes(q) || f.area.toLowerCase().includes(q);
-                }
+                if (activeListCategory !== 'all' && f.category !== activeListCategory && !(activeListCategory === 'leisure' && (f.category === 'zoo' || f.category === 'aquarium'))) return false;
+                if (searchQuery && !(f.name.includes(searchQuery) || f.pref.includes(searchQuery) || f.area.includes(searchQuery))) return false;
                 return true;
             });
             if (userCurrentPos) {
-                targets = targets.map(f => {
-                    if(!f.lat) return {...f, dist: Infinity};
-                    return {...f, dist: getDistance(userCurrentPos.lat, userCurrentPos.lng, f.lat, f.lng)};
-                }).sort((a,b) => a.dist - b.dist);
+                targets = targets.map(f => ({...f, dist: f.lat ? getDistance(userCurrentPos.lat, userCurrentPos.lng, f.lat, f.lng) : Infinity})).sort((a,b) => a.dist - b.dist);
             }
             if (targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold">該当なし</div>`; return; }
-            const grouped = {};
-            const prefOrder = ["東京都", "神奈川県", "千葉県", "埼玉県", "茨城県", "栃木県", "群馬県", "全域"];
+            
+            // Grouping logic
             if (!searchQuery && !userCurrentPos) {
+                const grouped = {}; const prefOrder = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
                 targets.forEach(f => { if(!grouped[f.pref]) grouped[f.pref] = []; grouped[f.pref].push(f); });
                 prefOrder.forEach(pref => {
                     if(!grouped[pref]) return;
-                    const section = document.createElement('div');
-                    section.className = "mb-6";
+                    const section = document.createElement('div'); section.className = "mb-6";
                     section.innerHTML = `<h2 class="text-md font-bold text-teal-900 mb-3 flex items-center gap-2 border-l-4 border-teal-500 pl-3">${pref}</h2>`;
-                    const grid = document.createElement('div');
-                    grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
+                    const grid = document.createElement('div'); grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
                     grouped[pref].forEach(spot => renderListItem(spot, grid));
                     section.appendChild(grid);
                     container.appendChild(section);
                 });
             } else {
-                const grid = document.createElement('div');
-                grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
+                const grid = document.createElement('div'); grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
                 targets.forEach(spot => renderListItem(spot, grid));
                 container.appendChild(grid);
             }
         }
 
         function renderListItem(spot, container) {
-            const status = userStatus[spot.id] || {};
             let distHtml = '';
             if (userCurrentPos && spot.lat) {
                 const d = spot.dist !== undefined ? spot.dist : getDistance(userCurrentPos.lat, userCurrentPos.lng, spot.lat, spot.lng);
-                const dStr = d < 1 ? `${Math.round(d*1000)}m` : `${d.toFixed(1)}km`;
-                distHtml = `<span class="bg-teal-50 text-teal-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2"><i class="fas fa-location-arrow"></i> ${dStr}</span>`;
+                distHtml = `<span class="bg-teal-50 text-teal-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2"><i class="fas fa-location-arrow"></i> ${d < 1 ? Math.round(d*1000)+'m' : d.toFixed(1)+'km'}</span>`;
             }
-            const item = document.createElement('div');
-            item.className = "map-card";
+            const item = document.createElement('div'); item.className = "map-card";
             item.innerHTML = `
                 <div class="flex justify-between items-start mb-2">
-                    <div class="flex items-center flex-wrap">
-                        <span class="tag">${spot.area}</span>
-                        ${distHtml}
-                    </div>
+                    <div class="flex items-center flex-wrap"><span class="tag">${spot.area}</span>${distHtml}</div>
                     <div class="text-xl opacity-30 cursor-pointer" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${getIcon(spot.category)}</div>
                 </div>
                 <h3 class="font-bold text-lg text-slate-800 mb-1 leading-snug cursor-pointer underline decoration-dotted decoration-teal-500" onclick="window.open('${spot.url}', '_blank')">${spot.name}</h3>
                 <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
-                <div class="flex gap-2">
-                     ${spot.lat ? 
-                        `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}')" class="btn-primary shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>` : 
-                        `<a href="${spot.url}" target="_blank" class="btn-primary shadow-sm flex-1 !bg-slate-500"><i class="fas fa-external-link-alt"></i> HP</a>`
-                    }
-                    ${spot.lat ? 
-                        `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id})" class="btn-icon bg-white hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` :
-                        ''
-                    }
-                    <button onclick="toggleStatus(${spot.id}, 'fav')" class="btn-icon bg-white hover:text-pink-500 ${status.fav ? '!text-pink-500 !bg-pink-50 !border-pink-200' : ''}">
-                        <i class="${status.fav ? 'fas' : 'far'} fa-heart text-lg"></i>
-                    </button>
-                </div>
+                ${createActionButtonsHTML(spot, false)}
             `;
             container.appendChild(item);
         }
 
-        // --- Jump from List to Map ---
+        // --- COMMON UTILS ---
         function jumpToMap(lat, lng, id) {
             switchPage('map');
-            setTimeout(() => {
-                map.flyTo([lat, lng], 14);
-                setActiveFacilityOnMap(id);
-            }, 300);
+            setTimeout(() => { map.flyTo([lat, lng], 14); setActiveFacilityOnMap(id); }, 300);
         }
-
-        // --- Common ---
         function handleNavClick(lat, lng, name, url) {
             window.tempNavTarget = { lat, lng, name };
-            const linkEl = document.getElementById('modal-hp-link');
-            if(linkEl) linkEl.href = url;
+            const linkEl = document.getElementById('modal-hp-link'); if(linkEl) linkEl.href = url;
             document.getElementById('map-select-modal').classList.add('show');
         }
         function confirmNavigation(provider) {
@@ -831,10 +555,10 @@
             document.getElementById(`page-${pageId}`).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${pageId}`).classList.add('active');
-            if(pageId === 'map') setTimeout(() => { map.invalidateSize(); updateVisibleSpots(); }, 300); // Update on switch
+            if(pageId === 'map') setTimeout(() => { map.invalidateSize(); updateVisibleSpots(); }, 300);
             if(pageId === 'mylist') renderMyList();
         }
-        function handleSearch(val) { searchQuery = val.toLowerCase().trim(); renderList(); }
+        function handleSearch(val) { searchQuery = val.trim(); renderList(); }
         function locateUserForList() {
             if(!navigator.geolocation) { document.getElementById('region-modal').classList.add('show'); return; }
             navigator.geolocation.getCurrentPosition((pos) => {
@@ -846,7 +570,7 @@
         function toggleStatus(id, type) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id][type] = !userStatus[id][type];
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
+            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(userStatus));
             renderList(); renderMyList();
         }
         function switchListTab(tab) {
@@ -856,19 +580,78 @@
             renderMyList();
         }
         function renderMyList() {
-            const container = document.getElementById('mylist-container');
-            container.innerHTML = '';
+            const container = document.getElementById('mylist-container'); container.innerHTML = '';
             const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
             if(list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10 font-bold">まだありません</div>`; return; }
             list.forEach(spot => renderListItem(spot, container));
         }
-        function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-        function getIcon(cat) { const icons = { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳', other:'🎤' }; return icons[cat] || '📍'; }
+        function closePwaPrompt() { document.getElementById('pwa-prompt').style.display = 'none'; }
+        function hideGpsHint() { const el = document.getElementById('gps-hint'); if(el) el.style.display = 'none'; }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        // --- BACKUP & CSV ADMIN ---
+        function openBackupModal(type) {
+            const modal = document.getElementById('backup-modal');
+            modal.classList.add('show');
+            const textarea = document.getElementById('backup-text');
+            const btn = document.getElementById('backup-action-btn');
+            if(type === 'export') {
+                document.getElementById('backup-title').innerText = "データを保存";
+                textarea.value = JSON.stringify(userStatus); textarea.readOnly = true;
+                btn.innerText = "コードをコピー";
+                btn.onclick = () => { textarea.select(); document.execCommand('copy'); alert("コピーしました！"); };
+            } else {
+                document.getElementById('backup-title').innerText = "データを復元";
+                textarea.value = ""; textarea.readOnly = false;
+                btn.innerText = "復元する";
+                btn.onclick = () => {
+                    try {
+                        const data = JSON.parse(textarea.value);
+                        if(confirm("復元しますか？")) { userStatus = data; localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(userStatus)); renderMyList(); renderList(); closeModal('backup-modal'); }
+                    } catch(e) { alert("コードが正しくありません"); }
+                };
+            }
+        }
+        function checkAdminPasscode() {
+            if(document.getElementById('admin-passcode').value === CONFIG.ADMIN_CODE) {
+                document.getElementById('passcode-area').style.display = 'none';
+                document.getElementById('csv-admin-controls').classList.remove('hidden');
+                alert("管理者認証成功");
+            } else { alert("コードが正しくありません"); }
+        }
+        function downloadCSV() {
+            const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
+            facilitiesData.forEach(f => {
+                const s = userStatus[f.id] || {};
+                rows.push([f.id, f.name, f.pref, f.area, f.category, f.price, f.address, f.url, f.lat, f.lng, s.fav ? "1" : "0", s.visited ? "1" : "0"]);
+            });
+            const csvContent = "\uFEFF" + rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csvContent], { type: "text/csv;charset=utf-8;" }));
+            link.download = `handimap_data_${new Date().toISOString().slice(0,10)}.csv`; link.click();
+        }
+        function handleCSVUpload(input) {
+            const file = input.files[0]; if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const lines = e.target.result.split(/\r\n|\n/); let count = 0;
+                    for(let i=1; i<lines.length; i++) {
+                        const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ''));
+                        if(cols.length < 12) continue;
+                        const id = parseInt(cols[0]);
+                        if(id) {
+                            if(!userStatus[id]) userStatus[id] = {};
+                            userStatus[id].fav = cols[10] === "1"; userStatus[id].visited = cols[11] === "1";
+                            count++;
+                        }
+                    }
+                    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(userStatus));
+                    renderMyList(); renderList(); alert(`${count}件更新しました`);
+                } catch(err) { alert("エラーが発生しました"); }
+                input.value = "";
+            };
+            reader.readAsText(file);
+        }
     </script>
 </body>
 </html>
