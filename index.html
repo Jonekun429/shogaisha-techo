@@ -465,25 +465,29 @@
 
         function downloadCSV() {
             // Header
-            const rows = [["ID", "施設名", "都道府県", "ジャンル", "行きたい", "行った"]];
+            const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
             
-            // Body (Export items that have interactions)
+            // Body (Export ALL items)
             facilitiesData.forEach(f => {
-                const s = userStatus[f.id];
-                if(s && (s.fav || s.visited)) {
-                    rows.push([
-                        f.id,
-                        f.name,
-                        f.pref,
-                        f.category,
-                        s.fav ? "1" : "0",
-                        s.visited ? "1" : "0"
-                    ]);
-                }
+                const s = userStatus[f.id] || {};
+                rows.push([
+                    f.id,
+                    f.name,
+                    f.pref,
+                    f.area,
+                    f.category,
+                    f.price,
+                    f.address,
+                    f.url,
+                    f.lat,
+                    f.lng,
+                    s.fav ? "1" : "0",
+                    s.visited ? "1" : "0"
+                ]);
             });
 
             if(rows.length <= 1) {
-                alert("保存されたデータがありません");
+                alert("データがありません");
                 return;
             }
 
@@ -496,7 +500,7 @@
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", `handimap_backup_${new Date().toISOString().slice(0,10)}.csv`);
+            link.setAttribute("download", `handimap_data_${new Date().toISOString().slice(0,10)}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -520,11 +524,13 @@
                         
                         // Handle quotes if necessary, but simple split for now
                         const cols = line.split(",").map(c => c.replace(/^"|"$/g, ''));
-                        if(cols.length < 6) continue;
+                        // Expect at least 12 columns now
+                        if(cols.length < 12) continue;
 
                         const id = parseInt(cols[0]);
-                        const isFav = cols[4] === "1";
-                        const isVisited = cols[5] === "1";
+                        // The last two columns are status
+                        const isFav = cols[10] === "1";
+                        const isVisited = cols[11] === "1";
 
                         if(id) {
                             if(!userStatus[id]) userStatus[id] = {};
@@ -537,7 +543,7 @@
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(userStatus));
                     renderMyList();
                     renderList();
-                    alert(`${count}件のデータを読み込みました`);
+                    alert(`${count}件のユーザー情報を更新しました`);
                     input.value = ""; // Reset input
                 } catch(err) {
                     alert("CSVファイルの読み込みに失敗しました");
