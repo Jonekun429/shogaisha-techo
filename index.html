@@ -91,6 +91,11 @@
         .modal-box { background: white; width: 85%; max-width: 360px; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         
         #pwa-prompt { position: fixed; top: 0; left: 0; right: 0; background: #0D9488; color: white; z-index: 9999; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); display: none; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+
+        /* Accordion Styles */
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] summary i.fa-chevron-down { transform: rotate(180deg); }
     </style>
 </head>
 <body class="text-slate-700">
@@ -243,7 +248,6 @@
         };
 
         // --- DATA MANAGEMENT (Embedded CSV) ---
-        // ここにCSVデータを貼り付けるだけで更新可能になります
         const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
 1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名,北海道旭川市東旭川町倉沼,,43.7684,142.4800
 1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
@@ -330,9 +334,7 @@
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
             const result = [];
-            // Skip header (i=1)
             for (let i = 1; i < lines.length; i++) {
-                // Handle potential commas in fields (basic)
                 const row = lines[i].split(',').map(c => c.trim()); 
                 if (row.length < 2) continue;
                 result.push({
@@ -369,7 +371,6 @@
             const jumpBtn = (!isMap && spot.lat) ? 
                 `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id})" class="btn-icon bg-white hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : '';
             
-            // Map card doesn't show heart button in this design, list does. 
             const favBtn = !isMap ? 
                 `<button onclick="toggleStatus(${spot.id}, 'fav')" class="btn-icon bg-white hover:text-pink-500 ${status.fav ? '!text-pink-500 !bg-pink-50 !border-pink-200' : ''}"><i class="${status.fav ? 'fas' : 'far'} fa-heart text-lg"></i></button>` : '';
 
@@ -491,18 +492,43 @@
             }
             if (targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold">該当なし</div>`; return; }
             
-            // Grouping logic
+            // Grouping logic with Accordion
             if (!searchQuery && !userCurrentPos) {
                 const grouped = {}; const prefOrder = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
                 targets.forEach(f => { if(!grouped[f.pref]) grouped[f.pref] = []; grouped[f.pref].push(f); });
+                
                 prefOrder.forEach(pref => {
                     if(!grouped[pref]) return;
-                    const section = document.createElement('div'); section.className = "mb-6";
-                    section.innerHTML = `<h2 class="text-md font-bold text-teal-900 mb-3 flex items-center gap-2 border-l-4 border-teal-500 pl-3">${pref}</h2>`;
-                    const grid = document.createElement('div'); grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
+                    
+                    // Create Accordion Container
+                    const details = document.createElement('details');
+                    details.className = "group mb-4 bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden";
+                    
+                    // Header
+                    const summary = document.createElement('summary');
+                    summary.className = "flex items-center justify-between p-4 cursor-pointer list-none bg-slate-50 hover:bg-slate-100 transition-colors select-none";
+                    summary.innerHTML = `
+                        <h2 class="text-md font-bold text-teal-900 flex items-center gap-2">
+                            <span class="w-1 h-4 bg-teal-500 rounded-full"></span>
+                            ${pref}
+                            <span class="bg-teal-100 text-teal-700 text-[10px] px-2 py-0.5 rounded-full">${grouped[pref].length}</span>
+                        </h2>
+                        <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform"></i>
+                    `;
+                    
+                    // Content
+                    const content = document.createElement('div');
+                    content.className = "p-3 border-t border-slate-100 bg-white";
+                    
+                    const grid = document.createElement('div'); 
+                    grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
+                    
                     grouped[pref].forEach(spot => renderListItem(spot, grid));
-                    section.appendChild(grid);
-                    container.appendChild(section);
+                    
+                    content.appendChild(grid);
+                    details.appendChild(summary);
+                    details.appendChild(content);
+                    container.appendChild(details);
                 });
             } else {
                 const grid = document.createElement('div'); grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
