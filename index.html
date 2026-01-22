@@ -363,27 +363,65 @@
         const STORAGE_KEY = 'handimap_persistent_save_v1';
         const ADMIN_CODE = '19870429';
         const facilitiesData = [
-            { id: 101, name: "東京スカイツリー", pref: "東京都", area: "墨田区", category: "leisure", lat: 35.7100, lng: 139.8107, price: "半額 (休日1150円〜)", address: "墨田区押上1-1-2", url: "https://www.tokyo-skytree.jp/" },
-            { id: 102, name: "東京タワー", pref: "東京都", area: "港区", category: "leisure", lat: 35.6585, lng: 139.7454, price: "半額 (600円)", address: "港区芝公園4-2-8", url: "https://www.tokyotower.co.jp/" },
-            { id: 103, name: "新宿御苑", pref: "東京都", area: "新宿区", category: "park", lat: 35.6851, lng: 139.7100, price: "無料 (付添1名含)", address: "新宿区内藤町11", url: "https://fng.or.jp/shinjuku/" },
-            { id: 104, name: "上野動物園", pref: "東京都", area: "台東区", category: "zoo", lat: 35.7165, lng: 139.7713, price: "無料 (付添1名含)", address: "台東区上野公園9-83", url: "https://www.tokyo-zoo.net/zoo/ueno/" },
-            { id: 105, name: "葛西臨海水族園", pref: "東京都", area: "江戸川区", category: "aquarium", lat: 35.6401, lng: 139.8624, price: "無料 (付添1名含)", address: "江戸川区臨海町6-2-3", url: "https://www.tokyo-zoo.net/zoo/kasai/" },
-            { id: 106, name: "国立科学博物館", pref: "東京都", area: "台東区", category: "museum", lat: 35.7163, lng: 139.7766, price: "無料 (付添1名含)", address: "台東区上野公園7-20", url: "https://www.kahaku.go.jp/" },
-            { id: 107, name: "日本科学未来館", pref: "東京都", area: "江東区", category: "museum", lat: 35.6193, lng: 139.7765, price: "無料 (付添1名含)", address: "江東区青海2-3-6", url: "https://www.miraikan.jst.go.jp/" },
-            { id: 108, name: "サンリオピューロランド", pref: "東京都", area: "多摩市", category: "leisure", lat: 35.6247, lng: 139.4293, price: "200円引", address: "多摩市落合1-31", url: "https://www.puroland.jp/" },
-            { id: 109, name: "TOHOシネマズ", pref: "東京都", area: "都内各所", category: "cinema", lat: 35.6955, lng: 139.7020, price: "1000円 (付添1名含)", address: "新宿ほか都内各所", url: "https://www.tohotheater.jp/" },
-            { id: 110, name: "国立新美術館", pref: "東京都", area: "港区", category: "museum", lat: 35.6652, lng: 139.7263, price: "無料 (企画展含)", address: "港区六本木", url: "https://www.nact.jp/" },
-            { id: 111, name: "森美術館", pref: "東京都", area: "港区", category: "museum", lat: 35.6604, lng: 139.7292, price: "半額", address: "港区六本木ヒルズ", url: "https://www.mori.art.museum/" },
-            { id: 201, name: "新江ノ島水族館", pref: "神奈川県", area: "藤沢市", category: "aquarium", lat: 35.3089, lng: 139.4819, price: "半額 (1250円)", address: "藤沢市片瀬海岸", url: "https://www.enosui.com/" },
-            { id: 202, name: "よこはま動物園ズーラシア", pref: "神奈川県", area: "横浜市", category: "zoo", lat: 35.4944, lng: 139.5255, price: "無料 (付添1名含)", address: "横浜市旭区", url: "https://www.hama-midorinokyokai.or.jp/zoo/zoorasia/" },
-            { id: 204, name: "横浜・八景島シーパラダイス", pref: "神奈川県", area: "横浜市", category: "leisure", lat: 35.3367, lng: 139.6469, price: "半額 (パス等)", address: "横浜市金沢区", url: "https://www.seaparadise.co.jp/" },
-            { id: 301, name: "東京ディズニーランド/シー", pref: "千葉県", area: "浦安市", category: "leisure", lat: 35.6329, lng: 139.8804, price: "専用パス (6800円〜)", address: "浦安市舞浜", url: "https://www.tokyodisneyresort.jp/" },
-            { id: 302, name: "鴨川シーワールド", pref: "千葉県", area: "鴨川市", category: "aquarium", lat: 35.1157, lng: 140.1189, price: "半額 (1650円)", address: "鴨川市東町", url: "https://www.kamogawa-seaworld.jp/" },
-            { id: 303, name: "マザー牧場", pref: "千葉県", area: "富津市", category: "zoo", lat: 35.2639, lng: 139.9328, price: "半額 (750円)", address: "富津市田倉", url: "https://www.motherfarm.co.jp/" },
-            { id: 401, name: "鉄道博物館", pref: "埼玉県", area: "さいたま市", category: "museum", lat: 35.9209, lng: 139.6196, price: "半額 (660円)", address: "さいたま市大宮区", url: "https://www.railway-museum.jp/" },
-            { id: 403, name: "西武園ゆうえんち", pref: "埼玉県", area: "所沢市", category: "leisure", lat: 35.7644, lng: 139.4447, price: "割引あり", address: "所沢市山口", url: "https://www.seibu-leisure.co.jp/" },
-            { id: 501, name: "アクアワールド大洗", pref: "茨城県", area: "大洗町", category: "aquarium", lat: 36.3134, lng: 140.5898, price: "半額 (1150円)", address: "東茨城郡大洗町", url: "https://www.aquaworld-oarai.com/" },
-            { id: 901, name: "イオンシネマ", pref: "全域", area: "各店舗", category: "cinema", lat: null, lng: null, price: "1000円", address: "関東各所", url: "https://www.aeoncinema.com/" }
+{ id: 1001, name: "旭川市旭山動物園", pref: "北海道", area: "旭川市", category: "zoo", lat: 43.7684, lng: 142.4800, price: "本人と介護者1名", address: "北海道旭川市東旭川町倉沼", url: "" },
+{ id: 1002, name: "札幌市円山動物園", pref: "北海道", area: "札幌市", category: "zoo", lat: 43.0526, lng: 141.3082, price: "本人と介護者1名", address: "北海道札幌市中央区宮ヶ丘3番地1", url: "" },
+{ id: 1003, name: "北海道開拓の村", pref: "北海道", area: "札幌市", category: "museum", lat: 43.0493, lng: 141.4983, price: "本人と介護者1名", address: "北海道札幌市厚別区厚別町小野幌50-1", url: "" },
+{ id: 1004, name: "三内丸山遺跡センター", pref: "青森県", area: "青森市", category: "museum", lat: 40.8122, lng: 140.6970, price: "本人と付添人1名", address: "青森県青森市三内字丸山305", url: "" },
+{ id: 1005, name: "盛岡市動物公園 ZOOMA", pref: "岩手県", area: "盛岡市", category: "park", lat: 39.7214, lng: 141.1923, price: "本人と介護者1名", address: "岩手県盛岡市新庄字下八木田60-18", url: "" },
+{ id: 1006, name: "仙台市博物館", pref: "宮城県", area: "仙台市", category: "museum", lat: 38.2562, lng: 140.8566, price: "本人と介護者1名", address: "宮城県仙台市青葉区川内26", url: "" },
+{ id: 1007, name: "アクアマリンふくしま", pref: "福島県", area: "いわき市", category: "aquarium", lat: 36.9427, lng: 140.9032, price: "本人と介護者1名", address: "福島県いわき市小名浜字辰巳町50", url: "" },
+{ id: 1008, name: "鶴ヶ城（会津若松城）", pref: "福島県", area: "会津若松市", category: "museum", lat: 37.4875, lng: 139.9297, price: "本人と付添人1名", address: "福島県会津若松市追手町1-1", url: "" },
+{ id: 1009, name: "国営ひたち海浜公園", pref: "茨城県", area: "ひたちなか市", category: "park", lat: 36.4027, lng: 140.5927, price: "本人と付添人1名", address: "茨城県ひたちなか市馬渡字大沼605-4", url: "" },
+{ id: 1010, name: "日光田母沢御用邸記念公園", pref: "栃木県", area: "日光市", category: "park", lat: 36.7533, lng: 139.5936, price: "本人と付添人1名", address: "栃木県日光市本町8-27", url: "" },
+{ id: 1011, name: "富岡製糸場", pref: "群馬県", area: "富岡市", category: "museum", lat: 36.2553, lng: 138.8925, price: "本人と介護者1名", address: "群馬県富岡市富岡1-1", url: "" },
+{ id: 1012, name: "群馬県立自然史博物館", pref: "群馬県", area: "富岡市", category: "museum", lat: 36.2647, lng: 138.8833, price: "本人と介護者1名", address: "群馬県富岡市上黒岩1674-1", url: "" },
+{ id: 1013, name: "さいたま水族館", pref: "埼玉県", area: "羽生市", category: "aquarium", lat: 36.1736, lng: 139.5925, price: "本人と介護者1名", address: "埼玉県羽生市三田ヶ谷751-1", url: "" },
+{ id: 1014, name: "千葉市動物公園", pref: "千葉県", area: "千葉市", category: "park", lat: 35.6369, lng: 140.1222, price: "本人と介護者1名", address: "千葉県千葉市若葉区源町280", url: "" },
+{ id: 1015, name: "東京国立博物館", pref: "東京都", area: "台東区", category: "museum", lat: 35.7187, lng: 139.7765, price: "本人と介護者1名", address: "東京都台東区上野公園13-9", url: "" },
+{ id: 1016, name: "国立科学博物館", pref: "東京都", area: "台東区", category: "museum", lat: 35.7163, lng: 139.7766, price: "本人と介護者1名", address: "東京都台東区上野公園7-20", url: "" },
+{ id: 1017, name: "恩賜上野動物園", pref: "東京都", area: "台東区", category: "zoo", lat: 35.7165, lng: 139.7713, price: "本人と付添人1名", address: "東京都台東区上野公園9-83", url: "" },
+{ id: 1018, name: "新宿御苑", pref: "東京都", area: "新宿区", category: "museum", lat: 35.6851, lng: 139.7100, price: "本人と介助者1名", address: "東京都新宿区内藤町11", url: "" },
+{ id: 1019, name: "葛西臨海水族園", pref: "東京都", area: "江戸川区", category: "museum", lat: 35.6401, lng: 139.8624, price: "本人と付添人1名", address: "東京都江戸川区臨海町6-2-3", url: "" },
+{ id: 1020, name: "よこはま動物園ズーラシア", pref: "神奈川県", area: "横浜市", category: "zoo", lat: 35.4944, lng: 139.5255, price: "本人と介護者2名まで", address: "神奈川県横浜市旭区上白根町1175-1", url: "" },
+{ id: 1021, name: "川崎市藤子・F・不二雄ミュージアム", pref: "神奈川県", area: "川崎市", category: "leisure", lat: 35.6103, lng: 139.5732, price: "本人と介助者1名", address: "神奈川県川崎市多摩区長尾2-8-1", url: "" },
+{ id: 1022, name: "新潟市水族館 マリンピア日本海", pref: "新潟県", area: "新潟市", category: "aquarium", lat: 37.9239, lng: 139.0322, price: "本人と介助者1名", address: "新潟県新潟市中央区西船見町5932-445", url: "" },
+{ id: 1023, name: "兼六園", pref: "石川県", area: "金沢市", category: "park", lat: 36.5620, lng: 136.6625, price: "本人と介護者1名", address: "石川県金沢市兼六町1", url: "" },
+{ id: 1024, name: "福井県立恐竜博物館", pref: "福井県", area: "勝山市", category: "museum", lat: 36.0545, lng: 136.5033, price: "本人と介護者1名", address: "福井県勝山市村岡町寺尾51-11", url: "" },
+{ id: 1025, name: "山梨県立リニア見学センター", pref: "山梨県", area: "都留市", category: "museum", lat: 35.5670, lng: 138.9372, price: "本人と介助者1名", address: "山梨県都留市小形山2381", url: "" },
+{ id: 1026, name: "国宝 松本城", pref: "長野県", area: "松本市", category: "museum", lat: 36.2387, lng: 137.9691, price: "本人と介助者1名", address: "長野県松本市丸の内4-1", url: "" },
+{ id: 1027, name: "岐阜城", pref: "岐阜県", area: "岐阜市", category: "museum", lat: 35.4339, lng: 136.7821, price: "本人と介護者1名", address: "岐阜県岐阜市金華山天守閣18", url: "" },
+{ id: 1028, name: "浜松市動物園", pref: "静岡県", area: "浜松市", category: "zoo", lat: 34.7644, lng: 137.6622, price: "本人と介護者1名", address: "静岡県浜松市西区舘山寺町199", url: "" },
+{ id: 1029, name: "名古屋城", pref: "愛知県", area: "名古屋市", category: "museum", lat: 35.1847, lng: 136.9000, price: "本人と介護者2名まで", address: "愛知県名古屋市中区本丸1-1", url: "" },
+{ id: 1030, name: "東山動植物園", pref: "愛知県", area: "名古屋市", category: "museum", lat: 35.1565, lng: 136.9744, price: "本人と介護者2名まで", address: "愛知県名古屋市千種区東山元町3-70", url: "" },
+{ id: 1031, name: "トヨタ産業技術記念館", pref: "愛知県", area: "名古屋市", category: "museum", lat: 35.1828, lng: 136.8753, price: "本人と付添人1名", address: "愛知県名古屋市西区則武新町4-1-35", url: "" },
+{ id: 1032, name: "彦根城", pref: "滋賀県", area: "彦根市", category: "museum", lat: 35.2766, lng: 136.2517, price: "本人と付添人1名", address: "滋賀県彦根市金亀町1-1", url: "" },
+{ id: 1033, name: "元離宮二条城", pref: "京都府", area: "京都市", category: "museum", lat: 35.0142, lng: 135.7482, price: "本人と介護者1名", address: "京都府京都市中京区二条通堀川西入二条城町541", url: "" },
+{ id: 1034, name: "京都国立博物館", pref: "京都府", area: "京都市", category: "museum", lat: 34.9906, lng: 135.7725, price: "本人と介護者1名", address: "京都府京都市東山区茶屋町527", url: "" },
+{ id: 1035, name: "京都市動物園", pref: "京都府", area: "京都市", category: "zoo", lat: 35.0116, lng: 135.7836, price: "本人と介護者1名", address: "京都府京都市左京区岡崎法勝寺町岡崎公園内", url: "" },
+{ id: 1036, name: "大阪城天守閣", pref: "大阪府", area: "大阪市", category: "museum", lat: 34.6873, lng: 135.5262, price: "本人と介護者1名", address: "大阪府大阪市中央区大阪城1-1", url: "" },
+{ id: 1037, name: "天王寺動物園", pref: "大阪府", area: "大阪市", category: "zoo", lat: 34.6506, lng: 135.5103, price: "本人と付添人1名", address: "大阪府大阪市天王寺区茶臼山町1-108", url: "" },
+{ id: 1038, name: "万博記念公園", pref: "大阪府", area: "吹田市", category: "park", lat: 34.8028, lng: 135.5367, price: "本人と介助者1名", address: "大阪府吹田市千里万博公園", url: "" },
+{ id: 1039, name: "姫路城", pref: "兵庫県", area: "姫路市", category: "museum", lat: 34.8394, lng: 134.6939, price: "本人と介助者1名", address: "兵庫県姫路市本町68", url: "" },
+{ id: 1040, name: "神戸市立王子動物園", pref: "兵庫県", area: "神戸市", category: "zoo", lat: 34.7126, lng: 135.2166, price: "本人と介護者1名", address: "兵庫県神戸市灘区王子町3-1", url: "" },
+{ id: 1041, name: "奈良国立博物館", pref: "奈良県", area: "奈良市", category: "museum", lat: 34.6836, lng: 135.8358, price: "本人と介護者1名", address: "奈良県奈良市登大路町50", url: "" },
+{ id: 1042, name: "和歌山城", pref: "和歌山県", area: "和歌山市", category: "museum", lat: 34.2255, lng: 135.1706, price: "本人と付添人1名", address: "和歌山県和歌山市一番丁3", url: "" },
+{ id: 1043, name: "鳥取砂丘 砂の美術館", pref: "鳥取県", area: "鳥取市", category: "museum", lat: 35.5404, lng: 134.2382, price: "本人と介護者1名", address: "鳥取県鳥取市福部町湯山2083-17", url: "" },
+{ id: 1044, name: "松江城", pref: "島根県", area: "松江市", category: "museum", lat: 35.4753, lng: 133.0505, price: "本人と介助者1名", address: "島根県松江市殿町1-5", url: "" },
+{ id: 1045, name: "岡山後楽園", pref: "岡山県", area: "岡山市", category: "park", lat: 34.6669, lng: 133.9358, price: "本人と介護者1名", address: "岡山県岡山市北区後楽園1-5", url: "" },
+{ id: 1046, name: "広島平和記念資料館", pref: "広島県", area: "広島市", category: "museum", lat: 34.3916, lng: 132.4519, price: "本人と介護者1名", address: "広島県広島市中区中島町1-2", url: "" },
+{ id: 1047, name: "海響館（市立しものせき水族館）", pref: "山口県", area: "下関市", category: "aquarium", lat: 33.9538, lng: 130.9436, price: "本人と介護者1名", address: "山口県下関市あるかぽーと6-1", url: "" },
+{ id: 1048, name: "栗林公園", pref: "香川県", area: "高松市", category: "park", lat: 34.3323, lng: 134.0439, price: "本人と介護者1名", address: "香川県高松市栗林町1-20-16", url: "" },
+{ id: 1049, name: "松山城", pref: "愛媛県", area: "松山市", category: "museum", lat: 33.8455, lng: 132.7663, price: "本人と介助者2名まで", address: "愛媛県松山市丸之内1", url: "" },
+{ id: 1050, name: "愛媛県立とべ動物園", pref: "愛媛県", area: "砥部町", category: "zoo", lat: 33.7667, lng: 132.7961, price: "本人と介護者1名", address: "愛媛県伊予郡砥部町上原町240", url: "" },
+{ id: 1051, name: "高知城", pref: "高知県", area: "高知市", category: "museum", lat: 33.5607, lng: 133.5312, price: "本人と介護者1名", address: "高知県高知市丸ノ内1-2-1", url: "" },
+{ id: 1052, name: "九州国立博物館", pref: "福岡県", area: "太宰府市", category: "museum", lat: 33.5186, lng: 130.5242, price: "本人と介護者1名", address: "福岡県太宰府市石坂4-7-2", url: "" },
+{ id: 1053, name: "海の中道海浜公園", pref: "福岡県", area: "福岡市", category: "park", lat: 33.6558, lng: 130.3664, price: "本人と付添人1名", address: "福岡県福岡市東区大字西戸崎18-25", url: "" },
+{ id: 1054, name: "グラバー園", pref: "長崎県", area: "長崎市", category: "park", lat: 32.7341, lng: 129.8696, price: "本人と介護者1名", address: "長崎県長崎市南山手町8-1", url: "" },
+{ id: 1055, name: "熊本城", pref: "熊本県", area: "熊本市", category: "museum", lat: 32.8062, lng: 130.7058, price: "本人と付添人1名", address: "熊本県熊本市中央区本丸1-1", url: "" },
+{ id: 1056, name: "フェニックス自然動物園", pref: "宮崎県", area: "宮崎市", category: "zoo", lat: 31.9567, lng: 131.4722, price: "本人と介護者1名", address: "宮崎県宮崎市塩路浜山3083-42", url: "" },
+{ id: 1057, name: "いおワールドかごしま水族館", pref: "鹿児島県", area: "鹿児島市", category: "aquarium", lat: 31.5947, lng: 130.5636, price: "本人と介護者1名", address: "鹿児島県鹿児島市本港新町3-1", url: "" },
+{ id: 1058, name: "沖縄美ら海水族館", pref: "沖縄県", area: "本部町", category: "aquarium", lat: 26.6943, lng: 127.8779, price: "本人と付添人1名", address: "沖縄県国頭郡本部町石川424", url: "" },
+{ id: 1059, name: "首里城公園", pref: "沖縄県", area: "那覇市", category: "museum", lat: 26.2170, lng: 127.7196, price: "本人と介助者1名", address: "沖縄県那覇市首里金城町1-2", url: "" },
         ];
 
         let map, markers = {};
@@ -464,7 +502,7 @@
         }
 
         function downloadCSV() {
-            // Header
+            // Header: ID, Name, Pref, Area, Category, Price, Address, URL, Lat, Lng, Want, Visited
             const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
             
             // Body (Export ALL items)
@@ -524,11 +562,10 @@
                         
                         // Handle quotes if necessary, but simple split for now
                         const cols = line.split(",").map(c => c.replace(/^"|"$/g, ''));
-                        // Expect at least 12 columns now
+                        // Expect at least 12 columns now (ID is index 0, fav is 10, visited is 11)
                         if(cols.length < 12) continue;
 
                         const id = parseInt(cols[0]);
-                        // The last two columns are status
                         const isFav = cols[10] === "1";
                         const isVisited = cols[11] === "1";
 
@@ -556,7 +593,8 @@
         // --- MAP LOGIC ---
         function initMap() {
             if(map) return;
-            map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 9);
+            // Center map on Japan (roughly center or Tokyo)
+            map = L.map('map', { zoomControl: false }).setView([36.2048, 138.2529], 5);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
             if (window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
             
