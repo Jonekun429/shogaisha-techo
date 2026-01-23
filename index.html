@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>HandiMap Kanto</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,134 +13,91 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"M PLUS Rounded 1c"', 'sans-serif'] },
-                    colors: { primary: '#0D9488', secondary: '#F0FDFA', accent: '#F43F5E' },
-                    animation: { 'bounce-slow': 'bounce 3s infinite', 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                    colors: { primary: '#0D9488', secondary: '#F0FDFA' },
+                    animation: { 'bounce-slow': 'bounce 3s infinite' }
                 }
             }
         }
     </script>
     <style>
         body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
+        #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
-        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 90px; }
+        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 80px; }
         .page.active { display: flex; }
         @media (min-width: 768px) { .page { padding-bottom: 0; } }
         
         /* Map & Pins */
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
-        .pin-marker { background-color: white; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; transition: all 0.3s; width: 44px; height: 44px; position: relative; }
-        .pin-marker::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white; }
-        .pin-marker.active-pin { background-color: #0D9488; color: white; border-color: #0D9488; transform: scale(1.25) translateY(-8px); z-index: 3000 !important; box-shadow: 0 10px 25px rgba(13, 148, 136, 0.4); }
+        .pin-marker { background: white; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; width: 44px; height: 44px; position: relative; transition: all 0.3s; }
+        .pin-marker::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white; }
+        .pin-marker.active-pin { background: #0D9488; color: white; border-color: #0D9488; transform: scale(1.25) translateY(-8px); z-index: 3000 !important; }
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
-        /* UI Elements */
-        .filter-bar { position: absolute; top: 10px; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; }
-        @supports (padding-top: env(safe-area-inset-top)) { .filter-bar { top: env(safe-area-inset-top); margin-top: 10px; } }
-        .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(255,255,255,0.8); }
-        .chip { padding: 8px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
-        .chip.active { background: #0D9488; color: white; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
-        .chip:not(.active) { opacity: 0.7; }
-        
-        .gps-container { position: absolute; right: 16px; bottom: 300px; z-index: 500; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-        .gps-btn { width: 48px; height: 48px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 20px; border: 1px solid #F0FDFA; transition: transform 0.2s; }
-        .gps-btn:active { transform: scale(0.9); }
-        .gps-hint-bubble { background: white; padding: 8px 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-size: 11px; font-weight: 800; color: #0D9488; white-space: nowrap; pointer-events: none; border: 2px solid #F0FDFA; position: relative; margin-right: 4px; }
-        .gps-hint-bubble::after { content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%); border-left: 6px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+        /* Chips & Filter */
+        .filter-bar { position: absolute; top: 10px; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; margin-top: env(safe-area-inset-top); }
+        .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .chip { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; transition: all 0.2s; }
+        .chip.active { background: #0D9488; color: white; }
 
-        .sheet-wrapper { position: absolute; bottom: 90px; left: 0; right: 0; z-index: 1000; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; }
-        .sheet-handle-bar { width: 40px; height: 5px; background: rgba(0,0,0,0.2); border-radius: 10px; margin: 0 auto 8px auto; box-shadow: 0 1px 2px rgba(255,255,255,0.5); }
-        .card-scroller { display: flex; gap: 12px; padding: 0 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; scrollbar-width: none; height: 170px; pointer-events: auto; -webkit-overflow-scrolling: touch; }
-        .map-card-horizontal { flex: 0 0 88%; max-width: 340px; scroll-snap-align: center; background: white; border-radius: 24px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s; height: 100%; display: flex; flex-direction: column; }
-        .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); box-shadow: 0 15px 50px rgba(13, 148, 136, 0.2); }
+        /* Cards */
+        .card-scroller { display: flex; gap: 12px; padding: 0 16px 10px; overflow-x: auto; scroll-snap-type: x mandatory; height: 170px; pointer-events: auto; }
+        .map-card-horizontal { flex: 0 0 88%; max-width: 340px; scroll-snap-align: center; background: white; border-radius: 20px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid transparent; transition: transform 0.2s; display: flex; flex-direction: column; }
+        .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); }
+        .map-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 12px; border: 1px solid #F1F5F9; cursor: pointer; transition: background-color 0.2s; }
+        .map-card:active { background-color: #F0FDFA; }
 
-        .nav-container { z-index: 3000; }
-        @media (max-width: 767px) {
-            .nav-container { position: fixed; bottom: 0; left: 0; right: 0; height: calc(70px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: flex; justify-content: space-evenly; align-items: center; }
-            .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; width: 70px; height: 100%; }
-            .nav-item i { font-size: 22px; transition: transform 0.2s; margin-bottom: 2px; }
-            .nav-item.active { color: #0D9488; }
-            .nav-item.active i { transform: translateY(-3px); }
-            .nav-item.active::after { content: ''; width: 4px; height: 4px; background: #0D9488; border-radius: 50%; position: absolute; bottom: 12px; }
+        /* UI Components */
+        .gps-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; bottom: 300px; z-index: 500; }
+        .nav-container { z-index: 3000; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); height: calc(60px + env(safe-area-inset-bottom)); position: fixed; bottom: 0; width: 100%; }
+        @media (min-width: 768px) { 
+            .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; } 
         }
-        @media (min-width: 768px) {
-            .nav-container { width: 260px; height: 100%; background: white; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; padding-top: 40px; }
-            .nav-item { display: flex; align-items: center; gap: 14px; padding: 16px 32px; font-size: 15px; color: #64748B; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-            .nav-item:hover { background: #F8FAFC; color: #0D9488; }
-            .nav-item.active { background: #F0FDFA; color: #0D9488; border-right: 3px solid #0D9488; }
-        }
-
-        .search-area { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #E2E8F0; padding: 12px 16px; position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 20px rgba(0,0,0,0.03); padding-top: max(12px, env(safe-area-inset-top)); }
-        .search-input { width: 100%; padding: 12px 16px 12px 40px; border-radius: 14px; border: 2px solid #F1F5F9; background: #F8FAFC; font-weight: bold; color: #334155; transition: all 0.2s; font-size: 14px; }
-        .search-input:focus { background: white; border-color: #0D9488; outline: none; }
-        .search-icon { position: absolute; left: 14px; bottom: 12px; color: #94A3B8; }
-
-        .map-card { background: white; border-radius: 20px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 12px; border: 1px solid #F1F5F9; }
-        .btn-primary { background: #0D9488; color: white; font-weight: 700; padding: 10px 0; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
-        .btn-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #E2E8F0; color: #64748B; transition: all 0.2s; }
-        .btn-icon:hover { background: #F0FDFA; color: #0D9488; border-color: #0D9488; }
-        .tag { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: #F1F5F9; color: #64748B; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; cursor: pointer; }
+        @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; gap: 12px; padding: 16px; font-size: 14px; height: auto; } }
+        .nav-item.active { color: #0D9488; }
         
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); align-items: center; justify-content: center; }
         .modal-overlay.show { display: flex; }
-        .modal-box { background: white; width: 85%; max-width: 360px; border-radius: 24px; padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .modal-box { background: white; width: 85%; max-width: 320px; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         
-        #pwa-prompt { position: fixed; top: 0; left: 0; right: 0; background: #0D9488; color: white; z-index: 9999; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); display: none; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-
-        /* Accordion Styles */
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
-        details[open] summary i.fa-chevron-down { transform: rotate(180deg); }
     </style>
 </head>
 <body class="text-slate-700">
 
-    <div id="pwa-prompt">
-        <div class="text-xs font-bold flex-1"><i class="fas fa-home mr-1"></i> ホーム画面に追加すると便利です</div>
-        <button onclick="closePwaPrompt()" class="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-xs ml-3"><i class="fas fa-times"></i></button>
-    </div>
-
     <div id="app-container">
         <nav class="nav-container order-2 md:order-1">
-            <div class="hidden md:block px-8 mb-8">
-                <h1 class="text-2xl font-extrabold text-teal-800 tracking-tight flex items-center gap-3">
-                    <span class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg shadow-lg"><i class="fas fa-universal-access"></i></span> HandiMap
-                </h1>
-                <p class="text-xs text-slate-400 mt-2 font-bold pl-1">Version 22.0</p>
-            </div>
-            <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt"></i><span>マップ</span></div>
-            <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
-            <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist"><i class="fas fa-heart"></i><span>保存済み</span></div>
+            <div class="hidden md:block px-6 mb-8 text-teal-800 font-extrabold text-xl"><i class="fas fa-universal-access mr-2"></i>HandiMap</div>
+            <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt text-xl md:text-base"></i><span>マップ</span></div>
+            <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search text-xl md:text-base"></i><span>探す</span></div>
+            <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist"><i class="fas fa-heart text-xl md:text-base"></i><span>保存済み</span></div>
         </nav>
 
         <main class="flex-1 relative h-full order-1 md:order-2 overflow-hidden bg-slate-50">
             <div id="page-map" class="page active">
                 <div class="filter-bar">
                     <div class="chip-scroll">
-                        <button class="chip active" onclick="toggleMapFilter('leisure', this)"><i class="fas fa-rocket"></i> 遊園地</button>
-                        <button class="chip active" onclick="toggleMapFilter('aquarium', this)"><i class="fas fa-water"></i> 水族館</button>
-                        <button class="chip active" onclick="toggleMapFilter('zoo', this)"><i class="fas fa-paw"></i> 動物園</button>
-                        <button class="chip active" onclick="toggleMapFilter('museum', this)"><i class="fas fa-landmark"></i> 博物館</button>
-                        <button class="chip active" onclick="toggleMapFilter('park', this)"><i class="fas fa-tree"></i> 公園</button>
-                        <button class="chip active" onclick="toggleMapFilter('cinema', this)"><i class="fas fa-film"></i> 映画</button>
+                        <button class="chip active" onclick="toggleMapFilter('leisure', this)">遊園地</button>
+                        <button class="chip active" onclick="toggleMapFilter('aquarium', this)">水族館</button>
+                        <button class="chip active" onclick="toggleMapFilter('zoo', this)">動物園</button>
+                        <button class="chip active" onclick="toggleMapFilter('museum', this)">博物館</button>
+                        <button class="chip active" onclick="toggleMapFilter('park', this)">公園</button>
                     </div>
                 </div>
-                <div class="gps-container">
-                    <div id="gps-hint" class="gps-hint-bubble animate-bounce-slow">現在地を表示！</div>
-                    <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
-                </div>
+                <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
                 <div id="map"></div>
-                <div class="sheet-wrapper">
-                    <div class="sheet-handle-bar"></div>
+                <div class="sheet-wrapper" style="position: absolute; bottom: 80px; left:0; right:0; pointer-events: none;">
                     <div id="card-scroller" class="card-scroller"></div>
                 </div>
             </div>
 
             <div id="page-list" class="page overflow-y-auto">
-                <div class="search-area">
+                <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-10" style="padding-top: max(16px, env(safe-area-inset-top));">
                     <div class="relative w-full mb-3">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" id="search-input" class="search-input" placeholder="施設名、地名、ジャンル..." oninput="handleSearch(this.value)">
+                        <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" class="w-full bg-slate-100 rounded-xl py-2.5 pl-10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="検索..." oninput="handleSearch(this.value)">
                     </div>
                     <div class="chip-scroll">
                         <button class="chip active" onclick="applyListFilter('all', this)">すべて</button>
@@ -154,49 +106,21 @@
                         <button class="chip" onclick="applyListFilter('zoo', this)">動物園</button>
                         <button class="chip" onclick="applyListFilter('museum', this)">博物館</button>
                     </div>
-                    <div id="location-prompt" class="mt-3 hidden animate-pulse-fast bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-teal-100 transition-colors" onclick="locateUserForList()">
-                        <div class="flex items-center gap-2 text-xs font-bold text-teal-800"><i class="fas fa-location-arrow"></i> <span>現在地を取得</span></div>
-                        <span class="bg-white px-3 py-1 rounded-full text-[10px] text-teal-600 font-extrabold shadow-sm">ON</span>
-                    </div>
                 </div>
-                <div id="list-container" class="p-4 pb-48 md:pb-12 max-w-3xl mx-auto w-full min-h-[50vh]"></div>
+                <div id="list-container" class="p-4 pb-24 md:pb-12 max-w-3xl mx-auto w-full"></div>
             </div>
 
             <div id="page-mylist" class="page overflow-y-auto">
-                <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-100 px-6 py-4 shadow-sm flex justify-between items-center" style="padding-top: max(16px, env(safe-area-inset-top));">
-                    <h1 class="text-lg font-bold text-slate-800"><i class="fas fa-bookmark text-pink-500 mr-2"></i>保存済み</h1>
+                <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex justify-between items-center" style="padding-top: max(16px, env(safe-area-inset-top));">
+                    <h1 class="text-lg font-bold"><i class="fas fa-bookmark text-pink-500 mr-2"></i>保存済み</h1>
                     <div class="flex bg-slate-100 rounded-lg p-1 gap-1">
-                        <button onclick="switchListTab('fav')" id="tab-fav" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white text-teal-600 shadow-sm transition-all">行きたい</button>
-                        <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-400 transition-all">行った</button>
+                        <button onclick="switchListTab('fav')" id="tab-fav" class="px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm">行きたい</button>
+                        <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1 text-xs font-bold rounded text-slate-400">行った</button>
                     </div>
                 </div>
-                <div id="mylist-container" class="p-4 pb-20 md:pb-12 max-w-3xl mx-auto w-full"></div>
-                
-                <div class="p-6 border-t border-slate-200 mt-auto bg-slate-50 text-center">
-                    <h3 class="text-xs font-bold text-slate-400 mb-3">データ引き継ぎ（バックアップ）</h3>
-                    <div class="flex gap-3 justify-center mb-6">
-                        <button onclick="openBackupModal('export')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-copy mr-1"></i> コードを表示</button>
-                        <button onclick="openBackupModal('import')" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"><i class="fas fa-paste mr-1"></i> コードを入力</button>
-                    </div>
-                    <div class="border-t border-slate-200 pt-4">
-                        <div id="passcode-area" class="flex flex-col items-center gap-2">
-                            <p class="text-[10px] text-slate-400">管理者メニュー</p>
-                            <div class="flex gap-2">
-                                <input type="password" id="admin-passcode" placeholder="パスコード" class="border border-slate-300 rounded px-2 py-1 text-xs w-24">
-                                <button onclick="checkAdminPasscode()" class="bg-slate-300 text-white text-[10px] px-2 py-1 rounded font-bold hover:bg-slate-400">解除</button>
-                            </div>
-                        </div>
-                        <div id="csv-admin-controls" class="hidden mt-2 animate-pulse-fast bg-teal-50 border border-teal-200 rounded-xl p-3">
-                            <p class="text-xs font-bold text-teal-700 mb-2">管理者モード有効</p>
-                            <div class="flex gap-2 justify-center">
-                                <button onclick="downloadCSV()" class="px-4 py-2 bg-teal-600 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-teal-700 flex-1"><i class="fas fa-file-csv mr-1"></i> CSVダウンロード</button>
-                                <label class="px-4 py-2 bg-white border border-teal-600 text-teal-600 rounded-lg text-xs font-bold shadow-sm hover:bg-teal-50 cursor-pointer flex-1 flex items-center justify-center">
-                                    <i class="fas fa-file-upload mr-1"></i> CSVアップロード
-                                    <input type="file" id="csv-upload-input" accept=".csv" class="hidden" onchange="handleCSVUpload(this)">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                <div id="mylist-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
+                <div class="p-6 border-t mt-auto text-center bg-white">
+                    <button onclick="openBackupModal('export')" class="text-xs text-slate-400 font-bold underline">データ引き継ぎ・管理</button>
                 </div>
             </div>
         </main>
@@ -204,110 +128,90 @@
 
     <div id="map-select-modal" class="modal-overlay">
         <div class="modal-box text-left">
-            <h3 class="text-xl font-bold mb-1 text-slate-800 text-center">経路案内を開始</h3>
-            <p class="text-xs text-slate-400 mb-6 text-center">移動前に最新情報をご確認ください</p>
-            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-center">
-                <p class="text-xs font-bold text-blue-800 mb-2">⚠️ 料金・営業時間に変更がある場合があります</p>
-                <a id="modal-hp-link" href="#" target="_blank" class="block w-full bg-white text-blue-600 font-bold py-3 rounded-lg border border-blue-200 text-xs hover:bg-blue-600 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-2"></i> 公式ホームページを確認</a>
-            </div>
-            <div class="text-xs font-bold text-slate-400 mb-2 pl-1">マップアプリを選択:</div>
+            <h3 class="text-lg font-bold mb-4 text-center">経路案内</h3>
             <div class="flex flex-col gap-3 mb-4">
-                <button onclick="confirmNavigation('google')" class="p-3 rounded-xl border-2 border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center group bg-white"><i class="fab fa-google text-lg mr-3 text-red-500"></i><div class="flex-1 text-sm font-bold text-slate-700">Googleマップ</div><i class="fas fa-chevron-right text-slate-300"></i></button>
-                <button onclick="confirmNavigation('default')" class="p-3 rounded-xl border-2 border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center group bg-white"><i class="fas fa-mobile-alt text-lg mr-3 text-slate-600"></i><div class="flex-1 text-sm font-bold text-slate-700">標準マップ</div><i class="fas fa-chevron-right text-slate-300"></i></button>
+                <button onclick="confirmNavigation('google')" class="p-3 rounded-xl border hover:bg-teal-50 font-bold text-sm flex items-center"><i class="fab fa-google text-red-500 mr-3"></i>Googleマップ</button>
+                <button onclick="confirmNavigation('default')" class="p-3 rounded-xl border hover:bg-teal-50 font-bold text-sm flex items-center"><i class="fas fa-map-marker-alt text-slate-500 mr-3"></i>標準マップ</button>
             </div>
-            <button onclick="closeModal('map-select-modal')" class="text-sm text-slate-400 font-bold w-full py-2">閉じる</button>
+            <button onclick="closeModal('map-select-modal')" class="text-sm text-slate-400 w-full py-2">キャンセル</button>
         </div>
     </div>
 
     <div id="backup-modal" class="modal-overlay">
-        <div class="modal-box text-left">
-            <h3 id="backup-title" class="text-lg font-bold mb-2 text-slate-800 text-center">データ保存</h3>
-            <p id="backup-desc" class="text-xs text-slate-500 mb-4 text-center">このコードをコピーしてメモ帳に保存してください。</p>
-            <textarea id="backup-text" class="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono mb-4 resize-none focus:border-teal-500 focus:outline-none"></textarea>
-            <button id="backup-action-btn" class="btn-primary mb-3">コピーする</button>
-            <button onclick="closeModal('backup-modal')" class="text-xs text-slate-400 font-bold w-full py-2">閉じる</button>
-        </div>
-    </div>
-
-    <div id="region-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3 class="text-lg font-bold mb-2 text-slate-800">位置情報が取得できません</h3>
-            <p class="text-sm text-slate-500 mb-6">端末の設定を確認してください。</p>
-            <button onclick="closeModal('region-modal')" class="btn-primary bg-slate-500">閉じる</button>
+            <h3 class="font-bold mb-2">データ管理</h3>
+            <textarea id="backup-text" class="w-full h-24 p-2 bg-slate-100 rounded text-xs mb-3"></textarea>
+            <div class="flex gap-2 justify-center">
+                <button onclick="copyBackup()" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold">コピー</button>
+                <button onclick="restoreBackup()" class="bg-slate-500 text-white px-4 py-2 rounded-lg text-xs font-bold">復元</button>
+            </div>
+            <button onclick="closeModal('backup-modal')" class="mt-3 text-xs text-slate-400">閉じる</button>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- CONFIG & CONSTANTS ---
-        const CONFIG = {
-            STORAGE_KEY: 'handimap_persistent_save_v1',
-            ADMIN_CODE: '19870429',
-            DEFAULT_POS: [36.2048, 138.2529], // Center of Japan
-            DEFAULT_ZOOM: 5
-        };
-
-        // --- DATA MANAGEMENT (Embedded CSV) ---
+        // Updated CSV Data with corrected pricing text
         const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
-1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名,北海道旭川市東旭川町倉沼,,43.7684,142.4800
-1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
-1003,北海道開拓の村,北海道,札幌市,museum,本人と介護者1名,北海道札幌市厚別区厚別町小野幌50-1,,43.0493,141.4983
-1004,三内丸山遺跡センター,青森県,青森市,museum,本人と付添人1名,青森県青森市三内字丸山305,,40.8122,140.6970
-1005,盛岡市動物公園 ZOOMA,岩手県,盛岡市,park,本人と介護者1名,岩手県盛岡市新庄字下八木田60-18,,39.7214,141.1923
-1006,仙台市博物館,宮城県,仙台市,museum,本人と介護者1名,宮城県仙台市青葉区川内26,,38.2562,140.8566
-1007,アクアマリンふくしま,福島県,いわき市,aquarium,本人と介護者1名,福島県いわき市小名浜字辰巳町50,,36.9427,140.9032
-1008,鶴ヶ城（会津若松城）,福島県,会津若松市,museum,本人と付添人1名,福島県会津若松市追手町1-1,,37.4875,139.9297
-1009,国営ひたち海浜公園,茨城県,ひたちなか市,park,本人と付添人1名,茨城県ひたちなか市馬渡字大沼605-4,,36.4027,140.5927
-1010,日光田母沢御用邸記念公園,栃木県,日光市,park,本人と付添人1名,栃木県日光市本町8-27,,36.7533,139.5936
-1011,富岡製糸場,群馬県,富岡市,museum,本人と介護者1名,群馬県富岡市富岡1-1,,36.2553,138.8925
-1012,群馬県立自然史博物館,群馬県,富岡市,museum,本人と介護者1名,群馬県富岡市上黒岩1674-1,,36.2647,138.8833
-1013,さいたま水族館,埼玉県,羽生市,aquarium,本人と介護者1名,埼玉県羽生市三田ヶ谷751-1,,36.1736,139.5925
-1014,千葉市動物公園,千葉県,千葉市,park,本人と介護者1名,千葉県千葉市若葉区源町280,,35.6369,140.1222
-1015,東京国立博物館,東京都,台東区,museum,本人と介護者1名（総合文化展）,東京都台東区上野公園13-9,,35.7187,139.7765
-1016,国立科学博物館,東京都,台東区,museum,本人と介護者1名,東京都台東区上野公園7-20,,35.7163,139.7766
-1017,恩賜上野動物園,東京都,台東区,zoo,本人と付添人1名,東京都台東区上野公園9-83,,35.7165,139.7713
-1018,新宿御苑,東京都,新宿区,museum,本人と介助者1名,東京都新宿区内藤町11,,35.6851,139.7100
-1019,葛西臨海水族園,東京都,江戸川区,museum,本人と付添人1名,東京都江戸川区臨海町6-2-3,,35.6401,139.8624
-1020,よこはま動物園ズーラシア,神奈川県,横浜市,zoo,本人と介護者2名まで,神奈川県横浜市旭区上白根町1175-1,,35.4944,139.5255
-1021,川崎市藤子・F・不二雄ミュージアム,神奈川県,川崎市,leisure,本人と介助者1名（要予約）,神奈川県川崎市多摩区長尾2-8-1,,35.6103,139.5732
-1022,新潟市水族館 マリンピア日本海,新潟県,新潟市,aquarium,本人と介助者1名,新潟県新潟市中央区西船見町5932-445,,37.9239,139.0322
-1023,兼六園,石川県,金沢市,park,本人と介護者1名,石川県金沢市兼六町1,,36.5620,136.6625
-1024,福井県立恐竜博物館,福井県,勝山市,museum,本人と介護者1名（常設展）,福井県勝山市村岡町寺尾51-11,,36.0545,136.5033
-1025,山梨県立リニア見学センター,山梨県,都留市,museum,本人と介助者1名,山梨県都留市小形山2381,,35.5670,138.9372
-1026,国宝 松本城,長野県,松本市,museum,本人と介助者1名,長野県松本市丸の内4-1,,36.2387,137.9691
-1027,岐阜城,岐阜県,岐阜市,museum,本人と介護者1名,岐阜県岐阜市金華山天守閣18,,35.4339,136.7821
-1028,浜松市動物園,静岡県,浜松市,zoo,本人と介護者1名,静岡県浜松市西区舘山寺町199,,34.7644,137.6622
-1029,名古屋城,愛知県,名古屋市,museum,本人と介護者2名まで,愛知県名古屋市中区本丸1-1,,35.1847,136.9000
-1030,東山動植物園,愛知県,名古屋市,museum,本人と介護者2名まで,愛知県名古屋市千種区東山元町3-70,,35.1565,136.9744
-1031,トヨタ産業技術記念館,愛知県,名古屋市,museum,本人と付添人1名,愛知県名古屋市西区則武新町4-1-35,,35.1828,136.8753
-1032,彦根城,滋賀県,彦根市,museum,本人と付添人1名,滋賀県彦根市金亀町1-1,,35.2766,136.2517
-1033,元離宮二条城,京都府,京都市,museum,本人と介護者1名,京都府京都市中京区二条通堀川西入二条城町541,,35.0142,135.7482
-1034,京都国立博物館,京都府,京都市,museum,本人と介護者1名（名品ギャラリー）,京都府京都市東山区茶屋町527,,34.9906,135.7725
-1035,京都市動物園,京都府,京都市,zoo,本人と介護者1名,京都府京都市左京区岡崎法勝寺町岡崎公園内,,35.0116,135.7836
-1036,大阪城天守閣,大阪府,大阪市,museum,本人と介護者1名,大阪府大阪市中央区大阪城1-1,,34.6873,135.5262
-1037,天王寺動物園,大阪府,大阪市,zoo,本人と付添人1名,大阪府大阪市天王寺区茶臼山町1-108,,34.6506,135.5103
-1038,万博記念公園,大阪府,吹田市,park,本人と介助者1名,大阪府吹田市千里万博公園,,34.8028,135.5367
-1039,姫路城,兵庫県,姫路市,museum,本人と介助者1名,兵庫県姫路市本町68,,34.8394,134.6939
-1040,神戸市立王子動物園,兵庫県,神戸市,zoo,本人と介護者1名,兵庫県神戸市灘区王子町3-1,,34.7126,135.2166
-1041,奈良国立博物館,奈良県,奈良市,museum,本人と介護者1名,奈良県奈良市登大路町50,,34.6836,135.8358
-1042,和歌山城,和歌山県,和歌山市,museum,本人と付添人1名,和歌山県和歌山市一番丁3,,34.2255,135.1706
-1043,鳥取砂丘 砂の美術館,鳥取県,鳥取市,museum,本人と介護者1名,鳥取県鳥取市福部町湯山2083-17,,35.5404,134.2382
-1044,松江城,島根県,松江市,museum,本人と介助者1名,島根県松江市殿町1-5,,35.4753,133.0505
-1045,岡山後楽園,岡山県,岡山市,park,本人と介護者1名,岡山県岡山市北区後楽園1-5,,34.6669,133.9358
-1046,広島平和記念資料館,広島県,広島市,museum,本人と介護者1名,広島県広島市中区中島町1-2,,34.3916,132.4519
-1047,海響館（市立しものせき水族館）,山口県,下関市,aquarium,本人と介護者1名,山口県下関市あるかぽーと6-1,,33.9538,130.9436
-1048,栗林公園,香川県,高松市,park,本人と介護者1名,香川県高松市栗林町1-20-16,,34.3323,134.0439
-1049,松山城,愛媛県,松山市,museum,本人と介助者2名まで,愛媛県松山市丸之内1,,33.8455,132.7663
-1050,愛媛県立とべ動物園,愛媛県,砥部町,zoo,本人と介護者1名,愛媛県伊予郡砥部町上原町240,,33.7667,132.7961
-1051,高知城,高知県,高知市,museum,本人と介護者1名,高知県高知市丸ノ内1-2-1,,33.5607,133.5312
-1052,九州国立博物館,福岡県,太宰府市,museum,本人と介護者1名（文化交流展）,福岡県太宰府市石坂4-7-2,,33.5186,130.5242
-1053,海の中道海浜公園,福岡県,福岡市,park,本人と付添人1名,福岡県福岡市東区大字西戸崎18-25,,33.6558,130.3664
-1054,グラバー園,長崎県,長崎市,park,本人と介護者1名,長崎県長崎市南山手町8-1,,32.7341,129.8696
-1055,熊本城,熊本県,熊本市,museum,本人と付添人1名,熊本県熊本市中央区本丸1-1,,32.8062,130.7058
-1056,フェニックス自然動物園,宮崎県,宮崎市,zoo,本人と介護者1名,宮崎県宮崎市塩路浜山3083-42,,31.9567,131.4722
-1057,いおワールドかごしま水族館,鹿児島県,鹿児島市,aquarium,本人と介護者1名,鹿児島県鹿児島市本港新町3-1,,31.5947,130.5636
-1058,沖縄美ら海水族館,沖縄県,本部町,aquarium,本人と付添人1名,沖縄県国頭郡本部町石川424,,26.6943,127.8779
-1059,首里城公園,沖縄県,那覇市,museum,本人と介助者1名,沖縄県那覇市首里金城町1-2,,26.2170,127.7196
+1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名無料,北海道旭川市東旭川町倉沼,,43.7684,142.48
+1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名無料,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
+1003,北海道開拓の村,北海道,札幌市,museum,本人と介護者1名無料,北海道札幌市厚別区厚別町小野幌50-1,,43.0493,141.4983
+1004,三内丸山遺跡センター,青森県,青森市,museum,本人と付添人1名無料,青森県青森市三内字丸山305,,40.8122,140.697
+1005,盛岡市動物公園 ZOOMA,岩手県,盛岡市,park,本人と介護者1名無料,岩手県盛岡市新庄字下八木田60-18,,39.7214,141.1923
+1006,仙台市博物館,宮城県,仙台市,museum,本人と介護者1名無料,宮城県仙台市青葉区川内26,,38.2562,140.8566
+1007,アクアマリンふくしま,福島県,いわき市,aquarium,本人と介護者1名無料,福島県いわき市小名浜字辰巳町50,,36.9427,140.9032
+1008,鶴ヶ城（会津若松城）,福島県,会津若松市,museum,本人と付添人1名無料,福島県会津若松市追手町1-1,,37.4875,139.9297
+1009,国営ひたち海浜公園,茨城県,ひたちなか市,park,本人と付添人1名無料,茨城県ひたちなか市馬渡字大沼605-4,,36.4027,140.5927
+1010,日光田母沢御用邸記念公園,栃木県,日光市,park,本人と付添人1名無料,栃木県日光市本町8-27,,36.7533,139.5936
+1011,富岡製糸場,群馬県,富岡市,museum,本人と介護者1名無料,群馬県富岡市富岡1-1,,36.2553,138.8925
+1012,群馬県立自然史博物館,群馬県,富岡市,museum,本人と介護者1名無料,群馬県富岡市上黒岩1674-1,,36.2647,138.8833
+1013,さいたま水族館,埼玉県,羽生市,aquarium,本人と介護者1名無料,埼玉県羽生市三田ヶ谷751-1,,36.1736,139.5925
+1014,千葉市動物公園,千葉県,千葉市,park,本人と介護者1名無料,千葉県千葉市若葉区源町280,,35.6369,140.1222
+1015,東京国立博物館,東京都,台東区,museum,本人と介護者1名無料（総合文化展）,東京都台東区上野公園13-9,,35.7187,139.7765
+1016,国立科学博物館,東京都,台東区,museum,本人と介護者1名無料,東京都台東区上野公園7-20,,35.7163,139.7766
+1017,恩賜上野動物園,東京都,台東区,zoo,本人と付添人1名無料,東京都台東区上野公園9-83,,35.7165,139.7713
+1018,新宿御苑,東京都,新宿区,museum,本人と介助者1名無料,東京都新宿区内藤町11,,35.6851,139.71
+1019,葛西臨海水族園,東京都,江戸川区,museum,本人と付添人1名無料,東京都江戸川区臨海町6-2-3,,35.6401,139.8624
+1020,よこはま動物園ズーラシア,神奈川県,横浜市,zoo,本人と介護者2名まで無料,神奈川県横浜市旭区上白根町1175-1,,35.4944,139.5255
+1021,川崎市藤子・F・不二雄ミュージアム,神奈川県,川崎市,leisure,本人と介助者1名無料（要予約）,神奈川県川崎市多摩区長尾2-8-1,,35.6103,139.5732
+1022,新潟市水族館 マリンピア日本海,新潟県,新潟市,aquarium,本人と介助者1名無料,新潟県新潟市中央区西船見町5932-445,,37.9239,139.0322
+1023,兼六園,石川県,金沢市,park,本人と介護者1名無料,石川県金沢市兼六町1,,36.562,136.6625
+1024,福井県立恐竜博物館,福井県,勝山市,museum,本人と介護者1名無料（常設展）,福井県勝山市村岡町寺尾51-11,,36.0545,136.5033
+1025,山梨県立リニア見学センター,山梨県,都留市,museum,本人と介助者1名無料,山梨県都留市小形山2381,,35.567,138.9372
+1026,国宝 松本城,長野県,松本市,museum,本人と介助者1名無料,長野県松本市丸の内4-1,,36.2387,137.9691
+1027,岐阜城,岐阜県,岐阜市,museum,本人と介護者1名無料,岐阜県岐阜市金華山天守閣18,,35.4339,136.7821
+1028,浜松市動物園,静岡県,浜松市,zoo,本人と介護者1名無料,静岡県浜松市西区舘山寺町199,,34.7644,137.6622
+1029,名古屋城,愛知県,名古屋市,museum,本人と介護者2名まで無料,愛知県名古屋市中区本丸1-1,,35.1847,136.9
+1030,東山動植物園,愛知県,名古屋市,museum,本人と介護者2名まで無料,愛知県名古屋市千種区東山元町3-70,,35.1565,136.9744
+1031,トヨタ産業技術記念館,愛知県,名古屋市,museum,本人と付添人1名無料,愛知県名古屋市西区則武新町4-1-35,,35.1828,136.8753
+1032,彦根城,滋賀県,彦根市,museum,本人と付添人1名無料,滋賀県彦根市金亀町1-1,,35.2766,136.2517
+1033,元離宮二条城,京都府,京都市,museum,本人と介護者1名無料,京都府京都市中京区二条通堀川西入二条城町541,,35.0142,135.7482
+1034,京都国立博物館,京都府,京都市,museum,本人と介護者1名無料（名品ギャラリー）,京都府京都市東山区茶屋町527,,34.9906,135.7725
+1035,京都市動物園,京都府,京都市,zoo,本人と介護者1名無料,京都府京都市左京区岡崎法勝寺町岡崎公園内,,35.0116,135.7836
+1036,大阪城天守閣,大阪府,大阪市,museum,本人と介護者1名無料,大阪府大阪市中央区大阪城1-1,,34.6873,135.5262
+1037,天王寺動物園,大阪府,大阪市,zoo,本人と付添人1名無料,大阪府大阪市天王寺区茶臼山町1-108,,34.6506,135.5103
+1038,万博記念公園,大阪府,吹田市,park,本人と介助者1名無料,大阪府吹田市千里万博公園,,34.8028,135.5367
+1039,姫路城,兵庫県,姫路市,museum,本人と介助者1名無料,兵庫県姫路市本町68,,34.8394,134.6939
+1040,神戸市立王子動物園,兵庫県,神戸市,zoo,本人と介護者1名無料,兵庫県神戸市灘区王子町3-1,,34.7126,135.2166
+1041,奈良国立博物館,奈良県,奈良市,museum,本人と介護者1名無料,奈良県奈良市登大路町50,,34.6836,135.8358
+1042,和歌山城,和歌山県,和歌山市,museum,本人と付添人1名無料,和歌山県和歌山市一番丁3,,34.2255,135.1706
+1043,鳥取砂丘 砂の美術館,鳥取県,鳥取市,museum,本人と介護者1名無料,鳥取県鳥取市福部町湯山2083-17,,35.5404,134.2382
+1044,松江城,島根県,松江市,museum,本人と介助者1名無料,島根県松江市殿町1-5,,35.4753,133.0505
+1045,岡山後楽園,岡山県,岡山市,park,本人と介護者1名無料,岡山県岡山市北区後楽園1-5,,34.6669,133.9358
+1046,広島平和記念資料館,広島県,広島市,museum,本人と介護者1名無料,広島県広島市中区中島町1-2,,34.3916,132.4519
+1047,海響館（市立しものせき水族館）,山口県,下関市,aquarium,本人と介護者1名無料,山口県下関市あるかぽーと6-1,,33.9538,130.9436
+1048,栗林公園,香川県,高松市,park,本人と介護者1名無料,香川県高松市栗林町1-20-16,,34.3323,134.0439
+1049,松山城,愛媛県,松山市,museum,本人と介助者2名まで無料,愛媛県松山市丸之内1,,33.8455,132.7663
+1050,愛媛県立とべ動物園,愛媛県,砥部町,zoo,本人と介護者1名無料,愛媛県伊予郡砥部町上原町240,,33.7667,132.7961
+1051,高知城,高知県,高知市,museum,本人と介護者1名無料,高知県高知市丸ノ内1-2-1,,33.5607,133.5312
+1052,九州国立博物館,福岡県,太宰府市,museum,本人と介護者1名無料（文化交流展）,福岡県太宰府市石坂4-7-2,,33.5186,130.5242
+1053,海の中道海浜公園,福岡県,福岡市,park,本人と付添人1名無料,福岡県福岡市東区大字西戸崎18-25,,33.6558,130.3664
+1054,グラバー園,長崎県,長崎市,park,本人と介護者1名無料,長崎県長崎市南山手町8-1,,32.7341,129.8696
+1055,熊本城,熊本県,熊本市,museum,本人と付添人1名無料,熊本県熊本市中央区本丸1-1,,32.8062,130.7058
+1056,フェニックス自然動物園,宮崎県,宮崎市,zoo,本人と介護者1名無料,宮崎県宮崎市塩路浜山3083-42,,31.9567,131.4722
+1057,いおワールドかごしま水族館,鹿児島県,鹿児島市,aquarium,本人と介護者1名無料,鹿児島県鹿児島市本港新町3-1,,31.5947,130.5636
+1058,沖縄美ら海水族館,沖縄県,本部町,aquarium,本人と付添人1名無料,沖縄県国頭郡本部町石川424,,26.6943,127.8779
+1059,首里城公園,沖縄県,那覇市,museum,本人と介助者1名無料,沖縄県那覇市首里金城町1-2,,26.217,127.7196
 1060,北海道博物館,北海道,札幌市,museum,本人と介護者1名無料,北海道札幌市厚別区厚別町小野幌53-2,https://www.hm.pref.hokkaido.lg.jp/,43.0531,141.4965
 1061,北海道立近代美術館,北海道,札幌市,museum,本人と介護者1名無料,北海道札幌市中央区北1条西17丁目,https://artmuseum.pref.hokkaido.lg.jp/knb,43.0602,141.3303
 1062,本郷新記念札幌彫刻美術館,北海道,札幌市,museum,本人と介護者1名無料,北海道札幌市中央区宮の森4条12丁目,http://www.hongoshin-smos.jp/,43.0548,141.2928
@@ -315,9 +219,8 @@
 1064,さっぽろ羊ケ丘展望台,北海道,札幌市,park,本人のみ無料,北海道札幌市豊平区羊ヶ丘1番地,https://www.hitsujigaoka.jp/,42.9991,141.3944
 1065,AOAO SAPPORO,北海道,札幌市,aquarium,本人と介護者1名半額,北海道札幌市中央区南2条西3丁目20 moyuk SAPPORO 4F-6F,https://aoao-sapporo.blue/,43.0577,141.3533`;
 
-        // --- GLOBAL STATE ---
         let map, markers = {};
-        let userStatus = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)) || {};
+        let userStatus = JSON.parse(localStorage.getItem('handimap_v2')) || {};
         let userCurrentPos = null;
         let activeListCategory = 'all';
         let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']);
@@ -325,78 +228,39 @@
         let currentListTab = 'fav';
         let facilitiesData = [];
 
-        // --- INITIALIZATION ---
         window.onload = function() {
             facilitiesData = parseCSV(MASTER_CSV);
             initMap();
             renderList();
             renderMyList();
-            if (window.innerWidth < 768 && !window.navigator.standalone) {
-                setTimeout(() => { document.getElementById('pwa-prompt').style.display = 'flex'; }, 3000);
-            }
         };
 
-        // --- DATA HELPERS ---
         function parseCSV(csv) {
-            const lines = csv.trim().split('\n');
-            const result = [];
-            for (let i = 1; i < lines.length; i++) {
-                const row = lines[i].split(',').map(c => c.trim()); 
-                if (row.length < 2) continue;
-                result.push({
-                    id: parseInt(row[0]),
-                    name: row[1],
-                    pref: row[2],
-                    area: row[3],
-                    category: row[4],
-                    price: row[5],
-                    address: row[6],
-                    url: row[7],
-                    lat: row[8] ? parseFloat(row[8]) : null,
-                    lng: row[9] ? parseFloat(row[9]) : null
-                });
-            }
-            return result;
+            return csv.trim().split('\n').slice(1).map(line => {
+                const [id,name,pref,area,cat,price,addr,url,lat,lng] = line.split(',');
+                if(!name) return null;
+                return { 
+                    id: parseInt(id), name, pref, area, category: cat, price, address: addr, url, 
+                    lat: lat ? parseFloat(lat) : null, lng: lng ? parseFloat(lng) : null 
+                };
+            }).filter(Boolean);
         }
 
-        // --- UI GENERATORS (Refactored for DRY) ---
-        function getIcon(cat) { const icons = { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳' }; return icons[cat] || '📍'; }
+        function getIcon(cat) { return { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳' }[cat] || '📍'; }
         
         function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lng2-lng1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        function createActionButtonsHTML(spot, isMap = false) {
-            const status = userStatus[spot.id] || {};
-            const navBtn = spot.lat ? 
-                `<button onclick="handleNavClick(${spot.lat}, ${spot.lng}, '${spot.name}', '${spot.url}'); ${isMap ? 'event.stopPropagation();' : ''}" class="btn-primary text-xs py-2 shadow-sm flex-1"><i class="fas fa-location-arrow"></i> ナビ</button>` : 
-                `<a href="${spot.url}" target="_blank" class="btn-primary shadow-sm flex-1 !bg-slate-500"><i class="fas fa-external-link-alt"></i> HP</a>`;
-            
-            const jumpBtn = (!isMap && spot.lat) ? 
-                `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id})" class="btn-icon bg-white hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : '';
-            
-            const favBtn = !isMap ? 
-                `<button onclick="toggleStatus(${spot.id}, 'fav')" class="btn-icon bg-white hover:text-pink-500 ${status.fav ? '!text-pink-500 !bg-pink-50 !border-pink-200' : ''}"><i class="${status.fav ? 'fas' : 'far'} fa-heart text-lg"></i></button>` : '';
-
-            return `<div class="flex gap-2">${navBtn}${jumpBtn}${favBtn}</div>`;
-        }
-
-        // --- MAP LOGIC ---
         function initMap() {
             if(map) return;
-            map = L.map('map', { zoomControl: false }).setView(CONFIG.DEFAULT_POS, CONFIG.DEFAULT_ZOOM);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-            if (window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
+            map = L.map('map', { zoomControl: false }).setView([36.2048, 138.2529], 5);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            if(window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
             map.on('moveend', updateVisibleSpots);
-            map.on('click', () => {
-                document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-                document.querySelectorAll('.map-card-horizontal').forEach(el => el.classList.remove('active'));
-                hideGpsHint();
-            });
             renderAllMarkers();
-            updateVisibleSpots();
         }
 
         function renderAllMarkers() {
@@ -406,284 +270,153 @@
                 if (!spot.lat || !activeMapCategories.has(spot.category)) return;
                 const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                marker.on('click', (e) => { L.DomEvent.stopPropagation(e); setActiveFacilityOnMap(spot.id); });
+                marker.on('click', (e) => { L.DomEvent.stopPropagation(e); map.flyTo([spot.lat, spot.lng], 13); showMapCard(spot.id); });
                 markers[spot.id] = marker;
             });
         }
 
-        function toggleMapFilter(cat, btn) {
-            if (activeMapCategories.has(cat)) { activeMapCategories.delete(cat); btn.classList.remove('active'); }
-            else { activeMapCategories.add(cat); btn.classList.add('active'); }
-            renderAllMarkers(); updateVisibleSpots();
+        function showMapCard(id) {
+            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
+            document.getElementById(`pin-${id}`).classList.add('active-pin');
+            const card = document.getElementById(`map-card-${id}`);
+            card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
         }
 
         function updateVisibleSpots() {
             const center = map.getCenter();
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-            const sorted = facilitiesData
-                .filter(f => f.lat && activeMapCategories.has(f.category))
+            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
                 .sort((a, b) => a.dist - b.dist);
-            renderMapCards(sorted);
-        }
-
-        function renderMapCards(spots) {
+                
             const scroller = document.getElementById('card-scroller');
-            scroller.innerHTML = '';
-            const spacer = document.createElement('div'); spacer.style.flex = "0 0 10px"; scroller.appendChild(spacer);
-            spots.forEach(spot => {
-                const card = document.createElement('div');
-                card.id = `map-card-${spot.id}`; 
-                card.className = "map-card-horizontal bg-white";
-                card.onclick = (e) => { L.DomEvent.stopPropagation(e); map.flyTo([spot.lat, spot.lng], 14); setActiveFacilityOnMap(spot.id); };
-                card.innerHTML = `
+            scroller.innerHTML = sorted.map(spot => `
+                <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-slate-800 text-base line-clamp-1 cursor-pointer underline decoration-dotted decoration-teal-500" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${spot.name}<i class="fas fa-external-link-alt text-xs text-teal-500 ml-1"></i></h3>
-                            <div class="text-xl cursor-pointer" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${getIcon(spot.category)}</div>
+                            <h3 class="font-bold text-slate-800 text-base line-clamp-1 underline decoration-dotted decoration-teal-500" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${spot.name}</h3>
+                            <div class="text-xl">${getIcon(spot.category)}</div>
                         </div>
                         <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
                         <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'}先</p>
                     </div>
-                    <div class="mt-2 pt-2 border-t border-slate-100">${createActionButtonsHTML(spot, true)}</div>
-                `;
-                scroller.appendChild(card);
-            });
-            const spacerEnd = document.createElement('div'); spacerEnd.style.flex = "0 0 10px"; scroller.appendChild(spacerEnd);
-        }
-
-        function setActiveFacilityOnMap(id) {
-            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-            const pin = document.getElementById(`pin-${id}`); if(pin) pin.classList.add('active-pin');
-            const card = document.getElementById(`map-card-${id}`);
-            if (card) {
-                card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-            }
-        }
-
-        function locateUserOnMap() {
-             hideGpsHint();
-             if(!navigator.geolocation) { document.getElementById('region-modal').classList.add('show'); return; }
-             navigator.geolocation.getCurrentPosition((pos) => {
-                 userCurrentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                 if(window.userMarker) map.removeLayer(window.userMarker);
-                 const icon = L.divIcon({ className: '', html: '<div style="width:20px;height:20px;background:#0D9488;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(13,148,136,0.3);"></div>' });
-                 window.userMarker = L.marker([userCurrentPos.lat, userCurrentPos.lng], {icon: icon}).addTo(map);
-                 map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
-                 updateVisibleSpots();
-             });
-        }
-
-        // --- LIST & UTILS ---
-        function applyListFilter(cat, btn) {
-            activeListCategory = cat;
-            btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            renderList();
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
+                        <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}, '${spot.url}'); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg"><i class="fas fa-location-arrow"></i> ナビ</button>
+                    </div>
+                </div>
+            `).join('') + '<div style="flex:0 0 10px"></div>';
         }
 
         function renderList() {
-            const container = document.getElementById('list-container'); if(!container) return;
-            container.innerHTML = '';
+            const container = document.getElementById('list-container');
             let targets = facilitiesData.filter(f => {
-                if (activeListCategory !== 'all' && f.category !== activeListCategory && !(activeListCategory === 'leisure' && (f.category === 'zoo' || f.category === 'aquarium'))) return false;
-                if (searchQuery && !(f.name.includes(searchQuery) || f.pref.includes(searchQuery) || f.area.includes(searchQuery))) return false;
+                if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
+                if(searchQuery && !f.name.includes(searchQuery) && !f.pref.includes(searchQuery)) return false;
                 return true;
             });
-            if (userCurrentPos) {
-                targets = targets.map(f => ({...f, dist: f.lat ? getDistance(userCurrentPos.lat, userCurrentPos.lng, f.lat, f.lng) : Infinity})).sort((a,b) => a.dist - b.dist);
-            }
-            if (targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold">該当なし</div>`; return; }
+            if(userCurrentPos) targets.sort((a,b) => getDistance(userCurrentPos.lat,userCurrentPos.lng,a.lat,a.lng) - getDistance(userCurrentPos.lat,userCurrentPos.lng,b.lat,b.lng));
             
-            // Grouping logic with Accordion
-            if (!searchQuery && !userCurrentPos) {
-                const grouped = {}; const prefOrder = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
-                targets.forEach(f => { if(!grouped[f.pref]) grouped[f.pref] = []; grouped[f.pref].push(f); });
-                
-                prefOrder.forEach(pref => {
-                    if(!grouped[pref]) return;
-                    
-                    // Create Accordion Container
-                    const details = document.createElement('details');
-                    details.className = "group mb-4 bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden";
-                    
-                    // Header
-                    const summary = document.createElement('summary');
-                    summary.className = "flex items-center justify-between p-4 cursor-pointer list-none bg-slate-50 hover:bg-slate-100 transition-colors select-none";
-                    summary.innerHTML = `
-                        <h2 class="text-md font-bold text-teal-900 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-teal-500 rounded-full"></span>
-                            ${pref}
-                            <span class="bg-teal-100 text-teal-700 text-[10px] px-2 py-0.5 rounded-full">${grouped[pref].length}</span>
-                        </h2>
-                        <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform"></i>
-                    `;
-                    
-                    // Content
-                    const content = document.createElement('div');
-                    content.className = "p-3 border-t border-slate-100 bg-white";
-                    
-                    const grid = document.createElement('div'); 
-                    grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
-                    
-                    grouped[pref].forEach(spot => renderListItem(spot, grid));
-                    
-                    content.appendChild(grid);
-                    details.appendChild(summary);
-                    details.appendChild(content);
-                    container.appendChild(details);
-                });
-            } else {
-                const grid = document.createElement('div'); grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3";
-                targets.forEach(spot => renderListItem(spot, grid));
-                container.appendChild(grid);
-            }
+            if(targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400">該当なし</div>`; return; }
+
+            const grouped = {}; 
+            targets.forEach(f => { if(!grouped[f.pref]) grouped[f.pref] = []; grouped[f.pref].push(f); });
+            
+            container.innerHTML = Object.keys(grouped).map(pref => `
+                <details class="group mb-3 bg-white rounded-xl shadow-sm overflow-hidden" open>
+                    <summary class="flex justify-between p-4 cursor-pointer bg-slate-50 font-bold text-teal-800">
+                        <span>${pref} <span class="text-xs bg-teal-100 text-teal-600 px-2 rounded-full ml-2">${grouped[pref].length}</span></span>
+                        <i class="fas fa-chevron-down text-slate-300 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="p-3 border-t grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${grouped[pref].map(spot => createCardHTML(spot)).join('')}
+                    </div>
+                </details>
+            `).join('');
         }
 
-        function renderListItem(spot, container) {
-            let distHtml = '';
-            if (userCurrentPos && spot.lat) {
-                const d = spot.dist !== undefined ? spot.dist : getDistance(userCurrentPos.lat, userCurrentPos.lng, spot.lat, spot.lng);
-                distHtml = `<span class="bg-teal-50 text-teal-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2"><i class="fas fa-location-arrow"></i> ${d < 1 ? Math.round(d*1000)+'m' : d.toFixed(1)+'km'}</span>`;
-            }
-            const item = document.createElement('div'); item.className = "map-card";
-            item.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <div class="flex items-center flex-wrap"><span class="tag">${spot.area}</span>${distHtml}</div>
-                    <div class="text-xl opacity-30 cursor-pointer" onclick="window.open('${spot.url}', '_blank'); event.stopPropagation();">${getIcon(spot.category)}</div>
+        function createCardHTML(spot) {
+            const isFav = userStatus[spot.id]?.fav;
+            return `
+                <div class="map-card relative hover:shadow-md transition-shadow" onclick="window.open('${spot.url}', '_blank')">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">${spot.area}</span>
+                        <div class="text-xl opacity-40">${getIcon(spot.category)}</div>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800 mb-1 underline decoration-dotted decoration-teal-500">${spot.name}</h3>
+                    <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
+                    <div class="flex gap-2 mt-auto">
+                        <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}, '${spot.url}'); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i class="fas fa-location-arrow mr-1"></i>ナビ</button>
+                        ${spot.lat ? `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : ''}
+                        <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
+                    </div>
                 </div>
-                <h3 class="font-bold text-lg text-slate-800 mb-1 leading-snug cursor-pointer underline decoration-dotted decoration-teal-500" onclick="window.open('${spot.url}', '_blank')">${spot.name}</h3>
-                <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
-                ${createActionButtonsHTML(spot, false)}
             `;
-            container.appendChild(item);
         }
 
-        // --- COMMON UTILS ---
-        function jumpToMap(lat, lng, id) {
-            switchPage('map');
-            setTimeout(() => { map.flyTo([lat, lng], 14); setActiveFacilityOnMap(id); }, 300);
-        }
-        function handleNavClick(lat, lng, name, url) {
-            window.tempNavTarget = { lat, lng, name };
-            const linkEl = document.getElementById('modal-hp-link'); if(linkEl) linkEl.href = url;
+        function handleNav(name, lat, lng, url) {
+            window.tempNav = { name, lat, lng };
             document.getElementById('map-select-modal').classList.add('show');
         }
-        function confirmNavigation(provider) {
-            document.getElementById('map-select-modal').classList.remove('show');
-            if (window.tempNavTarget) {
-                const t = window.tempNavTarget;
-                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-                if (provider === 'google') window.open(`https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}&query_place_id=${encodeURIComponent(t.name)}`, '_blank');
-                else if (isIOS) window.open(`http://maps.apple.com/?q=${encodeURIComponent(t.name)}&ll=${t.lat},${t.lng}`, '_system');
-                else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`, '_system');
-            }
+        function confirmNavigation(type) {
+            const t = window.tempNav;
+            if(type === 'google') window.open(`https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}&query_place_id=${encodeURIComponent(t.name)}`);
+            else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
+            closeModal('map-select-modal');
         }
-        function switchPage(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(`page-${pageId}`).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(`nav-${pageId}`).classList.add('active');
-            if(pageId === 'map') setTimeout(() => { map.invalidateSize(); updateVisibleSpots(); }, 300);
-            if(pageId === 'mylist') renderMyList();
-        }
-        function handleSearch(val) { searchQuery = val.trim(); renderList(); }
-        function locateUserForList() {
-            if(!navigator.geolocation) { document.getElementById('region-modal').classList.add('show'); return; }
-            navigator.geolocation.getCurrentPosition((pos) => {
+
+        function locateUserOnMap() {
+            if(!navigator.geolocation) return alert('位置情報が取得できません');
+            navigator.geolocation.getCurrentPosition(pos => {
                 userCurrentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                document.getElementById('location-prompt').classList.add('hidden');
-                renderList();
+                map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
+                L.marker([userCurrentPos.lat, userCurrentPos.lng], {
+                    icon: L.divIcon({ html: '<div class="w-4 h-4 bg-teal-500 rounded-full border-2 border-white shadow-lg"></div>', className:'' })
+                }).addTo(map);
+                updateVisibleSpots();
             });
         }
-        function toggleStatus(id, type) {
+        function toggleFav(id) {
             if(!userStatus[id]) userStatus[id] = {};
-            userStatus[id][type] = !userStatus[id][type];
-            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(userStatus));
+            userStatus[id].fav = !userStatus[id].fav;
+            localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList();
         }
-        function switchListTab(tab) {
-            currentListTab = tab;
-            document.getElementById('tab-fav').className = `px-3 py-1.5 text-xs font-bold rounded-md transition-all ${tab==='fav' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-400'}`;
-            document.getElementById('tab-visited').className = `px-3 py-1.5 text-xs font-bold rounded-md transition-all ${tab==='visited' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`;
-            renderMyList();
+        function switchPage(p) {
+            document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
+            document.getElementById('page-'+p).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+            document.getElementById('nav-'+p).classList.add('active');
+            if(p === 'map') setTimeout(() => { map.invalidateSize(); updateVisibleSpots(); }, 100);
         }
+        function toggleMapFilter(cat, btn) {
+            if(activeMapCategories.has(cat)) { activeMapCategories.delete(cat); btn.classList.remove('active'); }
+            else { activeMapCategories.add(cat); btn.classList.add('active'); }
+            renderAllMarkers(); updateVisibleSpots();
+        }
+        function applyListFilter(cat, btn) {
+            activeListCategory = cat;
+            document.querySelectorAll('#page-list .chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            renderList();
+        }
+        function handleSearch(val) { searchQuery = val; renderList(); }
         function renderMyList() {
-            const container = document.getElementById('mylist-container'); container.innerHTML = '';
             const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
-            if(list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10 font-bold">まだありません</div>`; return; }
-            list.forEach(spot => renderListItem(spot, container));
+            document.getElementById('mylist-container').innerHTML = list.length ? list.map(f => createCardHTML(f)).join('') : '<div class="text-center text-slate-400 mt-10">まだありません</div>';
         }
-        function closePwaPrompt() { document.getElementById('pwa-prompt').style.display = 'none'; }
-        function hideGpsHint() { const el = document.getElementById('gps-hint'); if(el) el.style.display = 'none'; }
+        function jumpToMap(lat, lng, id) { switchPage('map'); map.flyTo([lat, lng], 14); showMapCard(id); }
+        function switchListTab(t) { currentListTab = t; document.getElementById('tab-fav').className = t==='fav'?'px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; document.getElementById('tab-visited').className = t==='visited'?'px-3 py-1 text-xs font-bold rounded bg-white text-green-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; renderMyList(); }
+        function openBackupModal(t) { 
+            document.getElementById('backup-modal').classList.add('show'); 
+            const txt = document.getElementById('backup-text');
+            txt.value = t==='export' ? JSON.stringify(userStatus) : '';
+        }
+        function copyBackup() { document.getElementById('backup-text').select(); document.execCommand('copy'); alert('コピーしました'); }
+        function restoreBackup() { try { userStatus = JSON.parse(document.getElementById('backup-text').value); localStorage.setItem('handimap_v2', JSON.stringify(userStatus)); renderMyList(); renderList(); alert('復元しました'); closeModal('backup-modal'); } catch(e){ alert('データ形式が正しくありません'); } }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-        // --- BACKUP & CSV ADMIN ---
-        function openBackupModal(type) {
-            const modal = document.getElementById('backup-modal');
-            modal.classList.add('show');
-            const textarea = document.getElementById('backup-text');
-            const btn = document.getElementById('backup-action-btn');
-            if(type === 'export') {
-                document.getElementById('backup-title').innerText = "データを保存";
-                textarea.value = JSON.stringify(userStatus); textarea.readOnly = true;
-                btn.innerText = "コードをコピー";
-                btn.onclick = () => { textarea.select(); document.execCommand('copy'); alert("コピーしました！"); };
-            } else {
-                document.getElementById('backup-title').innerText = "データを復元";
-                textarea.value = ""; textarea.readOnly = false;
-                btn.innerText = "復元する";
-                btn.onclick = () => {
-                    try {
-                        const data = JSON.parse(textarea.value);
-                        if(confirm("復元しますか？")) { userStatus = data; localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(userStatus)); renderMyList(); renderList(); closeModal('backup-modal'); }
-                    } catch(e) { alert("コードが正しくありません"); }
-                };
-            }
-        }
-        function checkAdminPasscode() {
-            if(document.getElementById('admin-passcode').value === CONFIG.ADMIN_CODE) {
-                document.getElementById('passcode-area').style.display = 'none';
-                document.getElementById('csv-admin-controls').classList.remove('hidden');
-                alert("管理者認証成功");
-            } else { alert("コードが正しくありません"); }
-        }
-        function downloadCSV() {
-            const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
-            facilitiesData.forEach(f => {
-                const s = userStatus[f.id] || {};
-                rows.push([f.id, f.name, f.pref, f.area, f.category, f.price, f.address, f.url, f.lat, f.lng, s.fav ? "1" : "0", s.visited ? "1" : "0"]);
-            });
-            const csvContent = "\uFEFF" + rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csvContent], { type: "text/csv;charset=utf-8;" }));
-            link.download = `handimap_data_${new Date().toISOString().slice(0,10)}.csv`; link.click();
-        }
-        function handleCSVUpload(input) {
-            const file = input.files[0]; if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const lines = e.target.result.split(/\r\n|\n/); let count = 0;
-                    for(let i=1; i<lines.length; i++) {
-                        const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ''));
-                        if(cols.length < 12) continue;
-                        const id = parseInt(cols[0]);
-                        if(id) {
-                            if(!userStatus[id]) userStatus[id] = {};
-                            userStatus[id].fav = cols[10] === "1"; userStatus[id].visited = cols[11] === "1";
-                            count++;
-                        }
-                    }
-                    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(userStatus));
-                    renderMyList(); renderList(); alert(`${count}件更新しました`);
-                } catch(err) { alert("エラーが発生しました"); }
-                input.value = "";
-            };
-            reader.readAsText(file);
-        }
     </script>
 </body>
 </html>
