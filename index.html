@@ -20,12 +20,34 @@
         }
     </script>
     <style>
-        body { touch-action: manipulation; overflow: hidden; background-color: #F8FAFC; -webkit-font-smoothing: antialiased; color: #334155; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        /* 基本設定：バウンス防止と高さ固定 */
+        html, body { 
+            height: 100%; 
+            width: 100%; 
+            overflow: hidden; 
+            overscroll-behavior: none; /* iOSでのバウンススクロール防止 */
+            background-color: #F8FAFC; 
+            -webkit-font-smoothing: antialiased; 
+            color: #334155; 
+            /* bodyのpaddingは削除し、各要素で制御します */
+            padding: 0;
+            margin: 0;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-container { 
+            display: flex; 
+            flex-direction: column; 
+            /* 100dvhを使用することでアドレスバーの伸縮に対応 */
+            height: 100dvh; 
+            width: 100vw; 
+            position: relative;
+        }
+
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
-        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; padding-bottom: 80px; }
+
+        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; overflow: hidden; }
         .page.active { display: flex; }
-        @media (min-width: 768px) { .page { padding-bottom: 0; } }
         
         /* Map & Pins */
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
@@ -35,12 +57,36 @@
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
         /* Chips & Filter */
-        .filter-bar { position: absolute; top: 10px; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; margin-top: env(safe-area-inset-top); }
+        /* 上部のセーフエリア（ノッチ）を考慮して配置 */
+        .filter-bar { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 500; 
+            display: flex; 
+            justify-content: center; 
+            pointer-events: none; 
+            padding-top: max(10px, env(safe-area-inset-top)); /* セーフエリア + 余白 */
+        }
         .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .chip { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; transition: all 0.2s; }
         .chip.active { background: #0D9488; color: white; }
 
         /* Cards */
+        /* 下部のナビゲーションバーの高さを考慮 */
+        .sheet-wrapper {
+            position: absolute; 
+            bottom: calc(60px + env(safe-area-inset-bottom)); /* ナビの高さ分上げる */
+            left: 0; 
+            right: 0; 
+            pointer-events: none;
+            z-index: 400;
+        }
+        @media (min-width: 768px) {
+            .sheet-wrapper { bottom: 20px; }
+        }
+
         .card-scroller { display: flex; gap: 12px; padding: 0 16px 10px; overflow-x: auto; scroll-snap-type: x mandatory; height: 170px; pointer-events: auto; }
         .map-card-horizontal { flex: 0 0 88%; max-width: 340px; scroll-snap-align: center; background: white; border-radius: 20px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid transparent; transition: transform 0.2s; display: flex; flex-direction: column; }
         .map-card-horizontal.active { border-color: #0D9488; transform: translateY(-4px); }
@@ -48,34 +94,51 @@
         .map-card:active { background-color: #F0FDFA; }
 
         /* UI Components */
-        .gps-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; bottom: 300px; z-index: 500; }
-        .nav-container { z-index: 3000; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); height: calc(60px + env(safe-area-inset-bottom)); position: fixed; bottom: 0; width: 100%; }
-        @media (min-width: 768px) { 
-            .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; } 
+        /* GPSボタンの位置調整 */
+        .gps-btn { 
+            width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
+            bottom: calc(240px + env(safe-area-inset-bottom)); /* カードとナビの上に来るように */
+            z-index: 500; 
         }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; cursor: pointer; }
+
+        /* Navigation Container */
+        .nav-container { 
+            z-index: 3000; 
+            background: white; 
+            border-top: 1px solid #eee; 
+            display: flex; 
+            justify-content: space-around; 
+            /* 下部のセーフエリア（ホームバー）を確保 */
+            padding-bottom: env(safe-area-inset-bottom);
+            height: calc(60px + env(safe-area-inset-bottom)); 
+            width: 100%; 
+            flex-shrink: 0; /* 縮まないように固定 */
+        }
+        @media (min-width: 768px) { 
+            .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
+        }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; cursor: pointer; height: 60px; /* アイテム自体の高さを固定 */ }
         @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; gap: 12px; padding: 16px; font-size: 14px; height: auto; } }
         .nav-item.active { color: #0D9488; }
         
+        /* Modal */
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); align-items: center; justify-content: center; }
         .modal-overlay.show { display: flex; }
         .modal-box { background: white; width: 85%; max-width: 320px; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
+
+        /* リストのヘッダー調整 */
+        .list-header-padding {
+            padding-top: max(16px, env(safe-area-inset-top));
+        }
     </style>
 </head>
 <body class="text-slate-700">
 
     <div id="app-container">
-        <nav class="nav-container order-2 md:order-1">
-            <div class="hidden md:block px-6 mb-8 text-teal-800 font-extrabold text-xl"><i class="fas fa-universal-access mr-2"></i>HandiMap</div>
-            <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt text-xl md:text-base"></i><span>マップ</span></div>
-            <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search text-xl md:text-base"></i><span>探す</span></div>
-            <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist"><i class="fas fa-heart text-xl md:text-base"></i><span>保存済み</span></div>
-        </nav>
-
-        <main class="flex-1 relative h-full order-1 md:order-2 overflow-hidden bg-slate-50">
+        <main class="flex-1 relative order-1 md:order-2 overflow-hidden bg-slate-50 w-full h-full">
             <div id="page-map" class="page active">
                 <div class="filter-bar">
                     <div class="chip-scroll">
@@ -89,13 +152,13 @@
                 </div>
                 <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
                 <div id="map"></div>
-                <div class="sheet-wrapper" style="position: absolute; bottom: 80px; left:0; right:0; pointer-events: none;">
+                <div class="sheet-wrapper">
                     <div id="card-scroller" class="card-scroller"></div>
                 </div>
             </div>
 
             <div id="page-list" class="page overflow-y-auto">
-                <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-10" style="padding-top: max(16px, env(safe-area-inset-top));">
+                <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-10 list-header-padding">
                     <div class="relative w-full mb-3">
                         <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
                         <input type="text" class="w-full bg-slate-100 rounded-xl py-2.5 pl-10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="検索..." oninput="handleSearch(this.value)">
@@ -112,7 +175,7 @@
             </div>
 
             <div id="page-mylist" class="page overflow-y-auto">
-                <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex justify-between items-center" style="padding-top: max(16px, env(safe-area-inset-top));">
+                 <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex justify-between items-center list-header-padding">
                     <h1 class="text-lg font-bold"><i class="fas fa-bookmark text-pink-500 mr-2"></i>保存済み</h1>
                     <div class="flex bg-slate-100 rounded-lg p-1 gap-1">
                         <button onclick="switchListTab('fav')" id="tab-fav" class="px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm">行きたい</button>
@@ -150,6 +213,13 @@
                 </div>
             </div>
         </main>
+
+        <nav class="nav-container order-2 md:order-1">
+            <div class="hidden md:block px-6 mb-8 text-teal-800 font-extrabold text-xl"><i class="fas fa-universal-access mr-2"></i>HandiMap</div>
+            <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt text-xl md:text-base"></i><span>マップ</span></div>
+            <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search text-xl md:text-base"></i><span>探す</span></div>
+            <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist"><i class="fas fa-heart text-xl md:text-base"></i><span>保存済み</span></div>
+        </nav>
     </div>
 
     <div id="map-select-modal" class="modal-overlay">
@@ -433,7 +503,7 @@
         }
         function confirmNavigation(type) {
             const t = window.tempNav;
-            if(type === 'google') window.open(`https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}&query_place_id=${encodeURIComponent(t.name)}`);
+            if(type === 'google') window.open(`http://maps.google.com/maps?daddr=${t.lat},${t.lng}&q=${encodeURIComponent(t.name)}`);
             else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
             closeModal('map-select-modal');
         }
