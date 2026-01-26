@@ -20,28 +20,19 @@
         }
     </script>
     <style>
-        /* 基本設定：バウンス防止と高さ固定 */
+        /* 基本設定 */
         html, body { 
-            height: 100%; 
-            width: 100%; 
-            overflow: hidden; 
-            overscroll-behavior: none; /* iOSでのバウンススクロール防止 */
-            background-color: #F8FAFC; 
-            -webkit-font-smoothing: antialiased; 
-            color: #334155; 
-            padding: 0;
-            margin: 0;
+            height: 100%; width: 100%; overflow: hidden; 
+            overscroll-behavior: none; background-color: #F8FAFC; 
+            -webkit-font-smoothing: antialiased; color: #334155; 
+            padding: 0; margin: 0;
         }
 
         /* アプリ全体のコンテナ */
         #app-container { 
-            display: flex; 
-            flex-direction: column; 
-            height: 100dvh; 
-            width: 100vw; 
-            position: relative;
+            display: flex; flex-direction: column; 
+            height: 100dvh; width: 100vw; position: relative;
         }
-
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
 
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; overflow: hidden; }
@@ -51,7 +42,6 @@
         #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
         .pin-marker { background: white; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; width: 44px; height: 44px; position: relative; transition: all 0.3s; }
         .pin-marker::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white; }
-        /* アクティブなピンは少し大きく、最前面に */
         .pin-marker.active-pin { background: #0D9488; color: white; border-color: #0D9488; transform: scale(1.3) translateY(-10px); z-index: 9999 !important; }
         .pin-marker.active-pin::after { border-top-color: #0D9488; }
 
@@ -66,34 +56,25 @@
 
         /* Cards Scroller Area */
         .sheet-wrapper {
-            position: absolute; 
-            bottom: calc(60px + env(safe-area-inset-bottom)); 
-            left: 0; right: 0; pointer-events: none; z-index: 400;
+            position: absolute; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0; right: 0; pointer-events: none; z-index: 400;
         }
         @media (min-width: 768px) { .sheet-wrapper { bottom: 20px; } }
 
         .card-scroller { 
             display: flex; gap: 12px; padding: 0 16px 10px; 
-            overflow-x: auto; 
-            scroll-snap-type: x mandatory; /* スナップスクロール */
-            height: 170px; 
+            overflow-x: auto; scroll-snap-type: x mandatory; height: 180px; /* 少し高さを確保 */
             pointer-events: auto; 
         }
         
         .map-card-horizontal { 
-            flex: 0 0 85%; /* 少し幅を狭めて次が見えるように */
-            max-width: 340px; 
-            scroll-snap-align: center; /* 中央にスナップ */
+            flex: 0 0 85%; max-width: 340px; scroll-snap-align: center; 
             background: white; border-radius: 20px; padding: 16px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 3px solid transparent; 
             transition: all 0.3s; display: flex; flex-direction: column; 
-            opacity: 0.8; transform: scale(0.95); /* 非アクティブ時は少し小さく */
+            opacity: 0.8; transform: scale(0.95); 
         }
-        /* アクティブなカードのデザイン */
         .map-card-horizontal.active { 
-            border-color: #0D9488; 
-            opacity: 1; 
-            transform: scale(1); 
+            border-color: #0D9488; opacity: 1; transform: scale(1); 
             box-shadow: 0 15px 40px rgba(13, 148, 136, 0.2);
         }
 
@@ -103,7 +84,7 @@
         /* UI Components */
         .gps-btn { 
             width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
-            bottom: calc(240px + env(safe-area-inset-bottom)); z-index: 500; 
+            bottom: calc(250px + env(safe-area-inset-bottom)); z-index: 500; 
         }
 
         /* Nav */
@@ -153,7 +134,7 @@
                 <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-10 list-header-padding">
                     <div class="relative w-full mb-3">
                         <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                        <input type="text" class="w-full bg-slate-100 rounded-xl py-2.5 pl-10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="検索..." oninput="handleSearch(this.value)">
+                        <input type="text" class="w-full bg-slate-100 rounded-xl py-2.5 pl-10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="エリア、ジャンル、施設名で検索..." oninput="handleSearch(this.value)">
                     </div>
                     <div class="chip-scroll">
                         <button class="chip active" onclick="applyListFilter('all', this)">すべて</button>
@@ -354,13 +335,9 @@
         let searchQuery = "";
         let currentListTab = 'fav';
         let facilitiesData = [];
-        
-        // フラグ: プログラムによるスクロール中か？
         let isProgrammaticScroll = false;
         let scrollTimeout;
         let isMapFlying = false;
-
-        // Intersection Observer for Scroll Sync
         let observer;
 
         window.onload = function() {
@@ -395,7 +372,6 @@
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
             if(window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
             
-            // マップ移動終了時にリストを再生成（ユーザーが手動でマップを動かした時のみ）
             map.on('moveend', () => {
                 if(!isMapFlying) {
                     updateVisibleSpots(); 
@@ -414,7 +390,6 @@
                 const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
                 marker.on('click', (e) => { 
                     L.DomEvent.stopPropagation(e); 
-                    // クリック時は中心に移動しつつ、リストもスクロール
                     isMapFlying = true; 
                     map.flyTo([spot.lat, spot.lng], 13); 
                     showMapCard(spot.id); 
@@ -423,9 +398,8 @@
             });
         }
 
-        // ピンをクリックしたときにカードへスクロール
         function showMapCard(id) {
-            isProgrammaticScroll = true; // 監視イベントを一時無効化
+            isProgrammaticScroll = true;
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`);
             if(pin) pin.classList.add('active-pin');
@@ -436,28 +410,22 @@
                 document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
                 card.classList.add('active');
             }
-            
-            // スクロール完了予測時間後にフラグ解除
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => { isProgrammaticScroll = false; }, 800);
         }
 
-        // カードが画面中央に来た時にマップを動かす処理
         function highlightMarker(id) {
-            // マーカーをハイライト
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
             const pin = document.getElementById(`pin-${id}`);
             if(pin) pin.classList.add('active-pin');
 
-            // カードをアクティブ化
             document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
             const card = document.getElementById(`map-card-${id}`);
             if(card) card.classList.add('active');
 
-            // マップを中心へ（カードスクロールによる移動なのでリスト再生成はしない）
             const spot = facilitiesData.find(f => f.id === id);
             if(spot && map) {
-                isMapFlying = true; // moveendイベントでのリスト再生成を防止
+                isMapFlying = true; 
                 map.panTo([spot.lat, spot.lng], { animate: true, duration: 1.0 });
             }
         }
@@ -466,8 +434,7 @@
             if (observer) observer.disconnect();
             
             observer = new IntersectionObserver((entries) => {
-                if (isProgrammaticScroll) return; // プログラムによるスクロール中は無視
-
+                if (isProgrammaticScroll) return;
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const id = parseInt(entry.target.id.replace('map-card-', ''));
@@ -476,7 +443,7 @@
                 });
             }, {
                 root: document.getElementById('card-scroller'),
-                threshold: 0.55 // カードが55%見えたら発火（中央に来た時）
+                threshold: 0.55
             });
 
             document.querySelectorAll('.map-card-horizontal').forEach(card => observer.observe(card));
@@ -484,17 +451,15 @@
 
         function updateVisibleSpots() {
             const center = map.getCenter();
-            // 現在地があれば現在地、なければマップ中心からの距離でソート
             const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
             const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
 
             const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
                 .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
-                .sort((a, b) => a.dist - b.dist); // 近い順にソート（これがUXの正解）
+                .sort((a, b) => a.dist - b.dist);
                 
             const scroller = document.getElementById('card-scroller');
             
-            // HTML生成
             scroller.innerHTML = sorted.map(spot => `
                 <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
@@ -510,16 +475,24 @@
                     </div>
                 </div>
             `).join('') + '<div style="flex:0 0 10px"></div>';
-
-            // リスト生成後に監視を開始
             setupObserver();
         }
 
         function renderList() {
             const container = document.getElementById('list-container');
+            const q = searchQuery.toLowerCase().trim();
+            
+            // 検索ロジック強化：名前、県名、エリア（市区町村）、住所、カテゴリ（ジャンル）を対象に検索
             let targets = facilitiesData.filter(f => {
                 if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
-                if(searchQuery && !f.name.includes(searchQuery) && !f.pref.includes(searchQuery)) return false;
+                if(q) {
+                    if( !f.name.toLowerCase().includes(q) && 
+                        !f.pref.toLowerCase().includes(q) && 
+                        !f.area.toLowerCase().includes(q) && 
+                        !f.address.toLowerCase().includes(q) &&
+                        !f.category.toLowerCase().includes(q)
+                    ) return false;
+                }
                 return true;
             });
             if(userCurrentPos) targets.sort((a,b) => getDistance(userCurrentPos.lat,userCurrentPos.lng,a.lat,a.lng) - getDistance(userCurrentPos.lat,userCurrentPos.lng,b.lat,b.lng));
@@ -546,7 +519,9 @@
 
         function createCardHTML(spot) {
             const isFav = userStatus[spot.id]?.fav;
+            const isVisited = userStatus[spot.id]?.visited;
             const url = spot.url || `https://www.google.com/search?q=${encodeURIComponent(spot.name)}`;
+            
             return `
                 <div class="map-card relative hover:shadow-md transition-shadow" onclick="window.open('${url}', '_blank')">
                     <div class="flex justify-between items-start mb-2">
@@ -558,7 +533,10 @@
                     <div class="flex gap-2 mt-auto">
                         <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i class="fas fa-location-arrow mr-1"></i>ナビ</button>
                         ${spot.lat ? `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : ''}
+                        
                         <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
+                        
+                        <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
                     </div>
                 </div>
             `;
@@ -579,7 +557,7 @@
             if(!navigator.geolocation) return alert('位置情報が取得できません');
             navigator.geolocation.getCurrentPosition(pos => {
                 userCurrentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                isMapFlying = false; // 強制的に再描画させる
+                isMapFlying = false; 
                 map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
                 L.marker([userCurrentPos.lat, userCurrentPos.lng], {
                     icon: L.divIcon({ html: '<div class="w-4 h-4 bg-teal-500 rounded-full border-2 border-white shadow-lg"></div>', className:'' })
@@ -590,6 +568,13 @@
         function toggleFav(id) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id].fav = !userStatus[id].fav;
+            localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
+            renderList(); renderMyList();
+        }
+        // 「行った」ボタンの処理を追加
+        function toggleVisited(id) {
+            if(!userStatus[id]) userStatus[id] = {};
+            userStatus[id].visited = !userStatus[id].visited;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList();
         }
