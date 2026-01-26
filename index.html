@@ -62,7 +62,7 @@
 
         .card-scroller { 
             display: flex; gap: 12px; padding: 0 16px 10px; 
-            overflow-x: auto; scroll-snap-type: x mandatory; height: 180px; /* 少し高さを確保 */
+            overflow-x: auto; scroll-snap-type: x mandatory; height: 180px; 
             pointer-events: auto; 
         }
         
@@ -460,11 +460,15 @@
                 
             const scroller = document.getElementById('card-scroller');
             
-            scroller.innerHTML = sorted.map(spot => `
+            scroller.innerHTML = sorted.map(spot => {
+                const isFav = userStatus[spot.id]?.fav;
+                const isVisited = userStatus[spot.id]?.visited;
+                // ここでマップカードのHTMLを生成
+                return `
                 <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-slate-800 text-base line-clamp-1 underline decoration-dotted decoration-teal-500" onclick="window.open('https://www.google.com/search?q=${encodeURIComponent(spot.name)}', '_blank'); event.stopPropagation();">${spot.name}</h3>
+                            <h3 class="font-bold text-slate-800 text-base line-clamp-1 underline decoration-dotted decoration-teal-500" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">${spot.name}</h3>
                             <div class="text-xl">${getIcon(spot.category)}</div>
                         </div>
                         <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
@@ -472,9 +476,11 @@
                     </div>
                     <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
                         <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg"><i class="fas fa-location-arrow"></i> ナビ</button>
+                        <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
+                        <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
                     </div>
                 </div>
-            `).join('') + '<div style="flex:0 0 10px"></div>';
+            `}).join('') + '<div style="flex:0 0 10px"></div>';
             setupObserver();
         }
 
@@ -482,7 +488,6 @@
             const container = document.getElementById('list-container');
             const q = searchQuery.toLowerCase().trim();
             
-            // 検索ロジック強化：名前、県名、エリア（市区町村）、住所、カテゴリ（ジャンル）を対象に検索
             let targets = facilitiesData.filter(f => {
                 if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
                 if(q) {
@@ -520,10 +525,9 @@
         function createCardHTML(spot) {
             const isFav = userStatus[spot.id]?.fav;
             const isVisited = userStatus[spot.id]?.visited;
-            const url = spot.url || `https://www.google.com/search?q=${encodeURIComponent(spot.name)}`;
             
             return `
-                <div class="map-card relative hover:shadow-md transition-shadow" onclick="window.open('${url}', '_blank')">
+                <div class="map-card relative hover:shadow-md transition-shadow" onclick="openExternalLink('${spot.url}', '${spot.name}')">
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">${spot.area}</span>
                         <div class="text-xl opacity-40">${getIcon(spot.category)}</div>
@@ -535,11 +539,18 @@
                         ${spot.lat ? `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : ''}
                         
                         <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
-                        
                         <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
                     </div>
                 </div>
             `;
+        }
+
+        // URL遷移を一元管理する関数（修正ポイント）
+        function openExternalLink(url, name) {
+            // URLがあればそこへ、なければGoogle検索へ
+            const targetUrl = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
+            // _blankとnoopenerを明示して新しいウィンドウで開く（アプリのstateを維持）
+            window.open(targetUrl, '_blank', 'noopener,noreferrer');
         }
 
         function handleNav(name, lat, lng) {
@@ -569,14 +580,15 @@
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id].fav = !userStatus[id].fav;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-            renderList(); renderMyList();
+            renderList(); renderMyList(); 
+            updateVisibleSpots(); // マップ上の表示も更新
         }
-        // 「行った」ボタンの処理を追加
         function toggleVisited(id) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id].visited = !userStatus[id].visited;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList();
+            updateVisibleSpots(); // マップ上の表示も更新
         }
         function switchPage(p) {
             document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
