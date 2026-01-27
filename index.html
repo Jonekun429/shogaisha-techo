@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HandiMap Kanto</title>
     
-    <link rel="apple-touch-icon" href="./Gemini_Generated_Image_yi2oqnyi2oqnyi2o.png">
-    <link rel="icon" href="./Gemini_Generated_Image_yi2oqnyi2oqnyi2o.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HandiMap">
-    
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -36,12 +35,26 @@
             padding: 0; margin: 0;
         }
 
-        /* アプリ全体のコンテナ */
+        /* アプリ全体のコンテナ - 修正: フレックスレイアウトで縦並びを強制 */
         #app-container { 
-            display: flex; flex-direction: column; 
-            height: 100dvh; width: 100vw; position: relative;
+            display: flex; 
+            flex-direction: column; 
+            height: 100dvh; /* ダイナミックビューポートの高さを使用 */
+            width: 100vw; 
+            position: relative;
+            background-color: #F8FAFC;
         }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
+
+        /* メインコンテンツエリア - 修正: 余った高さを全て使う */
+        .page-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
 
         .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; overflow: hidden; }
         .page.active { display: flex; }
@@ -62,13 +75,13 @@
         .chip { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; transition: all 0.2s; }
         .chip.active { background: #0D9488; color: white; }
 
-        /* Cards Scroller Area */
+        /* Cards Scroller Area - 修正: ナビの上に配置 */
         .sheet-wrapper {
-            /* ナビゲーションバーの高さに合わせて位置調整 */
-            position: absolute; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0; right: 0; pointer-events: none; z-index: 400;
+            position: absolute; 
+            bottom: 20px; /* ナビゲーションバーは外側にあるので、ここでの計算は不要 */
+            left: 0; right: 0; pointer-events: none; z-index: 400;
         }
-        @media (min-width: 768px) { .sheet-wrapper { bottom: 20px; } }
-
+        
         .card-scroller { 
             display: flex; gap: 12px; padding: 0 16px 10px; 
             overflow-x: auto; scroll-snap-type: x mandatory; height: 180px; 
@@ -93,28 +106,24 @@
         /* UI Components */
         .gps-btn { 
             width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
-            /* カードとナビの上に来るように位置調整 */
-            bottom: calc(250px + env(safe-area-inset-bottom)); z-index: 500; 
+            bottom: 220px; /* 位置調整 */
+            z-index: 500; 
         }
 
-        /* Nav - 修正箇所：position: fixed で画面下部に完全固定 */
+        /* Nav - 修正: 固定配置(fixed)をやめ、Flexアイテムとして配置 */
         .nav-container { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            right: 0;
             z-index: 3000; 
             background: white; 
             border-top: 1px solid #eee; 
             display: flex; 
             justify-content: space-around; 
-            padding-bottom: env(safe-area-inset-bottom); 
+            padding-bottom: env(safe-area-inset-bottom); /* iPhoneの下部バー対応 */
             height: calc(60px + env(safe-area-inset-bottom)); 
             width: 100%; 
+            flex-shrink: 0; /* 縮まないようにする */
         }
-        /* デスクトップ表示時はレイアウト変更 */
         @media (min-width: 768px) { 
-            .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
+            .nav-container { width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
         }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; cursor: pointer; height: 60px; }
         @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; gap: 12px; padding: 16px; font-size: 14px; height: auto; } }
@@ -132,7 +141,7 @@
 <body class="text-slate-700">
 
     <div id="app-container">
-        <main class="flex-1 relative order-1 md:order-2 overflow-hidden bg-slate-50 w-full h-full">
+        <main class="page-container relative order-1 md:order-2">
             <div id="page-map" class="page active">
                 <div class="filter-bar">
                     <div class="chip-scroll">
@@ -165,7 +174,7 @@
                         <button class="chip" onclick="applyListFilter('museum', this)">博物館</button>
                     </div>
                 </div>
-                <div id="list-container" class="p-4 pb-32 max-w-3xl mx-auto w-full"></div>
+                <div id="list-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
             </div>
 
             <div id="page-mylist" class="page overflow-y-auto">
@@ -176,9 +185,9 @@
                         <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1 text-xs font-bold rounded text-slate-400">行った</button>
                     </div>
                 </div>
-                <div id="mylist-container" class="p-4 pb-32 max-w-3xl mx-auto w-full"></div>
+                <div id="mylist-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
                 
-                <div class="p-6 border-t mt-auto text-center bg-white pb-32">
+                <div class="p-6 border-t mt-auto text-center bg-white">
                     <h3 class="text-xs font-bold text-slate-400 mb-3">設定・データ管理</h3>
                     <div class="flex gap-3 justify-center mb-4">
                         <button onclick="openBackupModal('export')" class="px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-copy mr-1"></i>データ保存</button>
