@@ -35,28 +35,23 @@
             padding: 0; margin: 0;
         }
 
-        /* アプリ全体のコンテナ - 修正: フレックスレイアウトで縦並びを強制 */
+        /* アプリ全体のコンテナ */
         #app-container { 
-            display: flex; 
-            flex-direction: column; 
-            height: 100dvh; /* ダイナミックビューポートの高さを使用 */
-            width: 100vw; 
-            position: relative;
-            background-color: #F8FAFC;
+            display: flex; flex-direction: column; 
+            height: 100dvh; width: 100vw; position: relative;
         }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
 
-        /* メインコンテンツエリア - 修正: 余った高さを全て使う */
-        .page-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
+        /* 各ページの設定 - ナビゲーションバーの分だけ下部を空ける */
+        .page { 
+            display: none; 
+            flex: 1; 
+            height: 100%; 
+            width: 100%; 
+            flex-direction: column; 
+            position: relative; 
+            overflow: hidden; 
         }
-
-        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; overflow: hidden; }
         .page.active { display: flex; }
         
         /* Map & Pins */
@@ -69,19 +64,22 @@
         /* Filter */
         .filter-bar { 
             position: absolute; top: 0; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; 
-            padding-top: max(10px, env(safe-area-inset-top)); 
+            /* 修正: 上部の余白を確実に確保 */
+            padding-top: calc(12px + env(safe-area-inset-top)); 
         }
         .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .chip { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; transition: all 0.2s; }
         .chip.active { background: #0D9488; color: white; }
 
-        /* Cards Scroller Area - 修正: ナビの上に配置 */
+        /* Cards Scroller Area */
         .sheet-wrapper {
+            /* ナビゲーションバー(約80px)の上に来るように配置 */
             position: absolute; 
-            bottom: 20px; /* ナビゲーションバーは外側にあるので、ここでの計算は不要 */
+            bottom: calc(70px + env(safe-area-inset-bottom)); 
             left: 0; right: 0; pointer-events: none; z-index: 400;
         }
-        
+        @media (min-width: 768px) { .sheet-wrapper { bottom: 20px; } }
+
         .card-scroller { 
             display: flex; gap: 12px; padding: 0 16px 10px; 
             overflow-x: auto; scroll-snap-type: x mandatory; height: 180px; 
@@ -106,26 +104,44 @@
         /* UI Components */
         .gps-btn { 
             width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
-            bottom: 220px; /* 位置調整 */
-            z-index: 500; 
+            /* カード位置 + 余白 */
+            bottom: calc(260px + env(safe-area-inset-bottom)); z-index: 500; 
         }
 
-        /* Nav - 修正: 固定配置(fixed)をやめ、Flexアイテムとして配置 */
+        /* Nav - 修正: position: fixed で画面最下部に強制固定 */
         .nav-container { 
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             z-index: 3000; 
             background: white; 
             border-top: 1px solid #eee; 
             display: flex; 
             justify-content: space-around; 
-            padding-bottom: env(safe-area-inset-bottom); /* iPhoneの下部バー対応 */
+            /* 下部のセーフエリア（ホームバー）分の余白を確保 */
+            padding-bottom: env(safe-area-inset-bottom);
+            /* 高さ = コンテンツ60px + セーフエリア */
             height: calc(60px + env(safe-area-inset-bottom)); 
             width: 100%; 
-            flex-shrink: 0; /* 縮まないようにする */
         }
         @media (min-width: 768px) { 
-            .nav-container { width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
+            .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
         }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; cursor: pointer; height: 60px; }
+        
+        /* Navアイテムの高さ調整 */
+        .nav-item { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; /* 60pxの中で中央揃え */
+            color: #94A3B8; 
+            font-size: 10px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            height: 60px; /* 固定高さ */
+        }
         @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; gap: 12px; padding: 16px; font-size: 14px; height: auto; } }
         .nav-item.active { color: #0D9488; }
         
@@ -135,13 +151,22 @@
         
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
-        .list-header-padding { padding-top: max(16px, env(safe-area-inset-top)); }
+        
+        /* 修正: リストヘッダーの上部余白を計算式で確保（ステータスバー回避） */
+        .list-header-padding { 
+            padding-top: calc(16px + env(safe-area-inset-top)); 
+        }
+        
+        /* リストコンテナの下部余白（ナビゲーションバーに隠れないように） */
+        .list-container-padding {
+            padding-bottom: calc(90px + env(safe-area-inset-bottom));
+        }
     </style>
 </head>
 <body class="text-slate-700">
 
     <div id="app-container">
-        <main class="page-container relative order-1 md:order-2">
+        <main class="flex-1 relative order-1 md:order-2 overflow-hidden bg-slate-50 w-full h-full">
             <div id="page-map" class="page active">
                 <div class="filter-bar">
                     <div class="chip-scroll">
@@ -174,7 +199,7 @@
                         <button class="chip" onclick="applyListFilter('museum', this)">博物館</button>
                     </div>
                 </div>
-                <div id="list-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
+                <div id="list-container" class="p-4 max-w-3xl mx-auto w-full list-container-padding"></div>
             </div>
 
             <div id="page-mylist" class="page overflow-y-auto">
@@ -185,9 +210,9 @@
                         <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1 text-xs font-bold rounded text-slate-400">行った</button>
                     </div>
                 </div>
-                <div id="mylist-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
+                <div id="mylist-container" class="p-4 max-w-3xl mx-auto w-full"></div>
                 
-                <div class="p-6 border-t mt-auto text-center bg-white">
+                <div class="p-6 border-t mt-auto text-center bg-white list-container-padding">
                     <h3 class="text-xs font-bold text-slate-400 mb-3">設定・データ管理</h3>
                     <div class="flex gap-3 justify-center mb-4">
                         <button onclick="openBackupModal('export')" class="px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-copy mr-1"></i>データ保存</button>
