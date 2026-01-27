@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HandiMap Kanto</title>
     
-    <link rel="apple-touch-icon" href="./Gemini_Generated_Image_yi2oqnyi2oqnyi2o.png">
-    <link rel="icon" href="./Gemini_Generated_Image_yi2oqnyi2oqnyi2o.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HandiMap">
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -471,9 +475,7 @@
                 <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-base mb-1 text-blue-600 underline flex items-center gap-1" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">
-                                ${spot.name} <i class="fas fa-external-link-alt text-xs"></i>
-                            </h3>
+                            <h3 class="font-bold text-slate-800 text-base line-clamp-1 underline decoration-dotted decoration-teal-500" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">${spot.name}</h3>
                             <div class="text-xl">${getIcon(spot.category)}</div>
                         </div>
                         <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
@@ -537,9 +539,7 @@
                         <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">${spot.area}</span>
                         <div class="text-xl opacity-40">${getIcon(spot.category)}</div>
                     </div>
-                    <h3 class="font-bold text-lg mb-1 text-blue-600 underline flex items-center gap-2" onclick="event.stopPropagation(); openExternalLink('${spot.url}', '${spot.name}')">
-                        ${spot.name} <i class="fas fa-external-link-alt text-sm"></i>
-                    </h3>
+                    <h3 class="font-bold text-lg text-slate-800 mb-1 underline decoration-dotted decoration-teal-500">${spot.name}</h3>
                     <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
                     <div class="flex gap-2 mt-auto">
                         <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i class="fas fa-location-arrow mr-1"></i>ナビ</button>
