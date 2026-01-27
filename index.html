@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HandiMap Kanto</title>
     
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+    <link rel="apple-touch-icon" href="./Gemini_Generated_Image_yi2oqnyi2oqnyi2o.png">
+    <link rel="icon" href="./Gemini_Generated_Image_yi2oqnyi2oqnyi2o.png">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HandiMap">
+    
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -63,6 +64,7 @@
 
         /* Cards Scroller Area */
         .sheet-wrapper {
+            /* ナビゲーションバーの高さに合わせて位置調整 */
             position: absolute; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0; right: 0; pointer-events: none; z-index: 400;
         }
         @media (min-width: 768px) { .sheet-wrapper { bottom: 20px; } }
@@ -91,14 +93,26 @@
         /* UI Components */
         .gps-btn { 
             width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
+            /* カードとナビの上に来るように位置調整 */
             bottom: calc(250px + env(safe-area-inset-bottom)); z-index: 500; 
         }
 
-        /* Nav */
+        /* Nav - 修正箇所：position: fixed で画面下部に完全固定 */
         .nav-container { 
-            z-index: 3000; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; 
-            padding-bottom: env(safe-area-inset-bottom); height: calc(60px + env(safe-area-inset-bottom)); width: 100%; flex-shrink: 0; 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0;
+            z-index: 3000; 
+            background: white; 
+            border-top: 1px solid #eee; 
+            display: flex; 
+            justify-content: space-around; 
+            padding-bottom: env(safe-area-inset-bottom); 
+            height: calc(60px + env(safe-area-inset-bottom)); 
+            width: 100%; 
         }
+        /* デスクトップ表示時はレイアウト変更 */
         @media (min-width: 768px) { 
             .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
         }
@@ -151,7 +165,7 @@
                         <button class="chip" onclick="applyListFilter('museum', this)">博物館</button>
                     </div>
                 </div>
-                <div id="list-container" class="p-4 pb-24 md:pb-12 max-w-3xl mx-auto w-full"></div>
+                <div id="list-container" class="p-4 pb-32 max-w-3xl mx-auto w-full"></div>
             </div>
 
             <div id="page-mylist" class="page overflow-y-auto">
@@ -162,9 +176,9 @@
                         <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1 text-xs font-bold rounded text-slate-400">行った</button>
                     </div>
                 </div>
-                <div id="mylist-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
+                <div id="mylist-container" class="p-4 pb-32 max-w-3xl mx-auto w-full"></div>
                 
-                <div class="p-6 border-t mt-auto text-center bg-white">
+                <div class="p-6 border-t mt-auto text-center bg-white pb-32">
                     <h3 class="text-xs font-bold text-slate-400 mb-3">設定・データ管理</h3>
                     <div class="flex gap-3 justify-center mb-4">
                         <button onclick="openBackupModal('export')" class="px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-copy mr-1"></i>データ保存</button>
@@ -475,7 +489,9 @@
                 <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-slate-800 text-base line-clamp-1 underline decoration-dotted decoration-teal-500" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">${spot.name}</h3>
+                            <h3 class="font-bold text-base mb-1 text-blue-600 underline flex items-center gap-1" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">
+                                ${spot.name} <i class="fas fa-external-link-alt text-xs"></i>
+                            </h3>
                             <div class="text-xl">${getIcon(spot.category)}</div>
                         </div>
                         <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
@@ -539,7 +555,9 @@
                         <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">${spot.area}</span>
                         <div class="text-xl opacity-40">${getIcon(spot.category)}</div>
                     </div>
-                    <h3 class="font-bold text-lg text-slate-800 mb-1 underline decoration-dotted decoration-teal-500">${spot.name}</h3>
+                    <h3 class="font-bold text-lg mb-1 text-blue-600 underline flex items-center gap-2" onclick="event.stopPropagation(); openExternalLink('${spot.url}', '${spot.name}')">
+                        ${spot.name} <i class="fas fa-external-link-alt text-sm"></i>
+                    </h3>
                     <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
                     <div class="flex gap-2 mt-auto">
                         <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i class="fas fa-location-arrow mr-1"></i>ナビ</button>
