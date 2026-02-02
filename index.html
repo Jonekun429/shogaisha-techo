@@ -42,16 +42,8 @@
         }
         @media (min-width: 768px) { #app-container { flex-direction: row; } }
 
-        /* 各ページの設定 - ナビゲーションバーの分だけ下部を空ける */
-        .page { 
-            display: none; 
-            flex: 1; 
-            height: 100%; 
-            width: 100%; 
-            flex-direction: column; 
-            position: relative; 
-            overflow: hidden; 
-        }
+        /* 各ページの設定 */
+        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; overflow: hidden; }
         .page.active { display: flex; }
         
         /* Map & Pins */
@@ -64,8 +56,7 @@
         /* Filter */
         .filter-bar { 
             position: absolute; top: 0; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; 
-            /* 修正: 上部の余白を確実に確保 */
-            padding-top: calc(12px + env(safe-area-inset-top)); 
+            padding-top: max(10px, env(safe-area-inset-top)); 
         }
         .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .chip { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; transition: all 0.2s; }
@@ -73,10 +64,7 @@
 
         /* Cards Scroller Area */
         .sheet-wrapper {
-            /* ナビゲーションバー(約80px)の上に来るように配置 */
-            position: absolute; 
-            bottom: calc(70px + env(safe-area-inset-bottom)); 
-            left: 0; right: 0; pointer-events: none; z-index: 400;
+            position: absolute; bottom: calc(70px + env(safe-area-inset-bottom)); left: 0; right: 0; pointer-events: none; z-index: 400;
         }
         @media (min-width: 768px) { .sheet-wrapper { bottom: 20px; } }
 
@@ -104,44 +92,18 @@
         /* UI Components */
         .gps-btn { 
             width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
-            /* カード位置 + 余白 */
             bottom: calc(260px + env(safe-area-inset-bottom)); z-index: 500; 
         }
 
-        /* Nav - 修正: position: fixed で画面最下部に強制固定 */
+        /* Nav (Fixed) */
         .nav-container { 
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 3000; 
-            background: white; 
-            border-top: 1px solid #eee; 
-            display: flex; 
-            justify-content: space-around; 
-            /* 下部のセーフエリア（ホームバー）分の余白を確保 */
-            padding-bottom: env(safe-area-inset-bottom);
-            /* 高さ = コンテンツ60px + セーフエリア */
-            height: calc(60px + env(safe-area-inset-bottom)); 
-            width: 100%; 
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 3000; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; 
+            padding-bottom: env(safe-area-inset-bottom); height: calc(60px + env(safe-area-inset-bottom)); width: 100%; 
         }
         @media (min-width: 768px) { 
             .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
         }
-        
-        /* Navアイテムの高さ調整 */
-        .nav-item { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; /* 60pxの中で中央揃え */
-            color: #94A3B8; 
-            font-size: 10px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            height: 60px; /* 固定高さ */
-        }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: bold; cursor: pointer; height: 60px; }
         @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; gap: 12px; padding: 16px; font-size: 14px; height: auto; } }
         .nav-item.active { color: #0D9488; }
         
@@ -151,16 +113,8 @@
         
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
-        
-        /* 修正: リストヘッダーの上部余白を計算式で確保（ステータスバー回避） */
-        .list-header-padding { 
-            padding-top: calc(16px + env(safe-area-inset-top)); 
-        }
-        
-        /* リストコンテナの下部余白（ナビゲーションバーに隠れないように） */
-        .list-container-padding {
-            padding-bottom: calc(90px + env(safe-area-inset-bottom));
-        }
+        .list-header-padding { padding-top: calc(16px + env(safe-area-inset-top)); }
+        .list-container-padding { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
     </style>
 </head>
 <body class="text-slate-700">
@@ -380,7 +334,43 @@
 1102,チームラボプラネッツ TOKYO DMM,東京都,江東区,museum,障がい者割引チケットあり（約半額〜）,東京都江東区豊洲6-1-16,,35.6469,139.7942
 1103,レゴランド・ディスカバリー・センター東京,東京都,港区,park,障がい者割引チケットあり,東京都港区台場1-6-1,,35.6289,139.7763
 1104,スモールワールズ,東京都,江東区,museum,本人・介助者1名まで割引,東京都江東区有明1-3-33,,35.6378,139.7883
-1105,アートアクアリウム美術館 GINZA,東京都,中央区,museum,本人・介助者1名まで割引,東京都中央区銀座4-6-16,,35.6713,139.7661`;
+1105,アートアクアリウム美術館 GINZA,東京都,中央区,museum,本人・介助者1名まで割引,東京都中央区銀座4-6-16,,35.6713,139.7661
+1106,北海道神宮,北海道,札幌市,レジャー,拝観料無料（全員）,北海道札幌市中央区宮ケ丘474,http://www.hokkaidojingu.or.jp/,,,
+1107,成田山札幌別院,北海道,札幌市,レジャー,拝観料無料（全員）,北海道札幌市中央区南7条西3丁目2,https://sapporo-naritasan.jp/index.html,,,
+1108,トラピスチヌ修道院,北海道,函館市,leisure,拝観料無料（全員）,北海道函館市上湯川町346,http://www.ocso-tenshien.jp/,,,
+1109,レゴランド・ジャパン,愛知県,名古屋市,レジャー,本人・介助者1名割引（同伴者無料）,愛知県名古屋市港区金城ふ頭二丁目2番地1,https://www.legoland.jp/,,,
+1110,熱田神宮 宝物館,愛知県,名古屋市,museum,本人のみ、または小幅割引,愛知県名古屋市熱田区神宮1-1-1 ,https://www.atsutajingu.or.jp/houmotukan_kusanagi/houmotukan/,,,
+1111,大須観音,愛知県,名古屋市,レジャー,拝観料無料（全員）,愛知県名古屋市中区大須2丁目21−47,https://www.osu-kannon.jp/,,,
+1112,覚王山日泰寺,愛知県,名古屋市,レジャー,拝観料無料（全員）,愛知県名古屋市千種区法王町1丁目1,https://www.nittaiji.or.jp/,,,
+1113,八事山興正寺,愛知県,名古屋市,レジャー,拝観料無料（全員）,愛知県名古屋市昭和区八事本町78,https://www.koushoji.or.jp/,,,
+1114,南禅寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市左京区南禅寺福地町86,https://nanzenji.or.jp/,,,
+1115,清水寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市東山区清水1丁目294,https://www.kiyomizudera.or.jp/,,,
+1116,東福寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市東山区本町15丁目778,https://tofukuji.jp/,,,
+1117,醍醐寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市伏見区醍醐東大路町22,https://www.daigoji.or.jp/?utm_source=googlemybusiness&utm_medium=cpv&utm_campaign=20190601,,,
+1118,仁和寺,京都府,京都市,レジャー,本人のみ無料,京都府京都市右京区御室大内３３,https://ninnaji.jp/,,,
+1119,三十三間堂,京都府,京都市,レジャー,本人・介助者1名割引（同伴者無料）,京都府京都市東山区三十三間堂廻り657,https://www.sanjusangendo.jp/,,,
+1120,龍安寺,京都府,京都市,レジャー,本人・介助者1名割引（同伴者無料）,京都府京都市右京区龍安寺御陵ノ下町13,http://www.ryoanji.jp/top.html,,,
+1121,天龍寺,京都府,京都市,レジャー,本人・介助者1名割引（同伴者無料）,京都府京都市右京区嵯峨天龍寺芒ノ馬場町68,https://www.tenryuji.com/,,,
+1122,金閣寺,京都府,京都市,レジャー,本人のみ、または小幅割引,京都府京都市北区金閣寺町1,https://www.shokoku-ji.jp/kinkakuji/,,,
+1123,銀閣寺,京都府,京都市,レジャー,本人のみ、または小幅割引,京都府京都市左京区銀閣寺町2,https://www.shokoku-ji.jp/ginkakuji/,,,
+1124,新薬師寺,奈良県,奈良市,レジャー,本人のみ入園料無料,奈良県奈良市高畑町1352,https://www.shinyakushiji.or.jp/,,,
+1125,東大寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市雑司町406−1,https://www.todaiji.or.jp/,,,
+1126,興福寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市登大路町48,https://www.kohfukuji.com/,,,
+1127,法隆寺,奈良県,生駒郡,レジャー,本人・介助者1名割引（同伴者無料）,奈良県生駒郡斑鳩町法隆寺山内1-1,https://www.horyuji.or.jp/,,,
+1128,薬師寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市西ノ京町457,https://yakushiji.or.jp/,,,
+1129,唐招提寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市五条町13−46,https://www.toshodaiji.jp/,,,
+1130,長谷寺,奈良県,桜井市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県桜井市初瀬731−1,https://www.hasedera.or.jp/,,,
+1131,太宰府天満宮 宝物殿,福岡県,太宰府市,レジャー,本人・介助者1名割引（同伴者無料）,福岡県太宰府市宰府4丁目7−1,https://www.dazaifutenmangu.or.jp/keidaiannai/houmotsuden,,,
+1132,観世音寺 宝蔵,福岡県,太宰府市,レジャー,本人・介助者1名割引（同伴者無料）,福岡県太宰府市観世音寺5丁目6−1,https://www.kanzeonjihouzou.com/,,,
+1133,東長寺,福岡県,福岡市,レジャー,拝観料無料（全員）,福岡県福岡市博多区御供所町2−4,https://www.tochoji.net/,,,
+1134,南蔵院,福岡県,糟屋郡,レジャー,拝観料無料（全員）,福岡県糟屋郡篠栗町大字篠栗1035,https://nanzoin.net/,,,
+1135,如意輪寺,福岡県,小郡市,レジャー,拝観料無料（全員）,福岡県小郡市横隈1728,https://www.crossroadfukuoka.jp/spot/10256,,,
+1136,宮地嶽神社,福岡県,福津市,レジャー,拝観料無料（全員）,福岡県福津市宮司元町7-1,https://www.miyajidake.or.jp/,,,
+1137,今帰仁城跡,沖縄県,国頭郡,レジャー,本人・介助者1名無料,沖縄県国頭郡今帰仁村今泊5101,https://www.nakijinjoseki-osi.jp/,,,
+1138,斎場御嶽,沖縄県,南城市,レジャー,本人のみ入園料無料,沖縄県南城市知念久手堅539,https://okinawa-nanjo.jp/sefa/,,,
+1139,JUNGLIA,沖縄県,国頭郡,レジャー,本人・介助者1名割引（同伴者無料）,沖縄県国頭郡今帰仁村呉我山,https://junglia.jp/,,,
+1140,DMMかりゆし水族館,沖縄県,豊見城市,水族館,本人・介助者1名割引（同伴者無料）,沖縄県豊見城市豊崎3−35,https://kariyushi-aquarium.com/,,,
+1141,波上宮,沖縄県,那覇市,レジャー,拝観料無料（全員）,沖縄県那覇市若狭1丁目25−11,https://naminouegu.jp/,,,`;
 
         let map, markers = {};
         let userStatus = JSON.parse(localStorage.getItem('handimap_v2')) || {};
@@ -518,7 +508,6 @@
             scroller.innerHTML = sorted.map(spot => {
                 const isFav = userStatus[spot.id]?.fav;
                 const isVisited = userStatus[spot.id]?.visited;
-                // ここでマップカードのHTMLを生成
                 return `
                 <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
@@ -604,11 +593,8 @@
             `;
         }
 
-        // URL遷移を一元管理する関数（修正ポイント）
         function openExternalLink(url, name) {
-            // URLがあればそこへ、なければGoogle検索へ
             const targetUrl = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
-            // _blankとnoopenerを明示して新しいウィンドウで開く（アプリのstateを維持）
             window.open(targetUrl, '_blank', 'noopener,noreferrer');
         }
 
@@ -640,14 +626,14 @@
             userStatus[id].fav = !userStatus[id].fav;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList(); 
-            updateVisibleSpots(); // マップ上の表示も更新
+            updateVisibleSpots();
         }
         function toggleVisited(id) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id].visited = !userStatus[id].visited;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList();
-            updateVisibleSpots(); // マップ上の表示も更新
+            updateVisibleSpots();
         }
         function switchPage(p) {
             document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
@@ -675,7 +661,6 @@
         function jumpToMap(lat, lng, id) { switchPage('map'); isMapFlying = true; map.flyTo([lat, lng], 14); showMapCard(id); }
         function switchListTab(t) { currentListTab = t; document.getElementById('tab-fav').className = t==='fav'?'px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; document.getElementById('tab-visited').className = t==='visited'?'px-3 py-1 text-xs font-bold rounded bg-white text-green-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; renderMyList(); }
         
-        // Admin Functions
         function checkAdminPasscode() {
             if(document.getElementById('admin-passcode').value === '19870429') {
                 document.getElementById('passcode-area').style.display = 'none';
