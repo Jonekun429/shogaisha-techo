@@ -60,6 +60,7 @@
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
         .list-header-padding { padding-top: max(16px, env(safe-area-inset-top)); }
+        .list-container-padding { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
     </style>
 </head>
 <body class="text-slate-700">
@@ -98,7 +99,7 @@
                         <button class="chip" onclick="applyListFilter('museum', this)">博物館</button>
                     </div>
                 </div>
-                <div id="list-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
+                <div id="list-container" class="p-4 max-w-3xl mx-auto w-full list-container-padding"></div>
             </div>
 
             <div id="page-mylist" class="page overflow-y-auto">
@@ -109,9 +110,9 @@
                         <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1 text-xs font-bold rounded text-slate-400">行った</button>
                     </div>
                 </div>
-                <div id="mylist-container" class="p-4 pb-12 max-w-3xl mx-auto w-full"></div>
+                <div id="mylist-container" class="p-4 max-w-3xl mx-auto w-full"></div>
                 
-                <div class="p-6 border-t mt-auto text-center bg-white">
+                <div class="p-6 border-t mt-auto text-center bg-white list-container-padding">
                     <h3 class="text-xs font-bold text-slate-400 mb-3">設定・データ管理</h3>
                     <div class="flex gap-3 justify-center mb-4">
                         <button onclick="openBackupModal('export')" class="px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-copy mr-1"></i>データ保存</button>
@@ -423,13 +424,10 @@
             if(card) card.classList.add('active');
 
             const spot = facilitiesData.find(f => f.id === id);
-            // 修正: カードスクロール時はマーカーをハイライトするが、マップ中心は強制移動させない
-            // ユーザーが自由にマップを見ている状態を阻害しないため
-            // もし移動させたい場合は下記コメントアウトを外す
-            // if(spot && map) {
-            //    isMapFlying = true; 
-            //    map.panTo([spot.lat, spot.lng], { animate: true, duration: 1.0 });
-            // }
+            if(spot && map) {
+               isMapFlying = true; 
+               map.panTo([spot.lat, spot.lng], { animate: true, duration: 1.0 });
+            }
         }
 
         function setupObserver() {
@@ -452,10 +450,15 @@
         }
 
         function updateVisibleSpots() {
-            // 修正: ソート順を「北から南（緯度降順）」に変更
-            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
-                .sort((a, b) => b.lat - a.lat); // 緯度(lat)が大きい順 = 北から南
+            const center = map.getCenter();
+            // 現在地があれば現在地、なければマップ中心からの距離でソート
+            const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
+            const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
 
+            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
+                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
+                .sort((a, b) => a.dist - b.dist); // 近い順にソート（これがUXの正解）
+                
             const scroller = document.getElementById('card-scroller');
             
             scroller.innerHTML = sorted.map(spot => {
