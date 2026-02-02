@@ -1,10 +1,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // ▼ GAS（スプレッドシート）のウェブアプリURLをここに貼り付けてください
-        const GOOGLE_SCRIPT_URL = "ここにGASのウェブアプリURLを貼り付けてください";
+<script>
+    // ▼ 手順1で発行したGASのウェブアプリURLをここに貼り付けてください
+    const GOOGLE_SCRIPT_URL = "ここにGASのウェブアプリURLを貼り付けてください";
 
-        // 既存のマスターデータ
-        const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
+    // ベースとなるマスタデータ（バックアップ用）
+    const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
 1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名無料,北海道旭川市東旭川町倉沼,,43.7684,142.48
 1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名無料,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
 1003,北海道開拓の村,北海道,札幌市,museum,本人と介護者1名無料,北海道札幌市厚別区厚別町小野幌50-1,,43.0493,141.4983
@@ -111,458 +111,464 @@
 1104,スモールワールズ,東京都,江東区,museum,本人・介助者1名まで割引,東京都江東区有明1-3-33,,35.6378,139.7883
 1105,アートアクアリウム美術館 GINZA,東京都,中央区,museum,本人・介助者1名まで割引,東京都中央区銀座4-6-16,,35.6713,139.7661`;
 
-        let map, markers = {};
-        let userStatus = JSON.parse(localStorage.getItem('handimap_v2')) || {};
-        let userCurrentPos = null;
-        let activeListCategory = 'all';
-        let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']);
-        let searchQuery = "";
-        let currentListTab = 'fav';
-        let facilitiesData = [];
-        let isProgrammaticScroll = false;
-        let scrollTimeout;
-        let isMapFlying = false;
-        let observer;
+    let map, markers = {};
+    let userStatus = JSON.parse(localStorage.getItem('handimap_v2')) || {};
+    let userCurrentPos = null;
+    let activeListCategory = 'all';
+    let activeMapCategories = new Set(['leisure', 'aquarium', 'zoo', 'museum', 'park', 'cinema']);
+    let searchQuery = "";
+    let currentListTab = 'fav';
+    let facilitiesData = [];
+    let isProgrammaticScroll = false;
+    let scrollTimeout;
+    let isMapFlying = false;
+    let observer;
 
-        // ジャンル変換用マップ（スプレッドシートの表記ゆれ吸収）
-        const GENRE_CONVERT_MAP = {
-            '動物園': 'zoo', 'zoo': 'zoo',
-            '水族館': 'aquarium', 'aquarium': 'aquarium',
-            '博物館': 'museum', '美術館': 'museum', '科学館': 'museum', 'museum': 'museum',
-            '遊園地': 'leisure', 'レジャー': 'leisure', 'leisure': 'leisure', 'テーマパーク': 'leisure',
-            '公園': 'park', '庭園': 'park', 'park': 'park',
-            '映画': 'cinema', '映画館': 'cinema', 'cinema': 'cinema'
-        };
+    // ジャンル表記ゆれ吸収用マップ
+    const GENRE_CONVERT_MAP = {
+        '動物園': 'zoo', 'zoo': 'zoo',
+        '水族館': 'aquarium', 'aquarium': 'aquarium',
+        '博物館': 'museum', '美術館': 'museum', '科学館': 'museum', 'museum': 'museum',
+        '遊園地': 'leisure', 'レジャー': 'leisure', 'leisure': 'leisure', 'テーマパーク': 'leisure',
+        '公園': 'park', '庭園': 'park', 'park': 'park',
+        '映画': 'cinema', '映画館': 'cinema', 'cinema': 'cinema'
+    };
 
-        window.onload = function() {
-            initApp();
-        };
+    window.onload = function() {
+        initApp();
+    };
 
-        async function initApp() {
-            // 1. 既存データをロード
-            let baseData = parseCSV(MASTER_CSV);
+    async function initApp() {
+        // 1. まずベースデータをロード（これで最低限動く）
+        let baseData = parseCSV(MASTER_CSV);
+        facilitiesData = baseData; // 一旦表示
 
-            // 2. 外部データを取得してマージ
-            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http')) {
-                try {
-                    const response = await fetch(GOOGLE_SCRIPT_URL);
-                    const sheetText = await response.text();
-                    const sheetData = parseSheetData(sheetText);
-                    
-                    // 重複排除ロジック：名前が一致する既存データがある場合は追加しない
-                    const existingNames = new Set(baseData.map(d => d.name.replace(/\s+/g, ''))); // スペース削除して比較
-                    
-                    let addedCount = 0;
-                    sheetData.forEach(d => {
-                        // 重複しておらず、かつ緯度経度がちゃんとある場合のみ追加
-                        if (!existingNames.has(d.name.replace(/\s+/g, '')) && d.lat && d.lng) {
+        // 2. 外部データを非同期で取得
+        if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http')) {
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                if (!response.ok) throw new Error("Network response was not ok");
+                
+                const sheetText = await response.text();
+                
+                // HTMLが返ってきてしまった場合のチェック（GAS設定ミス対策）
+                if (sheetText.trim().startsWith('<')) {
+                    console.error('エラー: GASからHTMLが返されています。GASのdoGet関数を修正してください。');
+                    return; // 処理中断
+                }
+
+                const sheetData = parseSheetData(sheetText);
+                
+                // ▼ 重複排除＆結合ロジック
+                // 名前（スペース除去）をキーにして重複チェック
+                const existingMap = new Map();
+                baseData.forEach(d => existingMap.set(d.name.replace(/\s+/g, ''), d));
+
+                let addedCount = 0;
+                let updatedCount = 0;
+
+                sheetData.forEach(d => {
+                    const key = d.name.replace(/\s+/g, '');
+                    const existing = existingMap.get(key);
+
+                    if (existing) {
+                        // 重複あり：既存データに情報が不足していて、新データにあれば補完するなどの処理が可能
+                        // 今回は「スプレッドシート側を優先」したければここで上書きするが
+                        // ベースデータの方が座標など正確な場合が多いので、基本はスキップまたは補完
+                        // ※ご要望の「結合」は、ここでは「既存にあれば何もしない（ベース優先）」とします
+                        updatedCount++;
+                    } else {
+                        // 新規かつ、座標(lat,lng)がある場合のみ追加
+                        if (d.lat && d.lng) {
                             baseData.push(d);
-                            existingNames.add(d.name.replace(/\s+/g, ''));
+                            existingMap.set(key, d); // 追加したものをマップにも登録
                             addedCount++;
                         }
-                    });
-                    console.log(`スプレッドシートから ${addedCount} 件追加しました`);
-                } catch (e) {
-                    console.error('外部データ読み込みエラー:', e);
-                }
-            }
-
-            facilitiesData = baseData;
-            initMap();
-            renderList();
-            renderMyList();
-        }
-
-        // 外部データ（スプレッドシートCSV）のパーサー
-        // ジャンル変換やID自動付与を行う
-        function parseSheetData(csv) {
-            const lines = csv.trim().split('\n');
-            let result = [];
-            // スプレッドシートからのデータ用IDカウンター（既存と被らないように2000番台）
-            let autoId = 2001; 
-
-            // ヘッダー行をスキップして処理
-            // 想定列: ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度...
-            for(let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                if(i === 0 && line.includes('施設名')) continue; // ヘッダー行スキップ
-
-                // カンマ区切りだが、値の中のカンマなどを考慮していない簡易スプリット
-                // ※GAS側で値内のカンマを置換してくれている前提、または単純なスプリット
-                const cols = line.split(','); 
-                if(cols.length < 8) continue; // 列不足はスキップ
-
-                // 各カラムの取得（undefined対策）
-                const idStr = cols[0] ? cols[0].trim() : "";
-                const name = cols[1] ? cols[1].trim() : "";
-                const pref = cols[2] ? cols[2].trim() : "";
-                const area = cols[3] ? cols[3].trim() : "";
-                const rawGenre = cols[4] ? cols[4].trim() : "leisure";
-                const price = cols[5] ? cols[5].trim() : "";
-                const addr = cols[6] ? cols[6].trim() : "";
-                const url = cols[7] ? cols[7].trim() : "";
-                const latStr = cols[8] ? cols[8].trim() : "";
-                const lngStr = cols[9] ? cols[9].trim() : "";
-
-                if(!name) continue;
-
-                // ID自動付与
-                let id = parseInt(idStr);
-                if(isNaN(id)) id = autoId++;
-
-                // ジャンル変換
-                let category = GENRE_CONVERT_MAP[rawGenre] || 'leisure';
-
-                // 緯度経度変換
-                let lat = parseFloat(latStr);
-                let lng = parseFloat(lngStr);
-
-                if (isNaN(lat) || isNaN(lng)) {
-                    // 緯度経度がないデータはマップに出せないのでスキップ
-                    continue; 
-                }
-
-                result.push({ id, name, pref, area, category, price, address: addr, url, lat, lng });
-            }
-            return result;
-        }
-
-        function parseCSV(csv) {
-            return csv.trim().split('\n').slice(1).map(line => {
-                const [id,name,pref,area,cat,price,addr,url,lat,lng] = line.split(',');
-                if(!name) return null;
-                return { 
-                    id: parseInt(id), name, pref, area, category: cat, price, address: addr, url, 
-                    lat: lat ? parseFloat(lat) : null, lng: lng ? parseFloat(lng) : null 
-                };
-            }).filter(Boolean);
-        }
-
-        function getIcon(cat) { return { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳' }[cat] || '📍'; }
-        
-        function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lng2-lng1)*Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function initMap() {
-            if(map) {
-                // マップ再描画時はマーカーのみ更新
-                renderAllMarkers();
-                return;
-            }
-            map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 10);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-            if(window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
-            
-            map.on('moveend', () => {
-                if(!isMapFlying) {
-                    updateVisibleSpots(); 
-                }
-                isMapFlying = false;
-            });
-            renderAllMarkers();
-        }
-
-        function renderAllMarkers() {
-            Object.values(markers).forEach(m => map.removeLayer(m));
-            markers = {};
-            facilitiesData.forEach(spot => {
-                if (!spot.lat || !activeMapCategories.has(spot.category)) return;
-                const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
-                const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                marker.on('click', (e) => { 
-                    L.DomEvent.stopPropagation(e); 
-                    isMapFlying = true; 
-                    map.flyTo([spot.lat, spot.lng], 13); 
-                    showMapCard(spot.id); 
-                });
-                markers[spot.id] = marker;
-            });
-        }
-
-        function showMapCard(id) {
-            isProgrammaticScroll = true;
-            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-            const pin = document.getElementById(`pin-${id}`);
-            if(pin) pin.classList.add('active-pin');
-
-            const card = document.getElementById(`map-card-${id}`);
-            if(card) {
-                card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-            }
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => { isProgrammaticScroll = false; }, 800);
-        }
-
-        function highlightMarker(id) {
-            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
-            const pin = document.getElementById(`pin-${id}`);
-            if(pin) pin.classList.add('active-pin');
-
-            document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
-            const card = document.getElementById(`map-card-${id}`);
-            if(card) card.classList.add('active');
-
-            const spot = facilitiesData.find(f => f.id === id);
-            if(spot && map) {
-                isMapFlying = true; 
-                map.panTo([spot.lat, spot.lng], { animate: true, duration: 1.0 });
-            }
-        }
-
-        function setupObserver() {
-            if (observer) observer.disconnect();
-            
-            observer = new IntersectionObserver((entries) => {
-                if (isProgrammaticScroll) return;
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const id = parseInt(entry.target.id.replace('map-card-', ''));
-                        highlightMarker(id);
                     }
                 });
-            }, {
-                root: document.getElementById('card-scroller'),
-                threshold: 0.55
-            });
-
-            document.querySelectorAll('.map-card-horizontal').forEach(card => observer.observe(card));
-        }
-
-        function updateVisibleSpots() {
-            const center = map.getCenter();
-            const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
-            const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-
-            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
-                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
-                .sort((a, b) => a.dist - b.dist);
                 
-            const scroller = document.getElementById('card-scroller');
-            
-            scroller.innerHTML = sorted.map(spot => {
-                const isFav = userStatus[spot.id]?.fav;
-                const isVisited = userStatus[spot.id]?.visited;
-                return `
-                <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-base mb-1 text-blue-600 underline flex items-center gap-1" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">
-                                ${spot.name} <i class="fas fa-external-link-alt text-xs"></i>
-                            </h3>
-                            <div class="text-xl">${getIcon(spot.category)}</div>
-                        </div>
-                        <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
-                        <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'}先</p>
-                    </div>
-                    <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
-                        <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg"><i class="fas fa-location-arrow"></i> ナビ</button>
-                        <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
-                        <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
-                    </div>
-                </div>
-            `}).join('') + '<div style="flex:0 0 10px"></div>';
-            setupObserver();
+                console.log(`データ更新: 追加 ${addedCount}件 / 既存重複 ${updatedCount}件`);
+                facilitiesData = baseData; // データを更新
+
+            } catch (e) {
+                console.error('外部データ読み込み失敗:', e);
+                // 失敗してもアラートは出さず、ベースデータのみで動作継続
+            }
         }
 
-        function renderList() {
-            const container = document.getElementById('list-container');
-            const q = searchQuery.toLowerCase().trim();
-            
-            let targets = facilitiesData.filter(f => {
-                if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
-                if(q) {
-                    if( !f.name.toLowerCase().includes(q) && 
-                        !f.pref.toLowerCase().includes(q) && 
-                        !f.area.toLowerCase().includes(q) && 
-                        !f.address.toLowerCase().includes(q) &&
-                        !f.category.toLowerCase().includes(q)
-                    ) return false;
-                }
-                return true;
+        // マップとリストを初期化・再描画
+        initMap();
+        renderList();
+        renderMyList();
+    }
+
+    // スプレッドシートデータの解析パーサー
+    function parseSheetData(csv) {
+        const lines = csv.trim().split('\n');
+        let result = [];
+        let autoId = 2001; // 自動採番用ID
+
+        for(let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if(!line || line.startsWith('ID') || line.startsWith('施設名')) continue; // ヘッダー等スキップ
+
+            const cols = line.split(',');
+            // 最低限、施設名(1)が必要
+            if(cols.length < 2) continue;
+
+            // 各カラム取得（undefined対策）
+            const idStr = cols[0] ? cols[0].trim() : "";
+            const name = cols[1] ? cols[1].trim() : "";
+            const pref = cols[2] ? cols[2].trim() : "";
+            const area = cols[3] ? cols[3].trim() : "";
+            const rawGenre = cols[4] ? cols[4].trim() : "leisure";
+            const price = cols[5] ? cols[5].trim() : "";
+            const addr = cols[6] ? cols[6].trim() : "";
+            const url = cols[7] ? cols[7].trim() : "";
+            const latStr = cols[8] ? cols[8].trim() : "";
+            const lngStr = cols[9] ? cols[9].trim() : "";
+
+            if(!name) continue;
+
+            // ID処理
+            let id = parseInt(idStr);
+            if(isNaN(id)) id = autoId++;
+
+            // ジャンル変換
+            let category = GENRE_CONVERT_MAP[rawGenre] || 'leisure';
+
+            // 座標処理
+            let lat = parseFloat(latStr);
+            let lng = parseFloat(lngStr);
+
+            if (isNaN(lat) || isNaN(lng)) continue; // 座標なしは除外
+
+            result.push({ id, name, pref, area, category, price, address: addr, url, lat, lng });
+        }
+        return result;
+    }
+
+    // 既存CSVパーサー
+    function parseCSV(csv) {
+        return csv.trim().split('\n').slice(1).map(line => {
+            const [id,name,pref,area,cat,price,addr,url,lat,lng] = line.split(',');
+            if(!name) return null;
+            return { 
+                id: parseInt(id), name, pref, area, category: cat, price, address: addr, url, 
+                lat: lat ? parseFloat(lat) : null, lng: lng ? parseFloat(lng) : null 
+            };
+        }).filter(Boolean);
+    }
+
+    function getIcon(cat) { return { leisure:'🎡', zoo:'🐘', aquarium:'🐬', cinema:'🎬', museum:'🏛️', park:'🌳' }[cat] || '📍'; }
+    
+    function getDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lng2-lng1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function initMap() {
+        if(map) {
+            renderAllMarkers();
+            return;
+        }
+        map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 10);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+        if(window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
+        
+        map.on('moveend', () => {
+            if(!isMapFlying) updateVisibleSpots(); 
+            isMapFlying = false;
+        });
+        renderAllMarkers();
+    }
+
+    function renderAllMarkers() {
+        Object.values(markers).forEach(m => map.removeLayer(m));
+        markers = {};
+        facilitiesData.forEach(spot => {
+            if (!spot.lat || !activeMapCategories.has(spot.category)) return;
+            const icon = L.divIcon({ className: 'custom-div-icon', html: `<div id="pin-${spot.id}" class="pin-marker">${getIcon(spot.category)}</div>`, iconSize: [44, 44], iconAnchor: [22, 50] });
+            const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
+            marker.on('click', (e) => { 
+                L.DomEvent.stopPropagation(e); 
+                isMapFlying = true; 
+                map.flyTo([spot.lat, spot.lng], 13); 
+                showMapCard(spot.id); 
             });
-            if(userCurrentPos) targets.sort((a,b) => getDistance(userCurrentPos.lat,userCurrentPos.lng,a.lat,a.lng) - getDistance(userCurrentPos.lat,userCurrentPos.lng,b.lat,b.lng));
-            
-            if(targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400">該当なし</div>`; return; }
+            markers[spot.id] = marker;
+        });
+    }
 
-            const grouped = {}; 
-            targets.forEach(f => { if(!grouped[f.pref]) grouped[f.pref] = []; grouped[f.pref].push(f); });
-            
-            const prefOrder = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
-            
-            container.innerHTML = prefOrder.filter(p => grouped[p]).map(pref => `
-                <details class="group mb-3 bg-white rounded-xl shadow-sm overflow-hidden">
-                    <summary class="flex justify-between p-4 cursor-pointer bg-slate-50 font-bold text-teal-800">
-                        <span>${pref} <span class="text-xs bg-teal-100 text-teal-600 px-2 rounded-full ml-2">${grouped[pref].length}</span></span>
-                        <i class="fas fa-chevron-down text-slate-300 group-open:rotate-180 transition-transform"></i>
-                    </summary>
-                    <div class="p-3 border-t grid grid-cols-1 md:grid-cols-2 gap-3">
-                        ${grouped[pref].map(spot => createCardHTML(spot)).join('')}
-                    </div>
-                </details>
-            `).join('');
+    function showMapCard(id) {
+        isProgrammaticScroll = true;
+        document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
+        const pin = document.getElementById(`pin-${id}`);
+        if(pin) pin.classList.add('active-pin');
+
+        const card = document.getElementById(`map-card-${id}`);
+        if(card) {
+            card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
         }
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => { isProgrammaticScroll = false; }, 800);
+    }
 
-        function createCardHTML(spot) {
+    function highlightMarker(id) {
+        document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active-pin'));
+        const pin = document.getElementById(`pin-${id}`);
+        if(pin) pin.classList.add('active-pin');
+
+        document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
+        const card = document.getElementById(`map-card-${id}`);
+        if(card) card.classList.add('active');
+
+        const spot = facilitiesData.find(f => f.id === id);
+        if(spot && map) {
+            isMapFlying = true; 
+            map.panTo([spot.lat, spot.lng], { animate: true, duration: 1.0 });
+        }
+    }
+
+    function setupObserver() {
+        if (observer) observer.disconnect();
+        observer = new IntersectionObserver((entries) => {
+            if (isProgrammaticScroll) return;
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = parseInt(entry.target.id.replace('map-card-', ''));
+                    highlightMarker(id);
+                }
+            });
+        }, { root: document.getElementById('card-scroller'), threshold: 0.55 });
+        document.querySelectorAll('.map-card-horizontal').forEach(card => observer.observe(card));
+    }
+
+    function updateVisibleSpots() {
+        const center = map.getCenter();
+        const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
+        const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
+
+        const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
+            .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
+            .sort((a, b) => a.dist - b.dist);
+            
+        const scroller = document.getElementById('card-scroller');
+        scroller.innerHTML = sorted.map(spot => {
             const isFav = userStatus[spot.id]?.fav;
             const isVisited = userStatus[spot.id]?.visited;
-            
             return `
-                <div class="map-card relative hover:shadow-md transition-shadow" onclick="openExternalLink('${spot.url}', '${spot.name}')">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">${spot.area}</span>
-                        <div class="text-xl opacity-40">${getIcon(spot.category)}</div>
+            <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
+                <div class="flex-1">
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-bold text-base mb-1 text-blue-600 underline flex items-center gap-1" onclick="openExternalLink('${spot.url}', '${spot.name}'); event.stopPropagation();">
+                            ${spot.name} <i class="fas fa-external-link-alt text-xs"></i>
+                        </h3>
+                        <div class="text-xl">${getIcon(spot.category)}</div>
                     </div>
-                    <h3 class="font-bold text-lg mb-1 text-blue-600 underline flex items-center gap-2" onclick="event.stopPropagation(); openExternalLink('${spot.url}', '${spot.name}')">
-                        ${spot.name} <i class="fas fa-external-link-alt text-sm"></i>
-                    </h3>
-                    <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
-                    <div class="flex gap-2 mt-auto">
-                        <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i class="fas fa-location-arrow mr-1"></i>ナビ</button>
-                        ${spot.lat ? `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : ''}
-                        
-                        <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
-                        <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
-                    </div>
+                    <p class="text-xs text-red-500 font-bold mb-1">${spot.price}</p>
+                    <p class="text-[10px] text-slate-400"><i class="fas fa-map-marker-alt"></i> ${spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km'}先</p>
                 </div>
-            `;
-        }
+                <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
+                    <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg"><i class="fas fa-location-arrow"></i> ナビ</button>
+                    <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
+                    <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
+                </div>
+            </div>
+        `}).join('') + '<div style="flex:0 0 10px"></div>';
+        setupObserver();
+    }
 
-        function openExternalLink(url, name) {
-            const targetUrl = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
-            window.open(targetUrl, '_blank', 'noopener,noreferrer');
-        }
-
-        function handleNav(name, lat, lng) {
-            window.tempNav = { name, lat, lng };
-            document.getElementById('map-select-modal').classList.add('show');
-        }
-        function confirmNavigation(type) {
-            const t = window.tempNav;
-            if(type === 'google') window.open(`https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}&query_place_id=${encodeURIComponent(t.name)}`);
-            else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
-            closeModal('map-select-modal');
-        }
-
-        function locateUserOnMap() {
-            if(!navigator.geolocation) return alert('位置情報が取得できません');
-            navigator.geolocation.getCurrentPosition(pos => {
-                userCurrentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                isMapFlying = false; 
-                map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
-                L.marker([userCurrentPos.lat, userCurrentPos.lng], {
-                    icon: L.divIcon({ html: '<div class="w-4 h-4 bg-teal-500 rounded-full border-2 border-white shadow-lg"></div>', className:'' })
-                }).addTo(map);
-                updateVisibleSpots();
-            });
-        }
-        function toggleFav(id) {
-            if(!userStatus[id]) userStatus[id] = {};
-            userStatus[id].fav = !userStatus[id].fav;
-            localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-            renderList(); renderMyList(); 
-            updateVisibleSpots();
-        }
-        function toggleVisited(id) {
-            if(!userStatus[id]) userStatus[id] = {};
-            userStatus[id].visited = !userStatus[id].visited;
-            localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-            renderList(); renderMyList();
-            updateVisibleSpots();
-        }
-        function switchPage(p) {
-            document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
-            document.getElementById('page-'+p).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById('nav-'+p).classList.add('active');
-            if(p === 'map') setTimeout(() => { map.invalidateSize(); isMapFlying=false; updateVisibleSpots(); }, 100);
-        }
-        function toggleMapFilter(cat, btn) {
-            if(activeMapCategories.has(cat)) { activeMapCategories.delete(cat); btn.classList.remove('active'); }
-            else { activeMapCategories.add(cat); btn.classList.add('active'); }
-            renderAllMarkers(); updateVisibleSpots();
-        }
-        function applyListFilter(cat, btn) {
-            activeListCategory = cat;
-            document.querySelectorAll('#page-list .chip').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            renderList();
-        }
-        function handleSearch(val) { searchQuery = val; renderList(); }
-        function renderMyList() {
-            const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
-            document.getElementById('mylist-container').innerHTML = list.length ? list.map(f => createCardHTML(f)).join('') : '<div class="text-center text-slate-400 mt-10">まだありません</div>';
-        }
-        function jumpToMap(lat, lng, id) { switchPage('map'); isMapFlying = true; map.flyTo([lat, lng], 14); showMapCard(id); }
-        function switchListTab(t) { currentListTab = t; document.getElementById('tab-fav').className = t==='fav'?'px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; document.getElementById('tab-visited').className = t==='visited'?'px-3 py-1 text-xs font-bold rounded bg-white text-green-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; renderMyList(); }
-        
-        // Admin Functions
-        function checkAdminPasscode() {
-            if(document.getElementById('admin-passcode').value === '19870429') {
-                document.getElementById('passcode-area').style.display = 'none';
-                document.getElementById('csv-admin-controls').classList.remove('hidden');
-            } else alert('パスコードが違います');
-        }
-        function openBackupModal(t) { 
-            document.getElementById('backup-modal').classList.add('show');
-            const txt = document.getElementById('backup-text');
-            const btn = document.getElementById('backup-action-btn');
-            if(t === 'export') {
-                document.getElementById('backup-title').innerText = "データ保存";
-                txt.value = JSON.stringify(userStatus);
-                btn.innerText = "コピー";
-                btn.onclick = () => { txt.select(); document.execCommand('copy'); alert('コピーしました'); };
-            } else {
-                document.getElementById('backup-title').innerText = "データ復元";
-                txt.value = "";
-                btn.innerText = "復元";
-                btn.onclick = () => {
-                    try {
-                        userStatus = JSON.parse(txt.value);
-                        localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-                        renderMyList(); renderList();
-                        alert('復元しました'); closeModal('backup-modal');
-                    } catch(e) { alert('データ形式が正しくありません'); }
-                };
+    function renderList() {
+        const container = document.getElementById('list-container');
+        const q = searchQuery.toLowerCase().trim();
+        let targets = facilitiesData.filter(f => {
+            if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
+            if(q) {
+                if( !f.name.toLowerCase().includes(q) && 
+                    !f.pref.toLowerCase().includes(q) && 
+                    !f.area.toLowerCase().includes(q) && 
+                    !f.address.toLowerCase().includes(q) &&
+                    !f.category.toLowerCase().includes(q)
+                ) return false;
             }
-        }
-        function downloadCSV() {
-            const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
-            facilitiesData.forEach(f => {
-                const s = userStatus[f.id] || {};
-                rows.push([f.id, f.name, f.pref, f.area, f.category, f.price, f.address, f.url, f.lat, f.lng, s.fav?"1":"0", s.visited?"1":"0"]);
-            });
-            const csvContent = "\uFEFF" + rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csvContent], { type: "text/csv;charset=utf-8;" }));
-            link.download = `handimap_data_${new Date().toISOString().slice(0,10)}.csv`; link.click();
-        }
-        function handleCSVUpload(input) {
-            const file = input.files[0]; if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const lines = e.target.result.split(/\r\n|\n/); let count = 0;
-                    for(let i=1; i<lines.length; i++) {
-                        const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ''));
-                        if(cols.length < 12) continue;
-                        const id = parseInt(cols[0]);
-                        if(id) {
-                            if(!userStatus[id]) userStatus[id] = {};
-                            userStatus[id].fav = cols[10] === "1"; userStatus[id].visited = cols[11] === "1";
-                            count++;
-                        }
-                    }
-                    localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-                    renderMyList(); renderList(); alert(`${count}件更新しました`);
-                } catch(err) { alert("エラーが発生しました"); }
-                input.value = "";
-            };
-            reader.readAsText(file);
-        }
+            return true;
+        });
+        if(userCurrentPos) targets.sort((a,b) => getDistance(userCurrentPos.lat,userCurrentPos.lng,a.lat,a.lng) - getDistance(userCurrentPos.lat,userCurrentPos.lng,b.lat,b.lng));
+        if(targets.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400">該当なし</div>`; return; }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-    </script>
+        const grouped = {}; 
+        targets.forEach(f => { if(!grouped[f.pref]) grouped[f.pref] = []; grouped[f.pref].push(f); });
+        
+        const prefOrder = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
+        
+        container.innerHTML = prefOrder.filter(p => grouped[p]).map(pref => `
+            <details class="group mb-3 bg-white rounded-xl shadow-sm overflow-hidden">
+                <summary class="flex justify-between p-4 cursor-pointer bg-slate-50 font-bold text-teal-800">
+                    <span>${pref} <span class="text-xs bg-teal-100 text-teal-600 px-2 rounded-full ml-2">${grouped[pref].length}</span></span>
+                    <i class="fas fa-chevron-down text-slate-300 group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="p-3 border-t grid grid-cols-1 md:grid-cols-2 gap-3">
+                    ${grouped[pref].map(spot => createCardHTML(spot)).join('')}
+                </div>
+            </details>
+        `).join('');
+    }
+
+    function createCardHTML(spot) {
+        const isFav = userStatus[spot.id]?.fav;
+        const isVisited = userStatus[spot.id]?.visited;
+        return `
+            <div class="map-card relative hover:shadow-md transition-shadow" onclick="openExternalLink('${spot.url}', '${spot.name}')">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">${spot.area}</span>
+                    <div class="text-xl opacity-40">${getIcon(spot.category)}</div>
+                </div>
+                <h3 class="font-bold text-lg mb-1 text-blue-600 underline flex items-center gap-2" onclick="event.stopPropagation(); openExternalLink('${spot.url}', '${spot.name}')">
+                    ${spot.name} <i class="fas fa-external-link-alt text-sm"></i>
+                </h3>
+                <div class="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded mb-3">${spot.price}</div>
+                <div class="flex gap-2 mt-auto">
+                    <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i class="fas fa-location-arrow mr-1"></i>ナビ</button>
+                    ${spot.lat ? `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-teal-600"><i class="fas fa-map-marker-alt"></i></button>` : ''}
+                    <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isFav?'pink-200':'slate-200'} rounded-lg text-${isFav?'pink-500':'slate-300'}"><i class="${isFav?'fas':'far'} fa-heart"></i></button>
+                    <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="w-10 bg-white border border-${isVisited?'green-200':'slate-200'} rounded-lg text-${isVisited?'green-500':'slate-300'}"><i class="fas fa-check"></i></button>
+                </div>
+            </div>
+        `;
+    }
+
+    function openExternalLink(url, name) {
+        const targetUrl = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+    function handleNav(name, lat, lng) {
+        window.tempNav = { name, lat, lng };
+        document.getElementById('map-select-modal').classList.add('show');
+    }
+    function confirmNavigation(type) {
+        const t = window.tempNav;
+        if(type === 'google') window.open(`http://googleusercontent.com/maps.google.com/maps?q=${t.lat},${t.lng}&query=${encodeURIComponent(t.name)}`);
+        else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
+        closeModal('map-select-modal');
+    }
+    function locateUserOnMap() {
+        if(!navigator.geolocation) return alert('位置情報が取得できません');
+        navigator.geolocation.getCurrentPosition(pos => {
+            userCurrentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            isMapFlying = false; 
+            map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
+            L.marker([userCurrentPos.lat, userCurrentPos.lng], {
+                icon: L.divIcon({ html: '<div class="w-4 h-4 bg-teal-500 rounded-full border-2 border-white shadow-lg"></div>', className:'' })
+            }).addTo(map);
+            updateVisibleSpots();
+        });
+    }
+    function toggleFav(id) {
+        if(!userStatus[id]) userStatus[id] = {};
+        userStatus[id].fav = !userStatus[id].fav;
+        localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
+        renderList(); renderMyList(); 
+        updateVisibleSpots();
+    }
+    function toggleVisited(id) {
+        if(!userStatus[id]) userStatus[id] = {};
+        userStatus[id].visited = !userStatus[id].visited;
+        localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
+        renderList(); renderMyList();
+        updateVisibleSpots();
+    }
+    function switchPage(p) {
+        document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
+        document.getElementById('page-'+p).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+        document.getElementById('nav-'+p).classList.add('active');
+        if(p === 'map') setTimeout(() => { map.invalidateSize(); isMapFlying=false; updateVisibleSpots(); }, 100);
+    }
+    function toggleMapFilter(cat, btn) {
+        if(activeMapCategories.has(cat)) { activeMapCategories.delete(cat); btn.classList.remove('active'); }
+        else { activeMapCategories.add(cat); btn.classList.add('active'); }
+        renderAllMarkers(); updateVisibleSpots();
+    }
+    function applyListFilter(cat, btn) {
+        activeListCategory = cat;
+        document.querySelectorAll('#page-list .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        renderList();
+    }
+    function handleSearch(val) { searchQuery = val; renderList(); }
+    function renderMyList() {
+        const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
+        document.getElementById('mylist-container').innerHTML = list.length ? list.map(f => createCardHTML(f)).join('') : '<div class="text-center text-slate-400 mt-10">まだありません</div>';
+    }
+    function jumpToMap(lat, lng, id) { switchPage('map'); isMapFlying = true; map.flyTo([lat, lng], 14); showMapCard(id); }
+    function switchListTab(t) { currentListTab = t; document.getElementById('tab-fav').className = t==='fav'?'px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; document.getElementById('tab-visited').className = t==='visited'?'px-3 py-1 text-xs font-bold rounded bg-white text-green-600 shadow-sm':'px-3 py-1 text-xs font-bold rounded text-slate-400'; renderMyList(); }
+    
+    // Admin Functions
+    function checkAdminPasscode() {
+        if(document.getElementById('admin-passcode').value === '19870429') {
+            document.getElementById('passcode-area').style.display = 'none';
+            document.getElementById('csv-admin-controls').classList.remove('hidden');
+        } else alert('パスコードが違います');
+    }
+    function openBackupModal(t) { 
+        document.getElementById('backup-modal').classList.add('show');
+        const txt = document.getElementById('backup-text');
+        const btn = document.getElementById('backup-action-btn');
+        if(t === 'export') {
+            document.getElementById('backup-title').innerText = "データ保存";
+            txt.value = JSON.stringify(userStatus);
+            btn.innerText = "コピー";
+            btn.onclick = () => { txt.select(); document.execCommand('copy'); alert('コピーしました'); };
+        } else {
+            document.getElementById('backup-title').innerText = "データ復元";
+            txt.value = "";
+            btn.innerText = "復元";
+            btn.onclick = () => {
+                try {
+                    userStatus = JSON.parse(txt.value);
+                    localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
+                    renderMyList(); renderList();
+                    alert('復元しました'); closeModal('backup-modal');
+                } catch(e) { alert('データ形式が正しくありません'); }
+            };
+        }
+    }
+    function downloadCSV() {
+        const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
+        facilitiesData.forEach(f => {
+            const s = userStatus[f.id] || {};
+            rows.push([f.id, f.name, f.pref, f.area, f.category, f.price, f.address, f.url, f.lat, f.lng, s.fav?"1":"0", s.visited?"1":"0"]);
+        });
+        const csvContent = "\uFEFF" + rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+        const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csvContent], { type: "text/csv;charset=utf-8;" }));
+        link.download = `handimap_data_${new Date().toISOString().slice(0,10)}.csv`; link.click();
+    }
+    function handleCSVUpload(input) {
+        const file = input.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const lines = e.target.result.split(/\r\n|\n/); let count = 0;
+                for(let i=1; i<lines.length; i++) {
+                    const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ''));
+                    if(cols.length < 12) continue;
+                    const id = parseInt(cols[0]);
+                    if(id) {
+                        if(!userStatus[id]) userStatus[id] = {};
+                        userStatus[id].fav = cols[10] === "1"; userStatus[id].visited = cols[11] === "1";
+                        count++;
+                    }
+                }
+                localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
+                renderMyList(); renderList(); alert(`${count}件更新しました`);
+            } catch(err) { alert("エラーが発生しました"); }
+            input.value = "";
+        };
+        reader.readAsText(file);
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+</script>
