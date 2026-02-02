@@ -1,280 +1,9 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HandiMap Kanto</title>
-    
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="HandiMap">
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['"M PLUS Rounded 1c"', 'sans-serif'] },
-                    colors: { primary: '#0D9488', secondary: '#F0FDFA' },
-                    animation: { 'bounce-slow': 'bounce 3s infinite' }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* 基本設定 */
-        html, body { 
-            height: 100%; width: 100%; overflow: hidden; 
-            overscroll-behavior: none; background-color: #F8FAFC; 
-            -webkit-font-smoothing: antialiased; color: #334155; 
-            padding: 0; margin: 0;
-        }
+        // ▼ GAS（スプレッドシート）のウェブアプリURLをここに貼り付けてください
+        const GOOGLE_SCRIPT_URL = "ここにGASのウェブアプリURLを貼り付けてください";
 
-        /* アプリ全体のコンテナ */
-        #app-container { 
-            display: flex; flex-direction: column; 
-            height: 100dvh; width: 100vw; position: relative;
-        }
-        @media (min-width: 768px) { #app-container { flex-direction: row; } }
-
-        /* 各ページの設定 - ナビゲーションバーの分だけ下部を空ける */
-        .page { 
-            display: none; 
-            flex: 1; 
-            height: 100%; 
-            width: 100%; 
-            flex-direction: column; 
-            position: relative; 
-            overflow: hidden; 
-        }
-        .page.active { display: flex; }
-        
-        /* Map & Pins */
-        #map { flex: 1; width: 100%; z-index: 0; background: #e5e7eb; }
-        .pin-marker { background: white; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; width: 44px; height: 44px; position: relative; transition: all 0.3s; }
-        .pin-marker::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white; }
-        .pin-marker.active-pin { background: #0D9488; color: white; border-color: #0D9488; transform: scale(1.3) translateY(-10px); z-index: 9999 !important; }
-        .pin-marker.active-pin::after { border-top-color: #0D9488; }
-
-        /* Filter */
-        .filter-bar { 
-            position: absolute; top: 0; left: 0; right: 0; z-index: 500; display: flex; justify-content: center; pointer-events: none; 
-            /* 修正: 上部の余白を確実に確保 */
-            padding-top: calc(12px + env(safe-area-inset-top)); 
-        }
-        .chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; pointer-events: auto; max-width: 95%; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .chip { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; background: #F1F5F9; color: #94A3B8; transition: all 0.2s; }
-        .chip.active { background: #0D9488; color: white; }
-
-        /* Cards Scroller Area */
-        .sheet-wrapper {
-            /* ナビゲーションバー(約80px)の上に来るように配置 */
-            position: absolute; 
-            bottom: calc(70px + env(safe-area-inset-bottom)); 
-            left: 0; right: 0; pointer-events: none; z-index: 400;
-        }
-        @media (min-width: 768px) { .sheet-wrapper { bottom: 20px; } }
-
-        .card-scroller { 
-            display: flex; gap: 12px; padding: 0 16px 10px; 
-            overflow-x: auto; scroll-snap-type: x mandatory; height: 180px; 
-            pointer-events: auto; 
-        }
-        
-        .map-card-horizontal { 
-            flex: 0 0 85%; max-width: 340px; scroll-snap-align: center; 
-            background: white; border-radius: 20px; padding: 16px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 3px solid transparent; 
-            transition: all 0.3s; display: flex; flex-direction: column; 
-            opacity: 0.8; transform: scale(0.95); 
-        }
-        .map-card-horizontal.active { 
-            border-color: #0D9488; opacity: 1; transform: scale(1); 
-            box-shadow: 0 15px 40px rgba(13, 148, 136, 0.2);
-        }
-
-        .map-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 12px; border: 1px solid #F1F5F9; cursor: pointer; transition: background-color 0.2s; }
-        .map-card:active { background-color: #F0FDFA; }
-
-        /* UI Components */
-        .gps-btn { 
-            width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); color: #0D9488; font-size: 18px; position: absolute; right: 16px; 
-            /* カード位置 + 余白 */
-            bottom: calc(260px + env(safe-area-inset-bottom)); z-index: 500; 
-        }
-
-        /* Nav - 修正: position: fixed で画面最下部に強制固定 */
-        .nav-container { 
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 3000; 
-            background: white; 
-            border-top: 1px solid #eee; 
-            display: flex; 
-            justify-content: space-around; 
-            /* 下部のセーフエリア（ホームバー）分の余白を確保 */
-            padding-bottom: env(safe-area-inset-bottom);
-            /* 高さ = コンテンツ60px + セーフエリア */
-            height: calc(60px + env(safe-area-inset-bottom)); 
-            width: 100%; 
-        }
-        @media (min-width: 768px) { 
-            .nav-container { position: static; width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #eee; border-top: none; padding-bottom: 0; } 
-        }
-        
-        /* Navアイテムの高さ調整 */
-        .nav-item { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; /* 60pxの中で中央揃え */
-            color: #94A3B8; 
-            font-size: 10px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            height: 60px; /* 固定高さ */
-        }
-        @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; gap: 12px; padding: 16px; font-size: 14px; height: auto; } }
-        .nav-item.active { color: #0D9488; }
-        
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); align-items: center; justify-content: center; }
-        .modal-overlay.show { display: flex; }
-        .modal-box { background: white; width: 85%; max-width: 320px; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        
-        details > summary { list-style: none; }
-        details > summary::-webkit-details-marker { display: none; }
-        
-        /* 修正: リストヘッダーの上部余白を計算式で確保（ステータスバー回避） */
-        .list-header-padding { 
-            padding-top: calc(16px + env(safe-area-inset-top)); 
-        }
-        
-        /* リストコンテナの下部余白（ナビゲーションバーに隠れないように） */
-        .list-container-padding {
-            padding-bottom: calc(90px + env(safe-area-inset-bottom));
-        }
-    </style>
-</head>
-<body class="text-slate-700">
-
-    <div id="app-container">
-        <main class="flex-1 relative order-1 md:order-2 overflow-hidden bg-slate-50 w-full h-full">
-            <div id="page-map" class="page active">
-                <div class="filter-bar">
-                    <div class="chip-scroll">
-                        <button class="chip active" onclick="toggleMapFilter('leisure', this)">遊園地</button>
-                        <button class="chip active" onclick="toggleMapFilter('aquarium', this)">水族館</button>
-                        <button class="chip active" onclick="toggleMapFilter('zoo', this)">動物園</button>
-                        <button class="chip active" onclick="toggleMapFilter('museum', this)">博物館</button>
-                        <button class="chip active" onclick="toggleMapFilter('park', this)">公園</button>
-                        <button class="chip active" onclick="toggleMapFilter('cinema', this)">映画</button>
-                    </div>
-                </div>
-                <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-crosshairs"></i></button>
-                <div id="map"></div>
-                <div class="sheet-wrapper">
-                    <div id="card-scroller" class="card-scroller"></div>
-                </div>
-            </div>
-
-            <div id="page-list" class="page overflow-y-auto">
-                <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-10 list-header-padding">
-                    <div class="relative w-full mb-3">
-                        <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                        <input type="text" class="w-full bg-slate-100 rounded-xl py-2.5 pl-10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="エリア、ジャンル、施設名で検索..." oninput="handleSearch(this.value)">
-                    </div>
-                    <div class="chip-scroll">
-                        <button class="chip active" onclick="applyListFilter('all', this)">すべて</button>
-                        <button class="chip" onclick="applyListFilter('leisure', this)">遊園地</button>
-                        <button class="chip" onclick="applyListFilter('aquarium', this)">水族館</button>
-                        <button class="chip" onclick="applyListFilter('zoo', this)">動物園</button>
-                        <button class="chip" onclick="applyListFilter('museum', this)">博物館</button>
-                    </div>
-                </div>
-                <div id="list-container" class="p-4 max-w-3xl mx-auto w-full list-container-padding"></div>
-            </div>
-
-            <div id="page-mylist" class="page overflow-y-auto">
-                 <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex justify-between items-center list-header-padding">
-                    <h1 class="text-lg font-bold"><i class="fas fa-bookmark text-pink-500 mr-2"></i>保存済み</h1>
-                    <div class="flex bg-slate-100 rounded-lg p-1 gap-1">
-                        <button onclick="switchListTab('fav')" id="tab-fav" class="px-3 py-1 text-xs font-bold rounded bg-white text-teal-600 shadow-sm">行きたい</button>
-                        <button onclick="switchListTab('visited')" id="tab-visited" class="px-3 py-1 text-xs font-bold rounded text-slate-400">行った</button>
-                    </div>
-                </div>
-                <div id="mylist-container" class="p-4 max-w-3xl mx-auto w-full"></div>
-                
-                <div class="p-6 border-t mt-auto text-center bg-white list-container-padding">
-                    <h3 class="text-xs font-bold text-slate-400 mb-3">設定・データ管理</h3>
-                    <div class="flex gap-3 justify-center mb-4">
-                        <button onclick="openBackupModal('export')" class="px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-copy mr-1"></i>データ保存</button>
-                        <button onclick="openBackupModal('import')" class="px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-paste mr-1"></i>データ復元</button>
-                    </div>
-                    
-                    <div class="border-t border-slate-100 pt-4">
-                        <div id="passcode-area" class="flex flex-col items-center gap-2">
-                            <p class="text-[10px] text-slate-300">管理者用</p>
-                            <div class="flex gap-2">
-                                <input type="password" id="admin-passcode" placeholder="PASS" class="border border-slate-200 rounded px-2 py-1 text-xs w-20 text-center">
-                                <button onclick="checkAdminPasscode()" class="bg-slate-300 text-white text-[10px] px-2 py-1 rounded font-bold">OK</button>
-                            </div>
-                        </div>
-                        <div id="csv-admin-controls" class="hidden mt-2 animate-pulse bg-teal-50 border border-teal-200 rounded-xl p-3">
-                            <p class="text-[10px] font-bold text-teal-700 mb-2">管理者モード</p>
-                            <div class="flex gap-2 justify-center">
-                                <button onclick="downloadCSV()" class="px-3 py-2 bg-teal-600 text-white rounded text-xs font-bold flex-1">CSV保存</button>
-                                <label class="px-3 py-2 bg-white border border-teal-600 text-teal-600 rounded text-xs font-bold flex-1 cursor-pointer flex items-center justify-center">
-                                    CSV読込
-                                    <input type="file" id="csv-upload-input" accept=".csv" class="hidden" onchange="handleCSVUpload(this)">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <nav class="nav-container order-2 md:order-1">
-            <div class="hidden md:block px-6 mb-8 text-teal-800 font-extrabold text-xl"><i class="fas fa-universal-access mr-2"></i>HandiMap</div>
-            <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map-marked-alt text-xl md:text-base"></i><span>マップ</span></div>
-            <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search text-xl md:text-base"></i><span>探す</span></div>
-            <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist"><i class="fas fa-heart text-xl md:text-base"></i><span>保存済み</span></div>
-        </nav>
-    </div>
-
-    <div id="map-select-modal" class="modal-overlay">
-        <div class="modal-box text-left">
-            <h3 class="text-lg font-bold mb-4 text-center">経路案内</h3>
-            <div class="flex flex-col gap-3 mb-4">
-                <button onclick="confirmNavigation('google')" class="p-3 rounded-xl border hover:bg-teal-50 font-bold text-sm flex items-center"><i class="fab fa-google text-red-500 mr-3"></i>Googleマップ</button>
-                <button onclick="confirmNavigation('default')" class="p-3 rounded-xl border hover:bg-teal-50 font-bold text-sm flex items-center"><i class="fas fa-map-marker-alt text-slate-500 mr-3"></i>標準マップ</button>
-            </div>
-            <button onclick="closeModal('map-select-modal')" class="text-sm text-slate-400 w-full py-2">キャンセル</button>
-        </div>
-    </div>
-
-    <div id="backup-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 id="backup-title" class="font-bold mb-2">データ管理</h3>
-            <p class="text-[10px] text-slate-400 mb-2">以下のコードをコピー/ペーストしてください</p>
-            <textarea id="backup-text" class="w-full h-24 p-2 bg-slate-100 rounded text-xs mb-3 font-mono"></textarea>
-            <div class="flex gap-2 justify-center">
-                <button id="backup-action-btn" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold">実行</button>
-            </div>
-            <button onclick="closeModal('backup-modal')" class="mt-3 text-xs text-slate-400">閉じる</button>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
+        // 既存のマスターデータ
         const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
 1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名無料,北海道旭川市東旭川町倉沼,,43.7684,142.48
 1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名無料,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
@@ -395,12 +124,108 @@
         let isMapFlying = false;
         let observer;
 
+        // ジャンル変換用マップ（スプレッドシートの表記ゆれ吸収）
+        const GENRE_CONVERT_MAP = {
+            '動物園': 'zoo', 'zoo': 'zoo',
+            '水族館': 'aquarium', 'aquarium': 'aquarium',
+            '博物館': 'museum', '美術館': 'museum', '科学館': 'museum', 'museum': 'museum',
+            '遊園地': 'leisure', 'レジャー': 'leisure', 'leisure': 'leisure', 'テーマパーク': 'leisure',
+            '公園': 'park', '庭園': 'park', 'park': 'park',
+            '映画': 'cinema', '映画館': 'cinema', 'cinema': 'cinema'
+        };
+
         window.onload = function() {
-            facilitiesData = parseCSV(MASTER_CSV);
+            initApp();
+        };
+
+        async function initApp() {
+            // 1. 既存データをロード
+            let baseData = parseCSV(MASTER_CSV);
+
+            // 2. 外部データを取得してマージ
+            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http')) {
+                try {
+                    const response = await fetch(GOOGLE_SCRIPT_URL);
+                    const sheetText = await response.text();
+                    const sheetData = parseSheetData(sheetText);
+                    
+                    // 重複排除ロジック：名前が一致する既存データがある場合は追加しない
+                    const existingNames = new Set(baseData.map(d => d.name.replace(/\s+/g, ''))); // スペース削除して比較
+                    
+                    let addedCount = 0;
+                    sheetData.forEach(d => {
+                        // 重複しておらず、かつ緯度経度がちゃんとある場合のみ追加
+                        if (!existingNames.has(d.name.replace(/\s+/g, '')) && d.lat && d.lng) {
+                            baseData.push(d);
+                            existingNames.add(d.name.replace(/\s+/g, ''));
+                            addedCount++;
+                        }
+                    });
+                    console.log(`スプレッドシートから ${addedCount} 件追加しました`);
+                } catch (e) {
+                    console.error('外部データ読み込みエラー:', e);
+                }
+            }
+
+            facilitiesData = baseData;
             initMap();
             renderList();
             renderMyList();
-        };
+        }
+
+        // 外部データ（スプレッドシートCSV）のパーサー
+        // ジャンル変換やID自動付与を行う
+        function parseSheetData(csv) {
+            const lines = csv.trim().split('\n');
+            let result = [];
+            // スプレッドシートからのデータ用IDカウンター（既存と被らないように2000番台）
+            let autoId = 2001; 
+
+            // ヘッダー行をスキップして処理
+            // 想定列: ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度...
+            for(let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if(i === 0 && line.includes('施設名')) continue; // ヘッダー行スキップ
+
+                // カンマ区切りだが、値の中のカンマなどを考慮していない簡易スプリット
+                // ※GAS側で値内のカンマを置換してくれている前提、または単純なスプリット
+                const cols = line.split(','); 
+                if(cols.length < 8) continue; // 列不足はスキップ
+
+                // 各カラムの取得（undefined対策）
+                const idStr = cols[0] ? cols[0].trim() : "";
+                const name = cols[1] ? cols[1].trim() : "";
+                const pref = cols[2] ? cols[2].trim() : "";
+                const area = cols[3] ? cols[3].trim() : "";
+                const rawGenre = cols[4] ? cols[4].trim() : "leisure";
+                const price = cols[5] ? cols[5].trim() : "";
+                const addr = cols[6] ? cols[6].trim() : "";
+                const url = cols[7] ? cols[7].trim() : "";
+                const latStr = cols[8] ? cols[8].trim() : "";
+                const lngStr = cols[9] ? cols[9].trim() : "";
+
+                if(!name) continue;
+
+                // ID自動付与
+                let id = parseInt(idStr);
+                if(isNaN(id)) id = autoId++;
+
+                // ジャンル変換
+                let category = GENRE_CONVERT_MAP[rawGenre] || 'leisure';
+
+                // 緯度経度変換
+                let lat = parseFloat(latStr);
+                let lng = parseFloat(lngStr);
+
+                if (isNaN(lat) || isNaN(lng)) {
+                    // 緯度経度がないデータはマップに出せないのでスキップ
+                    continue; 
+                }
+
+                result.push({ id, name, pref, area, category, price, address: addr, url, lat, lng });
+            }
+            return result;
+        }
 
         function parseCSV(csv) {
             return csv.trim().split('\n').slice(1).map(line => {
@@ -422,7 +247,11 @@
         }
 
         function initMap() {
-            if(map) return;
+            if(map) {
+                // マップ再描画時はマーカーのみ更新
+                renderAllMarkers();
+                return;
+            }
             map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 10);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
             if(window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -518,7 +347,6 @@
             scroller.innerHTML = sorted.map(spot => {
                 const isFav = userStatus[spot.id]?.fav;
                 const isVisited = userStatus[spot.id]?.visited;
-                // ここでマップカードのHTMLを生成
                 return `
                 <div id="map-card-${spot.id}" class="map-card-horizontal" onclick="isMapFlying=true; map.flyTo([${spot.lat}, ${spot.lng}], 14); showMapCard(${spot.id}); event.stopPropagation();">
                     <div class="flex-1">
@@ -604,11 +432,8 @@
             `;
         }
 
-        // URL遷移を一元管理する関数（修正ポイント）
         function openExternalLink(url, name) {
-            // URLがあればそこへ、なければGoogle検索へ
             const targetUrl = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
-            // _blankとnoopenerを明示して新しいウィンドウで開く（アプリのstateを維持）
             window.open(targetUrl, '_blank', 'noopener,noreferrer');
         }
 
@@ -618,7 +443,7 @@
         }
         function confirmNavigation(type) {
             const t = window.tempNav;
-            if(type === 'google') window.open(`http://maps.google.com/maps?daddr=${t.lat},${t.lng}&q=${encodeURIComponent(t.name)}`);
+            if(type === 'google') window.open(`https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}&query_place_id=${encodeURIComponent(t.name)}`);
             else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
             closeModal('map-select-modal');
         }
@@ -640,14 +465,14 @@
             userStatus[id].fav = !userStatus[id].fav;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList(); 
-            updateVisibleSpots(); // マップ上の表示も更新
+            updateVisibleSpots();
         }
         function toggleVisited(id) {
             if(!userStatus[id]) userStatus[id] = {};
             userStatus[id].visited = !userStatus[id].visited;
             localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
             renderList(); renderMyList();
-            updateVisibleSpots(); // マップ上の表示も更新
+            updateVisibleSpots();
         }
         function switchPage(p) {
             document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
@@ -741,5 +566,3 @@
 
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
     </script>
-</body>
-</html>
