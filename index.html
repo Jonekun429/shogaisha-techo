@@ -303,8 +303,15 @@ tr:hover td{background:#f8fafc;}
                 <div id="admin-cat-table"></div>
             </div>
             <div>
-                <div class="sec-label" style="margin-bottom:8px;">都道府県別件数（上位20）</div>
-                <div id="admin-pref-table" style="overflow-x:auto;"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <div class="sec-label" style="margin-bottom:0;">都道府県別 データ充足状況（47都道府県・目標500件）</div>
+                    <div style="display:flex;gap:6px;">
+                        <span style="font-size:10px;font-weight:700;background:#DCFCE7;color:#16A34A;padding:3px 8px;border-radius:999px;">● 達成</span>
+                        <span style="font-size:10px;font-weight:700;background:#FEF9C3;color:#CA8A04;padding:3px 8px;border-radius:999px;">● 収集中</span>
+                        <span style="font-size:10px;font-weight:700;background:#FEE2E2;color:#DC2626;padding:3px 8px;border-radius:999px;">● 要強化</span>
+                    </div>
+                </div>
+                <div id="admin-pref-table"></div>
             </div>
         </div>
     </div>
@@ -2186,14 +2193,80 @@ function renderAdminStats(){
         catRows+=`<tr><td><i class="fas ${cat.icon}" style="color:${cat.color};margin-right:6px;"></i>${cat.label}</td><td style="font-weight:700;color:var(--primary);">${v.toLocaleString()}件</td></tr>`;
     });
     document.getElementById('admin-cat-table').innerHTML=`<table><thead><tr><th>カテゴリ</th><th>件数</th></tr></thead><tbody>${catRows}</tbody></table>`;
-    // 都道府県別
+    // 都道府県別（47都道府県 全表示・目標500件・観光人気順でスコアリング）
     const prefCnt={};
     facilities.forEach(s=>{if(s.pref)prefCnt[s.pref]=(prefCnt[s.pref]||0)+1;});
-    let prefRows='';
-    Object.entries(prefCnt).sort((a,b)=>b[1]-a[1]).slice(0,20).forEach(([k,v])=>{
-        prefRows+=`<tr><td>${k}</td><td style="font-weight:700;color:var(--primary);">${v.toLocaleString()}件</td></tr>`;
-    });
-    document.getElementById('admin-pref-table').innerHTML=`<table><thead><tr><th>都道府県</th><th>件数</th></tr></thead><tbody>${prefRows}</tbody></table>`;
+
+    // 観光人気スコア（外国人訪問者数・国内旅行者数等を元にした相対スコア 1〜10）
+    const TOURISM_SCORE = {
+        '東京都':10,'大阪府':10,'京都府':10,'北海道':9,'沖縄県':9,
+        '神奈川県':8,'愛知県':8,'福岡県':8,'千葉県':8,'奈良県':7,
+        '静岡県':7,'兵庫県':7,'広島県':7,'長野県':7,'宮城県':6,
+        '石川県':6,'新潟県':6,'栃木県':6,'岐阜県':6,'熊本県':6,
+        '長崎県':6,'大分県':6,'鹿児島県':5,'三重県':5,'滋賀県':5,
+        '山梨県':5,'群馬県':5,'埼玉県':5,'茨城県':5,'香川県':5,
+        '愛媛県':5,'高知県':4,'徳島県':4,'山口県':4,'島根県':4,
+        '鳥取県':4,'岡山県':4,'宮崎県':4,'佐賀県':4,'福島県':4,
+        '岩手県':4,'秋田県':4,'山形県':4,'青森県':3,'和歌山県':4,
+        '富山県':4,'福井県':3
+    };
+
+    const ALL_PREFS = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
+        '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+        '新潟県','富山県','石川県','福井県','山梨県','長野県',
+        '岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+        '鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県',
+        '福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+
+    const TARGET = 500;
+
+    // スコアリング：観光人気が高く、目標に対して未達が大きいほど上位
+    // urgency = 観光スコア × (1 - 達成率)^1.5
+    const sorted = ALL_PREFS.map(p => {
+        const cnt = prefCnt[p]||0;
+        const score = TOURISM_SCORE[p]||3;
+        const ratio = Math.min(cnt/TARGET, 1);
+        const urgency = score * Math.pow(1 - ratio, 1.5);
+        return {p, cnt, score, urgency};
+    }).sort((a,b) => b.urgency - a.urgency);
+
+    const rows = sorted.map(({p, cnt, score, urgency}) => {
+        const pct = Math.min(Math.round(cnt/TARGET*100), 100);
+        const need = Math.max(TARGET - cnt, 0);
+        const isAchieved = cnt >= TARGET;
+        const isGood = pct >= 50;
+        const barColor = isAchieved ? '#16A34A' : isGood ? '#CA8A04' : '#DC2626';
+        const bgColor  = isAchieved ? '#F0FDF4' : isGood ? '#FEFCE8' : '#FFF1F2';
+        const tagColor = isAchieved ? '#16A34A' : isGood ? '#CA8A04' : '#DC2626';
+        const tagBg    = isAchieved ? '#DCFCE7' : isGood ? '#FEF9C3' : '#FEE2E2';
+        const statusLabel = isAchieved ? '達成 ✓' : need + '件必要';
+        // 観光スター
+        const stars = '★'.repeat(Math.min(Math.round(score/2),5)) + '☆'.repeat(5-Math.min(Math.round(score/2),5));
+        return \`<div style="background:\${bgColor};border:1px solid \${barColor}30;border-radius:10px;padding:12px 14px;margin-bottom:7px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+                <span style="font-size:14px;font-weight:900;color:#1A2332;min-width:72px;">\${p}</span>
+                <span style="font-size:10px;color:#B45309;">\${stars}</span>
+                <span style="margin-left:auto;font-size:11px;font-weight:700;background:\${tagBg};color:\${tagColor};padding:3px 9px;border-radius:999px;">\${statusLabel}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;height:7px;background:#E5E7EB;border-radius:999px;overflow:hidden;">
+                    <div style="width:\${pct}%;height:100%;background:\${barColor};border-radius:999px;transition:width 0.5s;"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:#64748B;white-space:nowrap;">\${cnt.toLocaleString()} / \${TARGET}</span>
+            </div>
+        </div>\`;
+    }).join('');
+
+    // 未達成数サマリー
+    const notAchieved = sorted.filter(x=>x.cnt<TARGET).length;
+    const totalNeed = sorted.reduce((s,x)=>s+Math.max(TARGET-x.cnt,0),0);
+    const summary = \`<div style="background:linear-gradient(135deg,var(--primary),#00695C);color:white;border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">\${notAchieved}</div><div style="font-size:10px;opacity:0.85;">未達成都道府県</div></div>
+        <div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">\${totalNeed.toLocaleString()}</div><div style="font-size:10px;opacity:0.85;">あと何件必要か</div></div>
+        <div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">\${47-notAchieved}</div><div style="font-size:10px;opacity:0.85;">目標達成済み</div></div>
+    </div>\`;
+
+    document.getElementById('admin-pref-table').innerHTML = summary + rows;
 }
 
 function downloadCSV(){
