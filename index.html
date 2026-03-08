@@ -3,216 +3,1208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HandiMap Kanto</title>
+    <title>HandiMap — 障がい者割引マップ</title>
     
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="HandiMap">
+    <meta name="description" content="障がい者手帳をお持ちの方向けの割引施設マップアプリ">
     
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'sans-serif'] },
-                    colors: { primary: '#0D9488', surface: '#F8FAFC', outline: '#E2E8F0' },
-                }
-            }
-        }
-    </script>
+
     <style>
-        html, body { height: 100%; width: 100%; overflow: hidden; overscroll-behavior: none; background-color: #F8FAFC; color: #1E293B; padding: 0; margin: 0; -webkit-font-smoothing: antialiased;}
-        #app-container { display: flex; flex-direction: column; height: 100dvh; width: 100vw; position: relative; }
-        @media (min-width: 768px) { #app-container { flex-direction: row; } }
-        
-        .page-container { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; width: 100%; background: #F8FAFC; }
-        .page { display: none; flex: 1; height: 100%; width: 100%; flex-direction: column; position: relative; overflow: hidden; }
+        :root {
+            --primary: #00897B;
+            --primary-light: #4DB6AC;
+            --primary-dark: #00695C;
+            --primary-surface: #E0F2F1;
+            --accent: #FF6F00;
+            --accent-light: #FFF3E0;
+            --surface: #F7F9FC;
+            --card: #FFFFFF;
+            --border: #E8EDF3;
+            --text-primary: #1A2332;
+            --text-secondary: #5A6A7A;
+            --text-muted: #94A3B8;
+            --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --font-ja: 'Zen Kaku Gothic New', sans-serif;
+            --font-en: 'DM Sans', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%; width: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-family: var(--font-ja);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        @media (min-width: 768px) {
+            #app-container { flex-direction: row; }
+        }
+
+        /* ===== PAGE SYSTEM ===== */
+        .page-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+        }
+
+        .page {
+            display: none;
+            flex: 1;
+            height: 100%;
+            width: 100%;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
         .page.active { display: flex; }
-        
-        /* Map Styles */
-        #map { flex: 1; width: 100%; z-index: 0; }
+
+        /* ===== MAP PAGE ===== */
+        #map {
+            flex: 1;
+            width: 100%;
+            z-index: 0;
+        }
+
         .leaflet-control-attribution { display: none; }
-        
-        /* Clean Map Marker */
-        .map-marker { background: white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; font-size: 18px; width: 40px; height: 40px; position: relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 2px solid white; color: #64748B; }
-        .map-marker::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid white; transition: all 0.3s; }
-        .map-marker.active-pin { background: #0D9488; color: white; border-color: #0D9488; transform: scale(1.15) translateY(-8px); z-index: 9999 !important; box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3); }
-        .map-marker.active-pin::after { border-top-color: #0D9488; }
 
-        /* Filter Chips */
-        .filter-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 500; padding: max(12px, env(safe-area-inset-top)) 16px 0; display: flex; pointer-events: none; }
-        .chip-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; pointer-events: auto; padding-bottom: 10px; }
+        /* Filter Bar */
+        .filter-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 500;
+            padding: max(14px, env(safe-area-inset-top)) 14px 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chip-scroll {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            pointer-events: auto;
+            padding-bottom: 8px;
+        }
+
         .chip-scroll::-webkit-scrollbar { display: none; }
-        .chip { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; background: white; color: #64748B; border: 1px solid #E2E8F0; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 6px; }
-        .chip.active { background: #0D9488; color: white; border-color: #0D9488; }
-        .chip i { font-size: 12px; }
 
-        /* Horizontal Card Scroller */
-        .sheet-wrapper { position: absolute; bottom: 24px; left: 0; right: 0; pointer-events: none; z-index: 400; }
-        .card-scroller { display: flex; gap: 12px; padding: 0 16px 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; pointer-events: auto; scroll-behavior: smooth; }
+        .chip {
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            background: white;
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border);
+            transition: all 0.18s;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-family: var(--font-ja);
+            letter-spacing: 0.02em;
+        }
+
+        .chip i { font-size: 11px; }
+        .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .chip.chip-kondai { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; }
+        .chip.chip-kondai.active { background: #2E7D32; color: white; border-color: #2E7D32; }
+        .chip.chip-chiteki { background: #FFF8E1; color: #F57F17; border-color: #FFE082; }
+        .chip.chip-chiteki.active { background: #F57F17; color: white; border-color: #F57F17; }
+        .chip.chip-seishin { background: #F3E5F5; color: #7B1FA2; border-color: #CE93D8; }
+        .chip.chip-seishin.active { background: #7B1FA2; color: white; border-color: #7B1FA2; }
+
+        /* Map Markers */
+        .map-marker {
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            width: 38px; height: 38px;
+            position: relative;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2.5px solid white;
+        }
+
+        .map-marker::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 7px solid white;
+            transition: all 0.25s;
+        }
+
+        .map-marker.active-pin {
+            background: var(--primary);
+            color: white !important;
+            border-color: var(--primary);
+            transform: scale(1.2) translateY(-8px);
+            z-index: 9999 !important;
+            box-shadow: 0 8px 24px rgba(0, 137, 123, 0.35);
+        }
+
+        .map-marker.active-pin::after { border-top-color: var(--primary); }
+
+        /* Bottom Card Scroller */
+        .sheet-wrapper {
+            position: absolute;
+            bottom: 20px;
+            left: 0; right: 0;
+            pointer-events: none;
+            z-index: 400;
+        }
+
+        .card-scroller {
+            display: flex;
+            gap: 10px;
+            padding: 4px 16px 8px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            pointer-events: auto;
+            scroll-behavior: smooth;
+        }
+
         .card-scroller::-webkit-scrollbar { display: none; }
-        
-        .map-card-horizontal { flex: 0 0 85%; max-width: 320px; scroll-snap-align: center; background: white; border-radius: 20px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 2px solid transparent; transition: all 0.3s; opacity: 0.6; transform: scale(0.92); display: flex; flex-direction: column; }
-        .map-card-horizontal.active { opacity: 1; transform: scale(1); border-color: #0D9488; box-shadow: 0 12px 32px rgba(13, 148, 136, 0.15); }
-        
+
+        .map-card-h {
+            flex: 0 0 82%;
+            max-width: 310px;
+            scroll-snap-align: center;
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow-lg);
+            border: 2px solid transparent;
+            transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.55;
+            transform: scale(0.92);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-card-h.active {
+            opacity: 1;
+            transform: scale(1);
+            border-color: var(--primary);
+            box-shadow: 0 12px 36px rgba(0, 137, 123, 0.18);
+        }
+
+        /* GPS Button */
+        .gps-btn {
+            width: 46px; height: 46px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            color: var(--text-secondary);
+            position: absolute;
+            right: 16px;
+            bottom: 220px;
+            z-index: 500;
+            border: 1.5px solid var(--border);
+            transition: all 0.18s;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .gps-btn:active { background: var(--primary-surface); color: var(--primary); }
+
+        /* ===== LIST PAGE ===== */
+        .list-page-scroll {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .list-header {
+            background: rgba(247,249,252,0.96);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: max(16px, env(safe-area-inset-top)) 16px 14px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .search-wrap {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-wrap i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: white;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 16px 12px 44px;
+            font-size: 14px;
+            font-family: var(--font-ja);
+            color: var(--text-primary);
+            font-weight: 500;
+            outline: none;
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,137,123,0.1);
+        }
+
+        .search-input::placeholder { color: var(--text-muted); font-weight: 400; }
+
         /* List Cards */
-        .list-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.03); border: 1px solid #F1F5F9; transition: transform 0.2s; }
-        .list-card:active { transform: scale(0.98); }
+        .list-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            border: 1.5px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.18s, box-shadow 0.18s;
+            cursor: pointer;
+        }
+
+        .list-card:active { transform: scale(0.985); box-shadow: none; }
+
+        .list-container { padding: 14px; display: flex; flex-direction: column; gap: 10px; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+
+        /* Category Icon Badge */
+        .cat-icon {
+            width: 46px; height: 46px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
 
         /* Action Buttons */
-        .action-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: all 0.2s; background: #F8FAFC; color: #94A3B8; }
-        .action-btn.active-fav { color: #0D9488; background: #F0FDFA; }
+        .action-btn {
+            width: 36px; height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all 0.18s;
+            background: var(--surface);
+            color: var(--text-muted);
+            cursor: pointer;
+            border: none;
+            font-size: 15px;
+        }
+
+        .action-btn:active { transform: scale(0.9); }
+        .action-btn.active-fav { color: var(--primary); background: var(--primary-surface); }
         .action-btn.active-visited { color: #F59E0B; background: #FEF3C7; }
 
-        /* Floating GPS Button */
-        .gps-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #475569; position: absolute; right: 16px; bottom: 200px; z-index: 500; border: 1px solid #E2E8F0; transition: all 0.2s; }
-        .gps-btn:active { background: #F1F5F9; }
+        /* Inline Buttons */
+        .card-btn {
+            flex: 1;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 9px 4px;
+            color: var(--text-secondary);
+            font-family: var(--font-ja);
+            cursor: pointer;
+            transition: all 0.18s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
 
-        /* Bottom Navigation */
-        .nav-container { z-index: 3000; background: white; border-top: 1px solid #F1F5F9; display: flex; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); height: calc(64px + env(safe-area-inset-bottom)); width: 100%; flex-shrink: 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.02); }
-        @media (min-width: 768px) { .nav-container { width: 240px; height: 100%; flex-direction: column; justify-content: flex-start; padding-top: 40px; border-right: 1px solid #F1F5F9; border-top: none; padding-bottom: 0; } }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; font-size: 10px; font-weight: 600; cursor: pointer; gap: 4px; transition: color 0.2s; }
-        @media (min-width: 768px) { .nav-item { flex: 0; flex-direction: row; justify-content: flex-start; padding: 16px 24px; font-size: 15px; gap: 16px; height: auto; } }
+        .card-btn:active { background: var(--primary-surface); border-color: var(--primary); color: var(--primary); }
+
+        .card-btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .card-btn-primary:active { background: var(--primary-dark); }
+
+        /* Price tag */
+        .price-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #E8F5E9;
+            color: #2E7D32;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid #A5D6A7;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .nav-container {
+            z-index: 3000;
+            background: white;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding-bottom: env(safe-area-inset-bottom);
+            height: calc(60px + env(safe-area-inset-bottom));
+            width: 100%;
+            flex-shrink: 0;
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.04);
+        }
+
+        @media (min-width: 768px) {
+            .nav-container {
+                width: 240px;
+                height: 100%;
+                flex-direction: column;
+                justify-content: flex-start;
+                padding-top: 32px;
+                border-right: 1px solid var(--border);
+                border-top: none;
+                padding-bottom: 0;
+                box-shadow: none;
+            }
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            gap: 3px;
+            transition: color 0.18s;
+            position: relative;
+            font-family: var(--font-ja);
+            letter-spacing: 0.03em;
+        }
+
+        @media (min-width: 768px) {
+            .nav-item {
+                flex: 0;
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 14px 24px;
+                font-size: 14px;
+                gap: 14px;
+                height: auto;
+            }
+        }
+
         .nav-item i { font-size: 20px; transition: transform 0.2s; }
-        .nav-item.active { color: #0D9488; }
-        .nav-item.active i { transform: translateY(-2px); }
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active i { transform: translateY(-1px); }
 
-        /* Modal */
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        /* Active indicator */
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%; transform: translateX(-50%);
+            width: 32px; height: 2px;
+            background: var(--primary);
+            border-radius: 0 0 4px 4px;
+        }
+
+        @media (min-width: 768px) {
+            .nav-item.active::before {
+                left: 0; top: 50%; transform: translateY(-50%);
+                width: 3px; height: 32px;
+                border-radius: 0 4px 4px 0;
+            }
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.22s;
+        }
+
         .modal-overlay.show { display: flex; opacity: 1; }
-        .modal-box { background: white; width: 90%; max-width: 340px; border-radius: 24px; padding: 24px; box-shadow: 0 24px 48px rgba(0,0,0,0.15); transform: scale(0.95); transition: transform 0.2s; }
-        .modal-overlay.show .modal-box { transform: scale(1); }
 
-        details > summary { list-style: none; }
+        @media (min-width: 480px) {
+            .modal-overlay { align-items: center; }
+        }
+
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
+            transform: translateY(30px);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 92dvh;
+            overflow-y: auto;
+        }
+
+        @media (min-width: 480px) {
+            .modal-box {
+                border-radius: var(--radius-lg);
+                padding: 28px 24px;
+                max-height: 85dvh;
+                transform: scale(0.95) translateY(10px);
+            }
+        }
+
+        .modal-overlay.show .modal-box { transform: none; }
+
+        .modal-handle {
+            width: 36px; height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        @media (min-width: 480px) { .modal-handle { display: none; } }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ===== MY PROFILE (オンボーディング) ===== */
+        .profile-section {
+            margin-bottom: 20px;
+        }
+
+        .profile-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 10px;
+        }
+
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .toggle-item {
+            padding: 12px 8px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            background: white;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.18s;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            font-family: var(--font-ja);
+        }
+
+        .toggle-item i { display: block; font-size: 18px; margin-bottom: 5px; }
+        .toggle-item.active { border-color: var(--primary); background: var(--primary-surface); color: var(--primary); }
+
+        .grade-select {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            background: white;
+            font-size: 14px;
+            font-family: var(--font-ja);
+            color: var(--text-primary);
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.18s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        .grade-select:focus { border-color: var(--primary); }
+
+        /* ===== MYLIST ===== */
+        .mylist-header {
+            background: rgba(247,249,252,0.96);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: max(16px, env(safe-area-inset-top)) 16px 14px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .seg-control {
+            display: flex;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 3px;
+            gap: 3px;
+        }
+
+        .seg-btn {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-ja);
+            transition: all 0.18s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .seg-btn.active { background: white; color: var(--primary); box-shadow: var(--shadow-sm); }
+
+        /* ===== SETTINGS / DATA SECTION ===== */
+        .settings-section {
+            padding: 20px 16px;
+            border-top: 1px solid var(--border);
+            background: white;
+            margin-top: 12px;
+        }
+
+        .settings-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 12px;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: white;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.18s;
+            font-family: var(--font-ja);
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .settings-btn:active { background: var(--surface); }
+        .settings-btn i { color: var(--primary); font-size: 16px; width: 20px; text-align: center; }
+
+        /* ===== REGION HOME ===== */
+        .region-card {
+            background: white;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            height: 76px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.18s, box-shadow 0.18s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .region-card:active { transform: scale(0.97); box-shadow: none; }
+
+        .region-card img {
+            width: 84px;
+            height: 100%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 14px;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state small {
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        /* ===== ACCORDION ===== */
+        details > summary { list-style: none; cursor: pointer; }
         details > summary::-webkit-details-marker { display: none; }
-        .list-header-padding { padding-top: max(16px, env(safe-area-inset-top)); }
-        .list-container-padding { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-        
-        /* Modern Segmented Control */
-        .segment-control { display: inline-flex; background: #F1F5F9; border-radius: 8px; padding: 4px; }
-        .segment-btn { padding: 6px 16px; font-size: 12px; font-weight: 700; border-radius: 6px; color: #64748B; transition: all 0.2s; }
-        .segment-btn.active { background: white; color: #0D9488; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        /* ===== FEEDBACK FORM ===== */
+        .feedback-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: var(--font-ja);
+            color: var(--text-primary);
+            font-weight: 500;
+            outline: none;
+            resize: none;
+            transition: border-color 0.18s;
+            min-height: 100px;
+        }
+
+        .feedback-textarea:focus { border-color: var(--primary); }
+
+        /* ===== PRIMARY BUTTON ===== */
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 13px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--font-ja);
+            cursor: pointer;
+            transition: all 0.18s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font-ja);
+            cursor: pointer;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        /* ===== PROFILE ONBOARDING BANNER ===== */
+        .profile-banner {
+            margin: 12px 14px 0;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, var(--primary), #00695C);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.18s;
+            box-shadow: 0 4px 16px rgba(0, 137, 123, 0.25);
+        }
+
+        .profile-banner:active { transform: scale(0.98); }
+        .profile-banner.hidden-banner { display: none; }
+
+        /* ===== BACK BUTTON HEADER ===== */
+        .back-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .back-btn {
+            width: 38px; height: 38px;
+            background: white;
+            border: 1.5px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            flex-shrink: 0;
+            font-size: 14px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.18s;
+        }
+
+        .back-btn:active { background: var(--primary-surface); color: var(--primary); }
+
+        /* ===== DISCOUNT BADGE ===== */
+        .discount-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .badge-free { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+        .badge-half { background: #FFF8E1; color: #E65100; border: 1px solid #FFE082; }
+        .badge-caregiver { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+
+        /* ===== BARRIER FREE ICONS ===== */
+        .bf-icons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .bf-icon {
+            width: 24px; height: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--primary);
+            title: attr(data-tip);
+        }
+
+        /* ===== TOOLTIP ===== */
+        [data-tip] { position: relative; }
+
+        /* ===== ONBOARDING DOTS ===== */
+        .dot-indicator {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .dot-indicator.active { background: var(--primary); width: 20px; border-radius: 4px; }
+
+        /* Passcode */
+        .admin-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: var(--font-ja);
+            outline: none;
+        }
+        .admin-input:focus { border-color: var(--primary); }
+
+        /* Scrollable page sections */
+        .scrollable-page { overflow-y: auto; flex: 1; }
+
+        /* Logo */
+        .app-logo {
+            font-family: var(--font-en);
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 24px;
+            margin-bottom: 24px;
+        }
+
+        /* notification dot */
+        .notif-dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            position: absolute;
+            top: 8px; right: calc(50% - 18px);
+        }
+
+        @media (min-width: 768px) { .notif-dot { top: 50%; right: auto; left: 36px; } }
+
+        /* Loading skeleton */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="app-container">
-        <main class="page-container order-1 md:order-2">
-            
-            <div id="page-map" class="page active">
-                <div class="filter-bar">
-                    <div class="chip-scroll" id="map-chips"></div>
-                </div>
-                <button onclick="locateUserOnMap()" class="gps-btn"><i class="fas fa-location-crosshairs"></i></button>
-                <div id="map"></div>
-                <div class="sheet-wrapper">
-                    <div id="card-scroller" class="card-scroller"></div>
+<div id="app-container">
+
+    <main class="page-container" style="order:1">
+
+        <!-- ===== MAP PAGE ===== -->
+        <div id="page-map" class="page active">
+            <div class="filter-bar">
+                <!-- Category chips -->
+                <div class="chip-scroll" id="map-chips"></div>
+                <!-- Disability type chips -->
+                <div class="chip-scroll" id="map-disability-chips">
+                    <button class="chip chip-kondai active" onclick="toggleDisabilityFilter('physical', this)" aria-label="身体障害フィルター">
+                        <i class="fas fa-wheelchair"></i> 身体
+                    </button>
+                    <button class="chip chip-chiteki active" onclick="toggleDisabilityFilter('intellectual', this)" aria-label="知的障害フィルター">
+                        <i class="fas fa-brain"></i> 知的
+                    </button>
+                    <button class="chip chip-seishin active" onclick="toggleDisabilityFilter('mental', this)" aria-label="精神障害フィルター">
+                        <i class="fas fa-heart"></i> 精神
+                    </button>
+                    <button class="chip" id="chip-caregiver" onclick="toggleCaregiverFilter(this)" aria-label="同伴者割引フィルター">
+                        <i class="fas fa-user-friends"></i> 同伴者割引あり
+                    </button>
                 </div>
             </div>
+            <button onclick="locateUserOnMap()" class="gps-btn" aria-label="現在地を表示">
+                <i class="fas fa-location-crosshairs"></i>
+            </button>
+            <div id="map" role="application" aria-label="施設マップ"></div>
+            <div class="sheet-wrapper">
+                <div id="card-scroller" class="card-scroller" role="list" aria-label="施設カードリスト"></div>
+            </div>
+        </div>
 
-            <div id="page-list" class="page overflow-y-auto">
-                <div class="bg-white/95 backdrop-blur border-b border-slate-100 p-4 sticky top-0 z-20 list-header-padding">
-                    <div class="relative w-full mb-4">
-                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
-                        <input id="search-input" type="text" class="w-full bg-slate-100 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all" placeholder="施設名、エリアなどで検索" oninput="handleSearch(this.value)">
-                    </div>
-                    <div class="chip-scroll" id="list-chips"></div>
+        <!-- ===== LIST PAGE ===== -->
+        <div id="page-list" class="page" style="overflow:hidden">
+            <div class="list-header">
+                <div class="search-wrap">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input id="search-input" type="search" class="search-input"
+                        placeholder="施設名・エリアで検索"
+                        oninput="handleSearch(this.value)"
+                        aria-label="施設を検索">
                 </div>
-                <div id="list-container" class="p-4 max-w-3xl mx-auto w-full list-container-padding"></div>
+                <div class="chip-scroll" id="list-chips" role="group" aria-label="ジャンルフィルター"></div>
             </div>
 
-            <div id="page-mylist" class="page overflow-y-auto">
-                 <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-6 py-4 flex flex-col gap-4 list-header-padding">
-                    <h1 class="text-2xl font-bold text-slate-800">保存済み</h1>
-                    <div class="segment-control w-full flex">
-                        <button onclick="switchListTab('fav')" id="tab-fav" class="segment-btn active flex-1"><i class="fas fa-bookmark mr-1"></i> 行きたい</button>
-                        <button onclick="switchListTab('visited')" id="tab-visited" class="segment-btn flex-1"><i class="fas fa-check-circle mr-1"></i> 行った</button>
-                    </div>
+            <!-- Profile banner (オンボーディング誘導) -->
+            <div id="profile-banner" class="profile-banner" onclick="openProfileModal()" role="button" tabindex="0" aria-label="マイ手帳情報を登録">
+                <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                    <i class="fas fa-id-card"></i>
                 </div>
-                <div id="mylist-container" class="p-4 max-w-3xl mx-auto w-full"></div>
-                
-                <div class="p-6 border-t mt-auto bg-surface list-container-padding">
-                    <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">設定・データ管理</h3>
-                    <div class="flex gap-3 mb-6">
-                        <button onclick="openBackupModal('export')" class="flex-1 py-3 bg-white border border-outline rounded-xl text-sm font-semibold text-slate-600 shadow-sm"><i class="fas fa-arrow-up-right-from-square mr-2"></i>バックアップ</button>
-                        <button onclick="openBackupModal('import')" class="flex-1 py-3 bg-white border border-outline rounded-xl text-sm font-semibold text-slate-600 shadow-sm"><i class="fas fa-download mr-2"></i>データ復元</button>
-                    </div>
-                    
-                    <div class="border-t border-outline pt-6">
-                        <div id="passcode-area" class="flex flex-col gap-2">
-                            <p class="text-xs font-semibold text-slate-500">開発者モード</p>
-                            <div class="flex gap-2">
-                                <input type="password" id="admin-passcode" placeholder="Passcode" class="border border-outline rounded-xl px-3 py-2 text-sm flex-1 focus:outline-none focus:border-primary">
-                                <button onclick="checkAdminPasscode()" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold">ロック解除</button>
-                            </div>
+                <div style="flex:1">
+                    <div style="font-size:13px;font-weight:900;margin-bottom:2px;">マイ手帳情報を登録すると便利</div>
+                    <div style="font-size:11px;opacity:0.85;">条件に合う割引を自動でハイライト表示します</div>
+                </div>
+                <i class="fas fa-chevron-right" style="opacity:0.7;font-size:14px;"></i>
+            </div>
+
+            <div id="list-page-body" class="list-page-scroll">
+                <div id="list-container" class="list-container" role="list" aria-live="polite"></div>
+            </div>
+        </div>
+
+        <!-- ===== MYLIST PAGE ===== -->
+        <div id="page-mylist" class="page" style="overflow:hidden">
+            <div class="mylist-header">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <h1 style="font-size:22px;font-weight:900;color:var(--text-primary);">保存済み</h1>
+                    <button onclick="openProfileModal()" style="display:flex;align-items:center;gap:8px;background:var(--primary-surface);border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);padding:7px 12px;font-size:12px;font-weight:700;color:var(--primary);font-family:var(--font-ja);cursor:pointer;">
+                        <i class="fas fa-id-card"></i> マイ手帳
+                    </button>
+                </div>
+                <div class="seg-control">
+                    <button onclick="switchListTab('fav')" id="tab-fav" class="seg-btn active">
+                        <i class="fas fa-bookmark"></i> 行きたい
+                    </button>
+                    <button onclick="switchListTab('visited')" id="tab-visited" class="seg-btn">
+                        <i class="fas fa-check-circle"></i> 行った
+                    </button>
+                </div>
+            </div>
+            <div class="scrollable-page" style="padding-bottom: calc(80px + env(safe-area-inset-bottom));">
+                <div id="mylist-container" class="list-container" role="list"></div>
+                <div class="settings-section">
+                    <div class="settings-label">データ管理</div>
+                    <button class="settings-btn" onclick="openBackupModal('export')">
+                        <i class="fas fa-arrow-up-from-bracket"></i>
+                        <span>データをバックアップ</span>
+                        <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></i>
+                    </button>
+                    <button class="settings-btn" onclick="openBackupModal('import')">
+                        <i class="fas fa-download"></i>
+                        <span>データを復元</span>
+                        <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></i>
+                    </button>
+                    <button class="settings-btn" onclick="openFeedbackModal()">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>情報の修正・フィードバック</span>
+                        <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></i>
+                    </button>
+
+                    <div id="passcode-area" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                        <div class="settings-label">開発者モード</div>
+                        <div style="display:flex;gap:8px;">
+                            <input type="password" id="admin-passcode" placeholder="Passcode" class="admin-input">
+                            <button onclick="checkAdminPasscode()" style="background:var(--text-primary);color:white;border:none;border-radius:var(--radius-sm);padding:10px 16px;font-size:13px;font-weight:700;font-family:var(--font-ja);cursor:pointer;">解除</button>
                         </div>
-                        <div id="csv-admin-controls" class="hidden mt-4 bg-teal-50 border border-teal-100 rounded-2xl p-4">
-                            <p class="text-xs font-bold text-teal-800 mb-3"><i class="fas fa-unlock-alt mr-1"></i> Unlock: Admin Tools</p>
-                            <div class="flex gap-2">
-                                <button onclick="downloadCSV()" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold flex-1 shadow-sm">CSV出力</button>
-                                <label class="px-4 py-2 bg-white border border-primary text-primary rounded-xl text-sm font-bold flex-1 cursor-pointer flex items-center justify-center shadow-sm">
-                                    CSV読込 <input type="file" accept=".csv" class="hidden" onchange="handleCSVUpload(this)">
-                                </label>
-                            </div>
+                    </div>
+                    <div id="csv-admin-controls" style="display:none;margin-top:12px;background:var(--primary-surface);border:1.5px solid var(--primary-light);border-radius:var(--radius-md);padding:16px;">
+                        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:12px;"><i class="fas fa-unlock-alt mr-1"></i> Admin Tools</div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="downloadCSV()" class="btn-primary" style="font-size:13px;padding:10px 16px;">CSV出力</button>
+                            <label style="flex:1;padding:10px 16px;background:white;border:1.5px solid var(--primary);border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:var(--primary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-ja);">
+                                CSV読込 <input type="file" accept=".csv" style="display:none;" onchange="handleCSVUpload(this)">
+                            </label>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
 
-        <nav class="nav-container order-2 md:order-1">
-            <div class="hidden md:flex px-6 mb-8 text-primary font-black text-2xl items-center"><i class="fas fa-universal-access mr-3"></i>HandiMap</div>
-            <div class="nav-item active" onclick="switchPage('map')" id="nav-map"><i class="fas fa-map"></i><span>マップ</span></div>
-            <div class="nav-item" onclick="switchPage('list')" id="nav-list"><i class="fas fa-search"></i><span>探す</span></div>
-            <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist"><i class="fas fa-bookmark"></i><span>保存済み</span></div>
-        </nav>
+    </main>
+
+    <!-- ===== NAVIGATION ===== -->
+    <nav class="nav-container" style="order:2" role="navigation" aria-label="メインナビゲーション">
+        <div class="app-logo hidden md:flex"><i class="fas fa-universal-access"></i>HandiMap</div>
+        <div class="nav-item active" onclick="switchPage('map')" id="nav-map" role="tab" aria-selected="true" tabindex="0">
+            <i class="fas fa-map" aria-hidden="true"></i><span>マップ</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('list')" id="nav-list" role="tab" aria-selected="false" tabindex="0">
+            <i class="fas fa-search" aria-hidden="true"></i><span>探す</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('mylist')" id="nav-mylist" role="tab" aria-selected="false" tabindex="0">
+            <i class="fas fa-bookmark" aria-hidden="true"></i><span>保存済み</span>
+        </div>
+    </nav>
+</div>
+
+<!-- ===== NAVIGATION APP SELECT MODAL ===== -->
+<div id="map-select-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="ナビアプリ選択">
+    <div class="modal-box">
+        <span class="modal-handle"></span>
+        <div class="modal-title"><i class="fas fa-route" style="color:var(--primary)"></i>経路アプリを選択</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            <button onclick="confirmNavigation('google')" style="padding:16px;border-radius:var(--radius-md);background:var(--surface);border:1.5px solid var(--border);font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:14px;font-family:var(--font-ja);cursor:pointer;transition:all 0.18s;">
+                <span style="width:36px;height:36px;background:#4285F4;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;"><i class="fab fa-google"></i></span>
+                Google マップ
+            </button>
+            <button onclick="confirmNavigation('default')" style="padding:16px;border-radius:var(--radius-md);background:var(--surface);border:1.5px solid var(--border);font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:14px;font-family:var(--font-ja);cursor:pointer;transition:all 0.18s;">
+                <span style="width:36px;height:36px;background:#34C759;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;"><i class="fas fa-map-marked-alt"></i></span>
+                標準マップアプリ
+            </button>
+        </div>
+        <button onclick="closeModal('map-select-modal')" class="btn-ghost">キャンセル</button>
     </div>
+</div>
 
-    <div id="map-select-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 class="text-lg font-bold mb-6 text-slate-800">経路アプリの選択</h3>
-            <div class="flex flex-col gap-3 mb-6">
-                <button onclick="confirmNavigation('google')" class="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 font-bold text-slate-700 flex items-center transition-colors"><i class="fab fa-google text-blue-500 text-xl mr-4"></i>Google Maps</button>
-                <button onclick="confirmNavigation('default')" class="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 font-bold text-slate-700 flex items-center transition-colors"><i class="fas fa-map-marked-alt text-green-500 text-xl mr-4"></i>標準マップアプリ</button>
+<!-- ===== BACKUP MODAL ===== -->
+<div id="backup-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-box">
+        <span class="modal-handle"></span>
+        <div class="modal-title" id="backup-title"></div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.7;">このコードを保存・共有することで、別の端末にデータを引き継げます。</p>
+        <textarea id="backup-text" class="feedback-textarea" spellcheck="false" aria-label="バックアップコード"></textarea>
+        <button id="backup-action-btn" class="btn-primary" style="margin-top:12px;"></button>
+        <button onclick="closeModal('backup-modal')" class="btn-ghost">閉じる</button>
+    </div>
+</div>
+
+<!-- ===== REGION MODAL ===== -->
+<div id="region-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="地域選択">
+    <div class="modal-box" style="max-height:88dvh;padding:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+        <div style="padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div class="modal-title" style="margin-bottom:0;">
+                <i class="fas fa-map-marker-alt" style="color:var(--primary)"></i> 他の地域から探す
             </div>
-            <button onclick="closeModal('map-select-modal')" class="font-bold text-slate-400 w-full py-2">キャンセル</button>
+            <button onclick="closeModal('region-modal')" style="width:32px;height:32px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:13px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="region-accordion-container" style="overflow-y:auto;flex:1;padding:12px 20px;"></div>
+        <div style="padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);flex-shrink:0;">
+            <button onclick="locateUserAndSearch()" class="btn-primary" style="background:white;color:var(--primary);border:2px solid var(--primary);">
+                <i class="fas fa-location-crosshairs"></i> 現在地からマップで探す
+            </button>
         </div>
     </div>
+</div>
 
-    <div id="backup-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 id="backup-title" class="text-lg font-bold mb-2 text-slate-800">データ管理</h3>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">このコードを保存・共有することで、別の端末にデータを引き継げます。</p>
-            <textarea id="backup-text" class="w-full h-32 p-3 bg-slate-50 border border-outline rounded-xl text-xs mb-4 font-mono focus:outline-none focus:border-primary text-slate-600" spellcheck="false"></textarea>
-            <button id="backup-action-btn" class="w-full bg-primary text-white py-3 rounded-xl font-bold mb-3 shadow-sm hover:bg-teal-700 transition-colors">実行</button>
-            <button onclick="closeModal('backup-modal')" class="font-bold text-slate-400 w-full py-2">閉じる</button>
-        </div>
-    </div>
+<!-- ===== PROFILE MODAL ===== -->
+<div id="profile-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="マイ手帳情報">
+    <div class="modal-box">
+        <span class="modal-handle"></span>
+        <div class="modal-title"><i class="fas fa-id-card" style="color:var(--primary)"></i>マイ手帳情報</div>
+        <p style="font-size:12px;color:var(--text-muted);margin:-10px 0 18px;line-height:1.7;">登録すると、あなたの手帳で使える割引施設が自動でハイライトされます。</p>
 
-    <div id="region-modal" class="modal-overlay">
-        <div class="modal-box !p-0 !w-[92%] !max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-            <div class="flex justify-between items-center p-5 border-b border-outline bg-white shrink-0">
-                <h3 class="text-lg font-bold text-slate-800">他の地域から探す</h3>
-                <button onclick="closeModal('region-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 active:bg-slate-200 transition-colors"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="overflow-y-auto" id="region-accordion-container">
+        <div class="profile-section">
+            <div class="profile-section-title">手帳の種類（複数選択可）</div>
+            <div class="toggle-grid">
+                <div class="toggle-item" id="ptype-physical" onclick="toggleProfileType('physical')">
+                    <i class="fas fa-wheelchair"></i> 身体障害者手帳
                 </div>
-            <div class="p-4 border-t border-outline bg-white shrink-0">
-                <button onclick="locateUserAndSearch()" class="w-full py-3.5 bg-white border border-primary text-primary rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors hover:bg-teal-50 active:scale-[0.98]">
-                    <i class="fas fa-location-crosshairs"></i> 現在地からマップで探す
-                </button>
+                <div class="toggle-item" id="ptype-intellectual" onclick="toggleProfileType('intellectual')">
+                    <i class="fas fa-brain"></i> 療育手帳
+                </div>
+                <div class="toggle-item" id="ptype-mental" onclick="toggleProfileType('mental')">
+                    <i class="fas fa-heart"></i> 精神障害者保健福祉手帳
+                </div>
             </div>
         </div>
-    </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
+        <div class="profile-section">
+            <div class="profile-section-title">等級</div>
+            <select class="grade-select" id="profile-grade" aria-label="等級を選択">
+                <option value="">等級を選択（任意）</option>
+                <option value="1">1級</option>
+                <option value="2">2級</option>
+                <option value="3">3級</option>
+                <option value="4">4級</option>
+                <option value="5">5級</option>
+                <option value="6">6級</option>
+            </select>
+        </div>
+
+        <div class="profile-section">
+            <div class="profile-section-title">同伴者</div>
+            <div class="toggle-grid" style="grid-template-columns:repeat(2,1fr);">
+                <div class="toggle-item" id="ptype-solo" onclick="toggleCaregiverMode('solo')">
+                    <i class="fas fa-user"></i> 1人で行く
+                </div>
+                <div class="toggle-item" id="ptype-with" onclick="toggleCaregiverMode('with')">
+                    <i class="fas fa-user-friends"></i> 同伴者と行く
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="saveProfile()"><i class="fas fa-check"></i> 保存する</button>
+        <button onclick="closeModal('profile-modal')" class="btn-ghost">閉じる</button>
+    </div>
+</div>
+
+<!-- ===== FEEDBACK MODAL ===== -->
+<div id="feedback-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="情報修正・フィードバック">
+    <div class="modal-box">
+        <span class="modal-handle"></span>
+        <div class="modal-title"><i class="fas fa-comment-dots" style="color:var(--primary)"></i>情報修正・フィードバック</div>
+        <p style="font-size:12px;color:var(--text-muted);margin:-10px 0 18px;line-height:1.7;">「割引内容が変わっていた」「車椅子でのアクセス方法が違う」など、気づいたことをお寄せください。</p>
+
+        <div style="margin-bottom:14px;">
+            <div class="profile-section-title" style="margin-bottom:8px;">施設名（任意）</div>
+            <input type="text" id="feedback-facility" placeholder="例：東京国立博物館" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font-ja);outline:none;" aria-label="施設名">
+        </div>
+
+        <div style="margin-bottom:14px;">
+            <div class="profile-section-title" style="margin-bottom:8px;">報告内容の種類</div>
+            <div class="toggle-grid" style="grid-template-columns:repeat(2,1fr);">
+                <div class="toggle-item" id="fb-price" onclick="toggleFbType('price')" style="font-size:11px;">
+                    <i class="fas fa-tag"></i> 料金・割引の変更
+                </div>
+                <div class="toggle-item" id="fb-bf" onclick="toggleFbType('bf')" style="font-size:11px;">
+                    <i class="fas fa-wheelchair"></i> バリアフリー情報
+                </div>
+                <div class="toggle-item" id="fb-closed" onclick="toggleFbType('closed')" style="font-size:11px;">
+                    <i class="fas fa-door-closed"></i> 閉店・廃業
+                </div>
+                <div class="toggle-item" id="fb-other" onclick="toggleFbType('other')" style="font-size:11px;">
+                    <i class="fas fa-ellipsis-h"></i> その他
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <div class="profile-section-title" style="margin-bottom:8px;">詳細（任意）</div>
+            <textarea id="feedback-text" class="feedback-textarea" placeholder="詳しい内容を教えてください..." aria-label="フィードバックの詳細"></textarea>
+        </div>
+
+        <button class="btn-primary" onclick="submitFeedback()"><i class="fas fa-paper-plane"></i> 送信する</button>
+        <button onclick="closeModal('feedback-modal')" class="btn-ghost">閉じる</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ==========================================
+// DATA
+// ==========================================
+const MASTER_CSV = `ID,施設名,都道府県,エリア,ジャンル,料金,住所,URL,緯度,経度
 1001,旭川市旭山動物園,北海道,旭川市,zoo,本人と介護者1名無料,北海道旭川市東旭川町倉沼,,43.7684,142.48
 1002,札幌市円山動物園,北海道,札幌市,zoo,本人と介護者1名無料,北海道札幌市中央区宮ヶ丘3番地1,,43.0526,141.3082
 1003,北海道開拓の村,北海道,札幌市,museum,本人と介護者1名無料,北海道札幌市厚別区厚別町小野幌50-1,,43.0493,141.4983
@@ -317,610 +1309,727 @@
 1102,チームラボプラネッツ TOKYO DMM,東京都,江東区,museum,障がい者割引チケットあり（約半額〜）,東京都江東区豊洲6-1-16,,35.6469,139.7942
 1103,レゴランド・ディスカバリー・センター東京,東京都,港区,park,障がい者割引チケットあり,東京都港区台場1-6-1,,35.6289,139.7763
 1104,スモールワールズ,東京都,江東区,museum,本人・介助者1名まで割引,東京都江東区有明1-3-33,,35.6378,139.7883
-1105,アートアクアリウム美術館 GINZA,東京都,中央区,museum,本人・介助者1名まで割引,東京都中央区銀座4-6-16,,35.6713,139.7661
-1106,北海道神宮,北海道,札幌市,レジャー,拝観料無料（全員）,北海道札幌市中央区宮ケ丘474,http://www.hokkaidojingu.or.jp/,,,
-1107,成田山札幌別院,北海道,札幌市,レジャー,拝観料無料（全員）,北海道札幌市中央区南7条西3丁目2,https://sapporo-naritasan.jp/index.html,,,
-1108,トラピスチヌ修道院,北海道,函館市,leisure,拝観料無料（全員）,北海道函館市上湯川町346,http://www.ocso-tenshien.jp/,,,
-1109,レゴランド・ジャパン,愛知県,名古屋市,レジャー,本人・介助者1名割引（同伴者無料）,愛知県名古屋市港区金城ふ頭二丁目2番地1,https://www.legoland.jp/,,,
-1110,熱田神宮 宝物館,愛知県,名古屋市,museum,本人のみ、または小幅割引,愛知県名古屋市熱田区神宮1-1-1 ,https://www.atsutajingu.or.jp/houmotukan_kusanagi/houmotukan/,,,
-1111,大須観音,愛知県,名古屋市,レジャー,拝観料無料（全員）,愛知県名古屋市中区大須2丁目21−47,https://www.osu-kannon.jp/,,,
-1112,覚王山日泰寺,愛知県,名古屋市,レジャー,拝観料無料（全員）,愛知県名古屋市千種区法王町1丁目1,https://www.nittaiji.or.jp/,,,
-1113,八事山興正寺,愛知県,名古屋市,レジャー,拝観料無料（全員）,愛知県名古屋市昭和区八事本町78,https://www.koushoji.or.jp/,,,
-1114,南禅寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市左京区南禅寺福地町86,https://nanzenji.or.jp/,,,
-1115,清水寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市東山区清水1丁目294,https://www.kiyomizudera.or.jp/,,,
-1116,東福寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市東山区本町15丁目778,https://tofukuji.jp/,,,
-1117,醍醐寺,京都府,京都市,レジャー,本人と介助者1名無料,京都府京都市伏見区醍醐東大路町22,https://www.daigoji.or.jp/?utm_source=googlemybusiness&utm_medium=cpv&utm_campaign=20190601,,,
-1118,仁和寺,京都府,京都市,レジャー,本人のみ無料,京都府京都市右京区御室大内３３,https://ninnaji.jp/,,,
-1119,三十三間堂,京都府,京都市,レジャー,本人・介助者1名割引（同伴者無料）,京都府京都市東山区三十三間堂廻り657,https://www.sanjusangendo.jp/,,,
-1120,龍安寺,京都府,京都市,レジャー,本人・介助者1名割引（同伴者無料）,京都府京都市右京区龍安寺御陵ノ下町13,http://www.ryoanji.jp/top.html,,,
-1121,天龍寺,京都府,京都市,レジャー,本人・介助者1名割引（同伴者無料）,京都府京都市右京区嵯峨天龍寺芒ノ馬場町68,https://www.tenryuji.com/,,,
-1122,金閣寺,京都府,京都市,レジャー,本人のみ、または小幅割引,京都府京都市北区金閣寺町1,https://www.shokoku-ji.jp/kinkakuji/,,,
-1123,銀閣寺,京都府,京都市,レジャー,本人のみ、または小幅割引,京都府京都市左京区銀閣寺町2,https://www.shokoku-ji.jp/ginkakuji/,,,
-1124,新薬師寺,奈良県,奈良市,レジャー,本人のみ入園料無料,奈良県奈良市高畑町1352,https://www.shinyakushiji.or.jp/,,,
-1125,東大寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市雑司町406−1,https://www.todaiji.or.jp/,,,
-1126,興福寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市登大路町48,https://www.kohfukuji.com/,,,
-1127,法隆寺,奈良県,生駒郡,レジャー,本人・介助者1名割引（同伴者無料）,奈良県生駒郡斑鳩町法隆寺山内1-1,https://www.horyuji.or.jp/,,,
-1128,薬師寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市西ノ京町457,https://yakushiji.or.jp/,,,
-1129,唐招提寺,奈良県,奈良市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県奈良市五条町13−46,https://www.toshodaiji.jp/,,,
-1130,長谷寺,奈良県,桜井市,レジャー,本人・介助者1名割引（同伴者無料）,奈良県桜井市初瀬731−1,https://www.hasedera.or.jp/,,,
-1131,太宰府天満宮 宝物殿,福岡県,太宰府市,レジャー,本人・介助者1名割引（同伴者無料）,福岡県太宰府市宰府4丁目7−1,https://www.dazaifutenmangu.or.jp/keidaiannai/houmotsuden,,,
-1132,観世音寺 宝蔵,福岡県,太宰府市,レジャー,本人・介助者1名割引（同伴者無料）,福岡県太宰府市観世音寺5丁目6−1,https://www.kanzeonjihouzou.com/,,,
-1133,東長寺,福岡県,福岡市,レジャー,拝観料無料（全員）,福岡県福岡市博多区御供所町2−4,https://www.tochoji.net/,,,
-1134,南蔵院,福岡県,糟屋郡,レジャー,拝観料無料（全員）,福岡県糟屋郡篠栗町大字篠栗1035,https://nanzoin.net/,,,
-1135,如意輪寺,福岡県,小郡市,レジャー,拝観料無料（全員）,福岡県小郡市横隈1728,https://www.crossroadfukuoka.jp/spot/10256,,,
-1136,宮地嶽神社,福岡県,福津市,レジャー,拝観料無料（全員）,福岡県福津市宮司元町7-1,https://www.miyajidake.or.jp/,,,
-1137,今帰仁城跡,沖縄県,国頭郡,レジャー,本人・介助者1名無料,沖縄県国頭郡今帰仁村今泊5101,https://www.nakijinjoseki-osi.jp/,,,
-1138,斎場御嶽,沖縄県,南城市,レジャー,本人のみ入園料無料,沖縄県南城市知念久手堅539,https://okinawa-nanjo.jp/sefa/,,,
-1139,JUNGLIA,沖縄県,国頭郡,レジャー,本人・介助者1名割引（同伴者無料）,沖縄県国頭郡今帰仁村呉我山,https://junglia.jp/,,,
-1140,DMMかりゆし水族館,沖縄県,豊見城市,水族館,本人・介助者1名割引（同伴者無料）,沖縄県豊見城市豊崎3−35,https://kariyushi-aquarium.com/,,,
-1141,波上宮,沖縄県,那覇市,レジャー,拝観料無料（全員）,沖縄県那覇市若狭1丁目25−11,https://naminouegu.jp/,,,`;
+1105,アートアクアリウム美術館 GINZA,東京都,中央区,museum,本人・介助者1名まで割引,東京都中央区銀座4-6-16,,35.6713,139.7661`;
 
-        // Configurations
-        const CATEGORIES = {
-            'leisure': { label: '遊園地', icon: 'fa-ticket-alt', color: '#8B5CF6' },
-            'aquarium': { label: '水族館', icon: 'fa-fish', color: '#0EA5E9' },
-            'zoo': { label: '動物園', icon: 'fa-paw', color: '#F59E0B' },
-            'museum': { label: '博物館', icon: 'fa-landmark', color: '#EC4899' },
-            'park': { label: '公園', icon: 'fa-tree', color: '#10B981' },
-            'cinema': { label: '映画館', icon: 'fa-film', color: '#F43F5E' }
+// ==========================================
+// CONFIG
+// ==========================================
+const CATEGORIES = {
+    'leisure': { label: '遊園地', icon: 'fa-ticket-alt', color: '#8B5CF6' },
+    'aquarium': { label: '水族館', icon: 'fa-fish', color: '#0EA5E9' },
+    'zoo':      { label: '動物園', icon: 'fa-paw', color: '#F59E0B' },
+    'museum':   { label: '博物館', icon: 'fa-landmark', color: '#EC4899' },
+    'park':     { label: '公園', icon: 'fa-tree', color: '#10B981' },
+    'cinema':   { label: '映画館', icon: 'fa-film', color: '#F43F5E' }
+};
+
+const PREF_IMAGES = {
+    '東京都':  'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&q=80',
+    '大阪府':  'https://images.unsplash.com/photo-1590559899731-a382839cecd5?w=400&q=80',
+    '愛知県':  'https://images.unsplash.com/photo-1581452479532-60182604df0a?w=400&q=80',
+    '福岡県':  'https://images.unsplash.com/photo-1623869502905-2d1d07c0ea22?w=400&q=80',
+    '北海道':  'https://images.unsplash.com/photo-1580499709776-6cb0cb9721be?w=400&q=80',
+    '神奈川県':'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&q=80',
+    '兵庫県':  'https://images.unsplash.com/photo-1572979203610-1845f448552d?w=400&q=80',
+    '京都府':  'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&q=80',
+};
+
+const REGIONS = {
+    '北海道・東北': ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県'],
+    '関東':         ['茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県'],
+    '東海・北陸':   ['新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県'],
+    '近畿':         ['三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県'],
+    '中国・四国':   ['鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県'],
+    '九州・沖縄':   ['福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県']
+};
+
+// バリアフリー情報（仮データ — 本来はCSVに列追加）
+const BF_INFO = {
+    1015: ['wheelchair', 'elevator', 'toilet'],
+    1016: ['wheelchair', 'elevator', 'toilet'],
+    1017: ['wheelchair', 'toilet'],
+    1092: ['wheelchair', 'elevator', 'toilet'],
+    1093: ['wheelchair', 'elevator'],
+    1036: ['wheelchair', 'toilet'],
+    1033: ['wheelchair', 'elevator', 'toilet'],
+};
+
+const BF_ICONS = {
+    wheelchair: { icon: 'fa-wheelchair', label: '車椅子対応' },
+    elevator:   { icon: 'fa-arrow-up', label: 'エレベーター' },
+    toilet:     { icon: 'fa-restroom', label: '多目的トイレ' },
+    sign:       { icon: 'fa-sign-language', label: '手話対応' },
+};
+
+// ==========================================
+// STATE
+// ==========================================
+let map, markers = {};
+let userStatus = {};
+try { userStatus = JSON.parse(localStorage.getItem('handimap_v3')) || {}; } catch(e) {}
+let userProfile = {};
+try { userProfile = JSON.parse(localStorage.getItem('handimap_profile')) || {}; } catch(e) {}
+
+let userCurrentPos = null;
+let activeListCategory = 'all';
+let activePref = null;
+let searchQuery = '';
+let activeMapCategories = new Set(Object.keys(CATEGORIES));
+let activeDisabilityFilters = new Set(['physical','intellectual','mental']);
+let filterCaregiverOnly = false;
+let currentListTab = 'fav';
+let facilitiesData = [];
+let isMapFlying = false;
+let scrollTimeout;
+let activeFbTypes = new Set();
+
+// ==========================================
+// INIT
+// ==========================================
+window.onload = function() {
+    facilitiesData = parseCSV(MASTER_CSV);
+    renderFilterChips();
+    initMap();
+    renderList();
+    renderMyList();
+    updateProfileBanner();
+};
+
+function parseCSV(csv) {
+    return csv.trim().split('\n').slice(1).map(line => {
+        const [id,name,pref,area,catStr,price,addr,url,lat,lng] = line.split(',');
+        if(!name) return null;
+        return {
+            id: parseInt(id), name, pref, area,
+            category: normalizeCategory(catStr),
+            price, address: addr, url,
+            lat: lat ? parseFloat(lat) : null,
+            lng: lng ? parseFloat(lng) : null
         };
+    }).filter(Boolean);
+}
 
-        const PREF_IMAGES = {
-            '東京都': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&q=80',
-            '大阪府': 'https://images.unsplash.com/photo-1590559899731-a382839cecd5?w=400&q=80',
-            '愛知県': 'https://images.unsplash.com/photo-1581452479532-60182604df0a?w=400&q=80',
-            '福岡県': 'https://images.unsplash.com/photo-1623869502905-2d1d07c0ea22?w=400&q=80',
-            '北海道': 'https://images.unsplash.com/photo-1580499709776-6cb0cb9721be?w=400&q=80',
-            '神奈川県': 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&q=80',
-            '兵庫県': 'https://images.unsplash.com/photo-1572979203610-1845f448552d?w=400&q=80',
-            '京都府': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&q=80',
-        };
+function normalizeCategory(s) {
+    s = (s||'').toLowerCase().trim();
+    if(s==='leisure'||s==='レジャー'||s==='遊園地') return 'leisure';
+    if(s==='aquarium'||s==='水族館') return 'aquarium';
+    if(s==='zoo'||s==='動物園') return 'zoo';
+    if(s==='museum'||s==='博物館'||s==='美術館') return 'museum';
+    if(s==='park'||s==='公園') return 'park';
+    if(s==='cinema'||s==='映画館') return 'cinema';
+    return 'leisure';
+}
 
-        const REGIONS = {
-            '北海道・東北': ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県'],
-            '関東': ['茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県'],
-            '東海・北陸': ['新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県', '静岡県', '愛知県'],
-            '近畿': ['三重県', '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県'],
-            '中国・四国': ['鳥取県', '島根県', '岡山県', '広島県', '山口県', '徳島県', '香川県', '愛媛県', '高知県'],
-            '九州・沖縄': ['福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県']
-        };
+// ==========================================
+// FILTER CHIPS
+// ==========================================
+function renderFilterChips() {
+    const mapHtml = Object.keys(CATEGORIES).map(k =>
+        `<button class="chip active" onclick="toggleMapFilter('${k}',this)" aria-pressed="true" aria-label="${CATEGORIES[k].label}フィルター">
+            <i class="fas ${CATEGORIES[k].icon}" aria-hidden="true"></i> ${CATEGORIES[k].label}
+        </button>`
+    ).join('');
+    document.getElementById('map-chips').innerHTML = mapHtml;
 
-        let map, markers = {};
-        let userStatus = JSON.parse(localStorage.getItem('handimap_v2')) || {};
-        let userCurrentPos = null;
-        
-        let activeListCategory = 'all';
-        let activePref = null; // 現在選択されている都道府県
-        let searchQuery = "";
-        
-        let activeMapCategories = new Set(Object.keys(CATEGORIES));
-        let currentListTab = 'fav';
-        let facilitiesData = [];
-        let isMapFlying = false;
-        let scrollTimeout;
+    const listHtml = `<button class="chip active" onclick="applyListFilter('all',this)" aria-pressed="true"><i class="fas fa-layer-group" aria-hidden="true"></i> すべて</button>` +
+        Object.keys(CATEGORIES).map(k =>
+            `<button class="chip" onclick="applyListFilter('${k}',this)" aria-pressed="false" aria-label="${CATEGORIES[k].label}フィルター">
+                <i class="fas ${CATEGORIES[k].icon}" aria-hidden="true"></i> ${CATEGORIES[k].label}
+            </button>`
+        ).join('');
+    document.getElementById('list-chips').innerHTML = listHtml;
+}
 
-        function normalizeCategory(catStr) {
-            const s = catStr.toLowerCase().trim();
-            if (s === 'leisure' || s === 'レジャー' || s === '遊園地') return 'leisure';
-            if (s === 'aquarium' || s === '水族館') return 'aquarium';
-            if (s === 'zoo' || s === '動物園') return 'zoo';
-            if (s === 'museum' || s === '博物館' || s === '美術館') return 'museum';
-            if (s === 'park' || s === '公園') return 'park';
-            if (s === 'cinema' || s === '映画館' || s === '映画') return 'cinema';
-            return 'leisure';
+// ==========================================
+// DISABILITY FILTER
+// ==========================================
+function toggleDisabilityFilter(type, btn) {
+    if(activeDisabilityFilters.has(type)) {
+        activeDisabilityFilters.delete(type);
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed','false');
+    } else {
+        activeDisabilityFilters.add(type);
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed','true');
+    }
+    updateVisibleSpots();
+}
+
+function toggleCaregiverFilter(btn) {
+    filterCaregiverOnly = !filterCaregiverOnly;
+    btn.classList.toggle('active', filterCaregiverOnly);
+    btn.setAttribute('aria-pressed', filterCaregiverOnly ? 'true' : 'false');
+    updateVisibleSpots();
+}
+
+function hasCaregiverDiscount(spot) {
+    const p = spot.price || '';
+    return p.includes('介護者') || p.includes('介助者') || p.includes('付添人') || p.includes('同伴') || p.includes('名まで');
+}
+
+// ==========================================
+// PROFILE
+// ==========================================
+function updateProfileBanner() {
+    const banner = document.getElementById('profile-banner');
+    if(userProfile.types && userProfile.types.length > 0) {
+        banner.classList.add('hidden-banner');
+    } else {
+        banner.classList.remove('hidden-banner');
+    }
+}
+
+function openProfileModal() {
+    // Populate from saved data
+    ['physical','intellectual','mental'].forEach(t => {
+        const el = document.getElementById(`ptype-${t}`);
+        if(el) el.classList.toggle('active', !!(userProfile.types && userProfile.types.includes(t)));
+    });
+    if(userProfile.caregiver) {
+        document.getElementById(`ptype-${userProfile.caregiver}`)?.classList.add('active');
+    }
+    if(userProfile.grade) {
+        document.getElementById('profile-grade').value = userProfile.grade;
+    }
+    document.getElementById('profile-modal').classList.add('show');
+}
+
+function toggleProfileType(t) {
+    document.getElementById(`ptype-${t}`).classList.toggle('active');
+}
+
+function toggleCaregiverMode(mode) {
+    ['solo','with'].forEach(m => document.getElementById(`ptype-${m}`)?.classList.remove('active'));
+    document.getElementById(`ptype-${mode}`)?.classList.add('active');
+}
+
+function saveProfile() {
+    const types = ['physical','intellectual','mental'].filter(t => document.getElementById(`ptype-${t}`)?.classList.contains('active'));
+    const caregiver = ['solo','with'].find(m => document.getElementById(`ptype-${m}`)?.classList.contains('active'));
+    const grade = document.getElementById('profile-grade').value;
+    userProfile = { types, caregiver, grade };
+    localStorage.setItem('handimap_profile', JSON.stringify(userProfile));
+    updateProfileBanner();
+    closeModal('profile-modal');
+    // 軽いフィードバック
+    showToast('マイ手帳情報を保存しました');
+}
+
+// ==========================================
+// TOAST
+// ==========================================
+function showToast(msg) {
+    let t = document.getElementById('toast');
+    if(!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1A2332;color:white;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:700;z-index:99999;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;font-family:var(--font-ja);';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+
+// ==========================================
+// LIST (探す) RENDERING
+// ==========================================
+function renderList() {
+    const container = document.getElementById('list-container');
+    const q = searchQuery.toLowerCase().replace(/　/g,' ').trim();
+
+    let targets = facilitiesData.filter(f => {
+        if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
+        if(activePref && f.pref !== activePref) return false;
+        if(q) {
+            const str = `${f.name} ${f.pref} ${f.area} ${f.address} ${CATEGORIES[f.category]?.label||''}`.toLowerCase();
+            return q.split(' ').every(term => str.includes(term));
         }
+        return true;
+    });
 
-        window.onload = function() {
-            facilitiesData = parseCSV(MASTER_CSV);
-            renderFilterChips();
-            initMap();
-            renderList();
-            renderMyList();
-        };
+    const isDefault = !q && activeListCategory === 'all' && !activePref;
+    if(isDefault) {
+        renderRegionHome(container);
+    } else {
+        renderFacilityList(container, targets, q);
+    }
+}
 
-        function parseCSV(csv) {
-            return csv.trim().split('\n').slice(1).map(line => {
-                const [id,name,pref,area,catStr,price,addr,url,lat,lng] = line.split(',');
-                if(!name) return null;
-                return { 
-                    id: parseInt(id), name, pref, area, category: normalizeCategory(catStr), 
-                    price, address: addr, url, 
-                    lat: lat ? parseFloat(lat) : null, lng: lng ? parseFloat(lng) : null 
-                };
-            }).filter(Boolean);
-        }
+function renderRegionHome(container) {
+    const topPrefs = ['東京都','大阪府','愛知県','福岡県','北海道','神奈川県','兵庫県','京都府'];
+    const counts = {};
+    facilitiesData.forEach(f => { counts[f.pref] = (counts[f.pref]||0)+1; });
 
-        function renderFilterChips() {
-            const mapChips = Object.keys(CATEGORIES).map(k => `<button class="chip active" onclick="toggleMapFilter('${k}', this)"><i class="fas ${CATEGORIES[k].icon}"></i> ${CATEGORIES[k].label}</button>`).join('');
-            document.getElementById('map-chips').innerHTML = mapChips;
-            
-            const listChips = `<button class="chip active" onclick="applyListFilter('all', this)"><i class="fas fa-layer-group"></i> すべて</button>` + 
-                Object.keys(CATEGORIES).map(k => `<button class="chip" onclick="applyListFilter('${k}', this)"><i class="fas ${CATEGORIES[k].icon}"></i> ${CATEGORIES[k].label}</button>`).join('');
-            document.getElementById('list-chips').innerHTML = listChips;
-        }
-
-        // ==========================================
-        // リスト（探す）画面の描画制御
-        // ==========================================
-        function renderList() {
-            const container = document.getElementById('list-container');
-            const q = searchQuery.toLowerCase().replace(/　/g, ' ').trim();
-            
-            let targets = facilitiesData.filter(f => {
-                if(activeListCategory !== 'all' && f.category !== activeListCategory) return false;
-                if(activePref && f.pref !== activePref) return false; 
-                if(q) {
-                    const str = `${f.name} ${f.pref} ${f.area} ${f.address} ${CATEGORIES[f.category].label}`.toLowerCase();
-                    const terms = q.split(' ');
-                    return terms.every(term => str.includes(term));
-                }
-                return true;
-            });
-
-            // 検索もカテゴリ選択も県選択もされていない初期状態は「地域から探す」UIを表示
-            const isDefaultState = !q && activeListCategory === 'all' && !activePref;
-
-            if (isDefaultState) {
-                renderRegionHome(container);
-            } else {
-                renderFacilityList(container, targets, q);
-            }
-        }
-
-        // トップ（地域から探す）ビューの描画
-        function renderRegionHome(container) {
-            const topPrefs = ['東京都', '大阪府', '愛知県', '福岡県', '北海道', '神奈川県', '兵庫県', '京都府'];
-            const counts = {};
-            facilitiesData.forEach(f => { counts[f.pref] = (counts[f.pref] || 0) + 1; });
-
-            const cardsHTML = topPrefs.map(pref => {
-                const count = counts[pref] || 0;
-                const shortName = pref === '北海道' ? pref : pref.replace(/(都|府|県)$/, '');
-                const imgUrl = PREF_IMAGES[pref] || 'https://images.unsplash.com/photo-1480796927426-f609979314bd?w=400&q=80';
-                
-                return `
-                    <div class="bg-white border border-outline rounded-xl shadow-sm flex items-center cursor-pointer transition-transform active:scale-95 h-[72px] overflow-hidden" onclick="selectPref('${pref}')">
-                        <img src="${imgUrl}" class="w-20 h-full object-cover shrink-0" loading="lazy" />
-                        <div class="flex-1 flex items-baseline justify-center gap-2 px-2">
-                            <span class="font-bold text-slate-800 text-[15px]">${shortName}</span>
-                            <span class="text-[11px] text-slate-400 font-semibold">${count}件</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = `
-                <h2 class="text-lg font-bold text-slate-800 mb-4 ml-1">地域から探す</h2>
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    ${cardsHTML}
-                    <div class="bg-white border border-outline rounded-xl shadow-sm flex items-center justify-center p-4 cursor-pointer transition-colors hover:bg-slate-50 h-[72px] col-span-2 relative" onclick="openRegionModal()">
-                        <span class="font-bold text-slate-700 text-sm"><i class="fas fa-map-marker-alt text-slate-400 mr-2"></i>他の地域から探す</span>
-                        <i class="fas fa-chevron-right text-slate-300 absolute right-5"></i>
-                    </div>
+    const cardsHTML = topPrefs.map(pref => {
+        const count = counts[pref]||0;
+        const shortName = pref==='北海道' ? pref : pref.replace(/(都|府|県)$/,'');
+        const img = PREF_IMAGES[pref]||'https://images.unsplash.com/photo-1480796927426-f609979314bd?w=400&q=80';
+        return `
+            <div class="region-card" onclick="selectPref('${pref}')" role="button" tabindex="0" aria-label="${pref}の施設を探す（${count}件）">
+                <img src="${img}" alt="${pref}" loading="lazy">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 10px;gap:2px;">
+                    <span style="font-size:15px;font-weight:900;color:var(--text-primary)">${shortName}</span>
+                    <span style="font-size:11px;color:var(--text-muted);font-weight:600">${count}件</span>
                 </div>
-            `;
-        }
+            </div>`;
+    }).join('');
 
-        // リスト（検索結果・県別）ビューの描画
-        function renderFacilityList(container, targets, q) {
-            let title = "すべての施設";
-            if (activePref) title = activePref === '北海道' ? activePref : activePref.replace(/(都|府|県)$/, '');
-            if (q) title = `「${searchQuery}」の検索結果`; 
-            if (activeListCategory !== 'all' && !q && !activePref) title = CATEGORIES[activeListCategory].label;
-            
-            const headerHTML = `
-                <div class="flex items-center gap-3 mb-4 py-1">
-                    <button onclick="clearSearchAndPref()" class="w-10 h-10 flex items-center justify-center bg-white border border-outline rounded-full text-slate-600 shadow-sm transition-transform active:scale-95 shrink-0">
-                        <i class="fas fa-arrow-left"></i>
+    container.innerHTML = `
+        <h2 style="font-size:16px;font-weight:900;color:var(--text-primary);margin-bottom:14px;">地域から探す</h2>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;">
+            ${cardsHTML}
+        </div>
+        <div class="region-card" style="grid-column:1/-1" onclick="openRegionModal()" role="button" tabindex="0" aria-label="他の地域から探す">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 16px;height:76px;">
+                <i class="fas fa-map-marker-alt" style="color:var(--primary);font-size:18px;"></i>
+                <span style="font-size:14px;font-weight:700;color:var(--text-secondary);">他の地域から探す</span>
+                <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:13px;margin-left:auto;"></i>
+            </div>
+        </div>`;
+}
+
+function renderFacilityList(container, targets, q) {
+    let title = 'すべての施設';
+    if(activePref) title = activePref==='北海道' ? activePref : activePref.replace(/(都|府|県)$/,'');
+    if(q) title = `「${searchQuery}」の検索結果`;
+    if(activeListCategory!=='all' && !q && !activePref) title = CATEGORIES[activeListCategory]?.label;
+
+    const header = `
+        <div class="back-header">
+            <button class="back-btn" onclick="clearSearchAndPref()" aria-label="一覧に戻る">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <h2 style="font-size:17px;font-weight:900;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${title} <span style="font-size:13px;font-weight:500;color:var(--text-muted);">${targets.length}件</span>
+            </h2>
+        </div>`;
+
+    if(targets.length === 0) {
+        container.innerHTML = header + `<div class="empty-state"><i class="fas fa-inbox"></i><p>施設が見つかりませんでした</p><small>別のキーワードや条件でお試しください</small></div>`;
+        return;
+    }
+
+    targets.sort((a,b) => (b.lat||0) - (a.lat||0));
+    container.innerHTML = header + targets.map(s => createListCardHTML(s)).join('');
+}
+
+function createListCardHTML(spot) {
+    const isFav = userStatus[spot.id]?.fav;
+    const isVisited = userStatus[spot.id]?.visited;
+    const cat = CATEGORIES[spot.category] || CATEGORIES['leisure'];
+    const bfInfo = BF_INFO[spot.id];
+
+    // Discount badge type
+    const priceLow = (spot.price||'').toLowerCase();
+    const isCaregiver = hasCaregiverDiscount(spot);
+    const isFree = priceLow.includes('無料');
+    const isHalf = priceLow.includes('半額') || priceLow.includes('割引') || priceLow.includes('割');
+
+    let badgeHTML = '';
+    if(isFree && isCaregiver) badgeHTML = `<span class="discount-badge badge-caregiver"><i class="fas fa-user-friends"></i>同伴者も無料</span>`;
+    else if(isFree) badgeHTML = `<span class="discount-badge badge-free"><i class="fas fa-tag"></i>本人無料</span>`;
+    else if(isHalf) badgeHTML = `<span class="discount-badge badge-half"><i class="fas fa-percent"></i>割引あり</span>`;
+
+    const bfHTML = bfInfo ? `
+        <div class="bf-icons">
+            ${bfInfo.map(k => `<div class="bf-icon" title="${BF_ICONS[k]?.label||k}" aria-label="${BF_ICONS[k]?.label||k}"><i class="fas ${BF_ICONS[k]?.icon||'fa-circle'}" aria-hidden="true"></i></div>`).join('')}
+        </div>` : '';
+
+    const mapBtn = spot.lat ? `<button onclick="jumpToMap(${spot.lat},${spot.lng},${spot.id});event.stopPropagation()" class="card-btn" aria-label="マップで表示"><i class="fas fa-map" aria-hidden="true"></i>地図</button>` : '';
+
+    return `
+        <div class="list-card" role="listitem" onclick="openExternalLink('${spot.url||''}','${spot.name.replace(/'/g,"\\'")}')">
+            <div style="display:flex;gap:14px;">
+                <div class="cat-icon" style="background:${cat.color}18;color:${cat.color}">
+                    <i class="fas ${cat.icon}" aria-hidden="true"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:5px;">
+                        <span style="font-size:10px;font-weight:700;color:var(--text-muted);">${cat.label}</span>
+                        <span style="font-size:10px;background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;color:var(--text-secondary);font-weight:600;">${spot.pref} ${spot.area}</span>
+                        ${badgeHTML}
+                    </div>
+                    <h3 style="font-size:15px;font-weight:900;color:var(--text-primary);line-height:1.3;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${spot.name}</h3>
+                    <p style="font-size:11px;color:var(--text-secondary);font-weight:600;line-height:1.5;">${spot.price}</p>
+                    ${bfHTML}
+                </div>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center;">
+                <button onclick="handleNav('${spot.name.replace(/'/g,"\\'")}',${spot.lat||0},${spot.lng||0});event.stopPropagation()" class="card-btn" aria-label="経路を表示"><i class="fas fa-location-arrow" aria-hidden="true"></i>経路</button>
+                ${mapBtn}
+                <div style="display:flex;gap:5px;margin-left:auto;">
+                    <button onclick="toggleFav(${spot.id});event.stopPropagation()" class="action-btn ${isFav?'active-fav':''}" aria-label="${isFav?'行きたいから削除':'行きたいに追加'}" aria-pressed="${isFav?'true':'false'}">
+                        <i class="fas fa-bookmark" aria-hidden="true"></i>
                     </button>
-                    <h2 class="text-lg font-bold text-slate-800 truncate">${title} <span class="text-sm font-medium text-slate-500 ml-2">${targets.length}件</span></h2>
+                    <button onclick="toggleVisited(${spot.id});event.stopPropagation()" class="action-btn ${isVisited?'active-visited':''}" aria-label="${isVisited?'行ったから削除':'行ったに追加'}" aria-pressed="${isVisited?'true':'false'}">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>
+                    </button>
                 </div>
-            `;
+            </div>
+        </div>`;
+}
 
-            if(targets.length === 0) { 
-                container.innerHTML = headerHTML + `<div class="text-center py-16 text-slate-400 font-medium"><i class="fas fa-inbox text-3xl mb-3 opacity-50 block"></i>見つかりませんでした</div>`; 
-                return; 
-            }
+// ==========================================
+// LIST CONTROLS
+// ==========================================
+function selectPref(pref) { activePref=pref; searchQuery=''; document.getElementById('search-input').value=''; renderList(); }
+function selectPrefFromModal(pref) { closeModal('region-modal'); selectPref(pref); }
+function clearSearchAndPref() { activePref=null; searchQuery=''; document.getElementById('search-input').value=''; activeListCategory='all'; document.querySelectorAll('#list-chips .chip').forEach((c,i)=>{c.classList.toggle('active',i===0);}); renderList(); }
+function handleSearch(val) { searchQuery=val; if(val.trim().length>0) activePref=null; renderList(); }
+function applyListFilter(cat, btn) { activeListCategory=cat; document.querySelectorAll('#list-chips .chip').forEach(c=>{c.classList.remove('active');c.setAttribute('aria-pressed','false');}); btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); renderList(); }
 
-            targets.sort((a,b) => b.lat - a.lat);
-            const listHTML = targets.map(spot => createListCardHTML(spot)).join('');
-
-            container.innerHTML = headerHTML + `
-                <div class="flex flex-col gap-3">
-                    ${listHTML}
+// ==========================================
+// REGION MODAL
+// ==========================================
+function openRegionModal() {
+    const container = document.getElementById('region-accordion-container');
+    const counts={};
+    facilitiesData.forEach(f=>{counts[f.pref]=(counts[f.pref]||0)+1;});
+    container.innerHTML = Object.keys(REGIONS).map(region=>{
+        const prefs = REGIONS[region];
+        return `
+            <details class="group" style="border-bottom:1px solid var(--border);">
+                <summary style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;font-weight:700;font-size:14px;color:var(--text-primary);cursor:pointer;">
+                    ${region}
+                    <i class="fas fa-chevron-down" style="color:var(--text-muted);font-size:12px;transition:transform 0.2s;" aria-hidden="true"></i>
+                </summary>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding-bottom:14px;">
+                    ${prefs.map(pref=>{
+                        const cnt=counts[pref]||0;
+                        if(!cnt) return `<div style="padding:8px 10px;font-size:13px;color:var(--text-muted);">${pref}</div>`;
+                        return `<button onclick="selectPrefFromModal('${pref}')" style="text-align:left;padding:10px 12px;background:white;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:var(--text-secondary);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:var(--font-ja);transition:all 0.15s;" aria-label="${pref}（${cnt}件）">
+                            <span>${pref==='北海道'?pref:pref.replace(/(都|府|県)$/,'')}</span>
+                            <span style="font-size:10px;color:var(--text-muted);background:var(--surface);padding:2px 7px;border-radius:4px;">${cnt}件</span>
+                        </button>`;
+                    }).join('')}
                 </div>
-            `;
-        }
+            </details>`;
+    }).join('');
+    document.getElementById('region-modal').classList.add('show');
+}
 
-        function createListCardHTML(spot) {
-            const isFav = userStatus[spot.id]?.fav;
-            const isVisited = userStatus[spot.id]?.visited;
-            const catConf = CATEGORIES[spot.category];
-            
-            return `
-                <div class="list-card relative" onclick="openExternalLink('${spot.url}', '${spot.name}')">
-                    <div class="flex gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0" style="color:${catConf.color}">
-                            <i class="fas ${catConf.icon} text-xl"></i>
+function locateUserAndSearch() { closeModal('region-modal'); switchPage('map'); locateUserOnMap(); }
+
+// ==========================================
+// MAP
+// ==========================================
+function getDistance(lat1,lng1,lat2,lng2) {
+    const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lng2-lng1)*Math.PI/180;
+    const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function initMap() {
+    if(map) return;
+    map = L.map('map', {zoomControl:false}).setView([35.6895,139.6917], 10);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    if(window.innerWidth >= 768) L.control.zoom({position:'bottomright'}).addTo(map);
+    map.on('moveend', ()=>{ if(!isMapFlying) updateVisibleSpots(); isMapFlying=false; });
+    renderAllMarkers();
+    const scroller = document.getElementById('card-scroller');
+    scroller.addEventListener('scroll', ()=>{ clearTimeout(scrollTimeout); scrollTimeout=setTimeout(handleCardSnap, 150); });
+}
+
+function renderAllMarkers() {
+    Object.values(markers).forEach(m=>map.removeLayer(m));
+    markers={};
+    facilitiesData.forEach(spot=>{
+        if(!spot.lat || !activeMapCategories.has(spot.category)) return;
+        if(filterCaregiverOnly && !hasCaregiverDiscount(spot)) return;
+        const cat = CATEGORIES[spot.category];
+        const icon = L.divIcon({
+            className:'',
+            html:`<div id="pin-${spot.id}" class="map-marker" role="button" aria-label="${spot.name}"><i class="fas ${cat.icon}" style="color:${cat.color}" aria-hidden="true"></i></div>`,
+            iconSize:[38,38], iconAnchor:[19,44]
+        });
+        const marker = L.marker([spot.lat,spot.lng],{icon}).addTo(map);
+        marker.on('click', e=>{ L.DomEvent.stopPropagation(e); isMapFlying=true; map.flyTo([spot.lat,spot.lng],14,{duration:0.8}); focusMapCard(spot.id); });
+        markers[spot.id] = marker;
+    });
+}
+
+function focusMapCard(id) {
+    document.querySelectorAll('.map-marker').forEach(el=>el.classList.remove('active-pin'));
+    const pin = document.getElementById(`pin-${id}`);
+    if(pin) pin.classList.add('active-pin');
+    const card = document.getElementById(`map-card-${id}`);
+    if(card) {
+        const sc=document.getElementById('card-scroller');
+        sc.scrollTo({left: card.offsetLeft-sc.offsetLeft-(sc.clientWidth/2)+(card.clientWidth/2), behavior:'smooth'});
+        document.querySelectorAll('.map-card-h').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active');
+    }
+}
+
+function handleCardSnap() {
+    const sc=document.getElementById('card-scroller');
+    const cards=sc.querySelectorAll('.map-card-h');
+    const center=sc.scrollLeft+sc.clientWidth/2;
+    let closest=null,minD=Infinity;
+    cards.forEach(c=>{ const cc=c.offsetLeft-sc.offsetLeft+c.clientWidth/2; const d=Math.abs(center-cc); if(d<minD){minD=d;closest=c;} });
+    if(closest&&minD<100&&!closest.classList.contains('active')) {
+        document.querySelectorAll('.map-card-h').forEach(c=>c.classList.remove('active'));
+        closest.classList.add('active');
+        document.querySelectorAll('.map-marker').forEach(el=>el.classList.remove('active-pin'));
+        const id=parseInt(closest.id.replace('map-card-',''));
+        const pin=document.getElementById(`pin-${id}`);
+        if(pin) pin.classList.add('active-pin');
+        const spot=facilitiesData.find(f=>f.id===id);
+        if(spot&&map){ isMapFlying=true; map.panTo([spot.lat,spot.lng],{animate:true,duration:0.5}); }
+    }
+}
+
+function updateVisibleSpots() {
+    const center=map.getCenter();
+    const refLat=userCurrentPos?userCurrentPos.lat:center.lat;
+    const refLng=userCurrentPos?userCurrentPos.lng:center.lng;
+    const sorted=facilitiesData
+        .filter(f=>f.lat && activeMapCategories.has(f.category) && (!filterCaregiverOnly||hasCaregiverDiscount(f)))
+        .map(f=>({...f, dist:getDistance(refLat,refLng,f.lat,f.lng)}))
+        .sort((a,b)=>a.dist-b.dist).slice(0,30);
+
+    const sc=document.getElementById('card-scroller');
+    sc.innerHTML = sorted.map(spot=>{
+        const isFav=userStatus[spot.id]?.fav;
+        const isVisited=userStatus[spot.id]?.visited;
+        const cat=CATEGORIES[spot.category];
+        const priceLow=(spot.price||'').toLowerCase();
+        const isCaregiver=hasCaregiverDiscount(spot);
+        const isFree=priceLow.includes('無料');
+        let badge='';
+        if(isFree&&isCaregiver) badge=`<span class="discount-badge badge-caregiver" style="font-size:9px;"><i class="fas fa-user-friends" aria-hidden="true"></i>同伴者も</span>`;
+        else if(isFree) badge=`<span class="discount-badge badge-free" style="font-size:9px;"><i class="fas fa-tag" aria-hidden="true"></i>本人無料</span>`;
+        return `
+            <div id="map-card-${spot.id}" class="map-card-h" role="listitem">
+                <div style="flex:1;cursor:pointer;" onclick="openExternalLink('${spot.url||''}','${spot.name.replace(/'/g,"\\'")}')">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                            <span style="font-size:9px;background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:5px;color:var(--text-secondary);font-weight:600;">${spot.pref} ${spot.area}</span>
+                            ${badge}
                         </div>
-                        <div class="flex-1 min-w-0 pb-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[10px] font-bold text-slate-400">${catConf.label}</span>
-                                <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-semibold">${spot.pref} ${spot.area}</span>
-                            </div>
-                            <h3 class="font-bold text-base text-slate-800 leading-tight mb-2 truncate">${spot.name}</h3>
-                            <p class="text-[11px] text-slate-500 font-medium bg-slate-100 inline-block px-2 py-1 rounded-md line-clamp-1">${spot.price}</p>
+                        <div style="width:30px;height:30px;border-radius:8px;background:${cat.color}18;display:flex;align-items:center;justify-content:center;color:${cat.color};font-size:14px;flex-shrink:0;">
+                            <i class="fas ${cat.icon}" aria-hidden="true"></i>
                         </div>
                     </div>
-                    <div class="mt-3 pt-3 border-t border-slate-100 flex gap-2">
-                        <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng}); event.stopPropagation()" class="flex-1 bg-white border border-outline hover:bg-slate-50 text-slate-600 text-xs font-bold py-2 rounded-xl transition-colors shadow-sm"><i class="fas fa-location-arrow mr-1"></i>経路</button>
-                        ${spot.lat ? `<button onclick="jumpToMap(${spot.lat}, ${spot.lng}, ${spot.id}); event.stopPropagation()" class="flex-1 bg-white border border-outline hover:bg-slate-50 text-slate-600 text-xs font-bold py-2 rounded-xl transition-colors shadow-sm"><i class="fas fa-map mr-1"></i>地図</button>` : ''}
-                        <div class="flex gap-1 ml-auto">
-                            <button onclick="toggleFav(${spot.id}); event.stopPropagation()" class="action-btn ${isFav?'active-fav':''}"><i class="fas fa-bookmark"></i></button>
-                            <button onclick="toggleVisited(${spot.id}); event.stopPropagation()" class="action-btn ${isVisited?'active-visited':''}"><i class="fas fa-check-circle"></i></button>
-                        </div>
-                    </div>
+                    <h3 style="font-size:15px;font-weight:900;color:var(--text-primary);line-height:1.3;margin-bottom:5px;">${spot.name}</h3>
+                    <p style="font-size:11px;color:var(--text-secondary);font-weight:600;margin-bottom:4px;">${spot.price}</p>
+                    <p style="font-size:10px;color:var(--text-muted);font-weight:600;">${userCurrentPos?(spot.dist<1?Math.round(spot.dist*1000)+'m':spot.dist.toFixed(1)+'km 先'):''}</p>
                 </div>
-            `;
-        }
-
-        // 地域関連の操作関数
-        function selectPref(pref) {
-            activePref = pref;
-            document.getElementById('search-input').value = "";
-            searchQuery = "";
-            renderList();
-        }
-
-        function selectPrefFromModal(pref) {
-            closeModal('region-modal');
-            selectPref(pref);
-        }
-
-        function clearSearchAndPref() {
-            activePref = null;
-            searchQuery = "";
-            document.getElementById('search-input').value = "";
-            activeListCategory = 'all';
-            document.querySelectorAll('#page-list .chip').forEach(c => c.classList.remove('active'));
-            document.querySelector('#list-chips .chip').classList.add('active');
-            renderList();
-        }
-
-        function handleSearch(val) { 
-            searchQuery = val;
-            if (val.trim().length > 0) activePref = null; // 検索文字が入ったら県縛りを一旦解除して全域検索にする
-            renderList(); 
-        }
-
-        function applyListFilter(cat, btn) {
-            activeListCategory = cat;
-            document.querySelectorAll('#page-list .chip').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            renderList();
-        }
-
-        // 地域選択モーダルの生成と表示
-        function openRegionModal() {
-            const container = document.getElementById('region-accordion-container');
-            const counts = {};
-            facilitiesData.forEach(f => { counts[f.pref] = (counts[f.pref] || 0) + 1; });
-
-            container.innerHTML = Object.keys(REGIONS).map(region => {
-                const prefs = REGIONS[region];
-                return `
-                    <details class="group border-b border-outline last:border-none bg-slate-50">
-                        <summary class="flex justify-between items-center py-4 px-5 font-bold text-slate-700 cursor-pointer bg-white hover:bg-slate-50 transition-colors">
-                            ${region}
-                            <i class="fas fa-chevron-down text-slate-300 group-open:rotate-180 transition-transform"></i>
-                        </summary>
-                        <div class="p-4 grid grid-cols-2 gap-3 border-t border-outline">
-                            ${prefs.map(pref => {
-                                const cnt = counts[pref] || 0;
-                                if (cnt === 0) {
-                                    return `<div class="px-3 py-2 text-sm text-slate-400 font-medium">${pref}</div>`;
-                                } else {
-                                    return `<button onclick="selectPrefFromModal('${pref}')" class="text-left px-3 py-2 bg-white rounded-lg border border-outline shadow-sm text-sm font-bold text-slate-700 active:scale-95 transition-transform flex justify-between items-center">
-                                        <span>${pref === '北海道' ? pref : pref.replace(/(都|府|県)$/, '')}</span>
-                                        <span class="text-[10px] text-slate-400 font-semibold bg-slate-100 px-1.5 py-0.5 rounded">${cnt}件</span>
-                                    </button>`;
-                                }
-                            }).join('')}
-                        </div>
-                    </details>
-                `;
-            }).join('');
-
-            document.getElementById('region-modal').classList.add('show');
-        }
-
-        function locateUserAndSearch() {
-            closeModal('region-modal');
-            switchPage('map');
-            locateUserOnMap();
-        }
-
-        // ==========================================
-        // マップ関連の操作関数
-        // ==========================================
-        function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lng2-lng1)*Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function initMap() {
-            if(map) return;
-            map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 10);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-            if(window.innerWidth >= 768) L.control.zoom({ position: 'bottomright' }).addTo(map);
-            
-            map.on('moveend', () => {
-                if (!isMapFlying) updateVisibleSpots(); 
-                isMapFlying = false;
-            });
-            renderAllMarkers();
-
-            const scroller = document.getElementById('card-scroller');
-            scroller.addEventListener('scroll', () => {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => { handleCardSnap(); }, 150); 
-            });
-        }
-
-        function renderAllMarkers() {
-            Object.values(markers).forEach(m => map.removeLayer(m));
-            markers = {};
-            facilitiesData.forEach(spot => {
-                if (!spot.lat || !activeMapCategories.has(spot.category)) return;
-                const catConf = CATEGORIES[spot.category];
-                const icon = L.divIcon({ 
-                    className: '', 
-                    html: `<div id="pin-${spot.id}" class="map-marker"><i class="fas ${catConf.icon}" style="color:${catConf.color}"></i></div>`, 
-                    iconSize: [40, 40], iconAnchor: [20, 46] 
-                });
-                const marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
-                marker.on('click', (e) => { 
-                    L.DomEvent.stopPropagation(e); 
-                    isMapFlying = true; 
-                    map.flyTo([spot.lat, spot.lng], 14, {duration: 0.8}); 
-                    focusMapCard(spot.id); 
-                });
-                markers[spot.id] = marker;
-            });
-        }
-
-        function focusMapCard(id) {
-            document.querySelectorAll('.map-marker').forEach(el => el.classList.remove('active-pin'));
-            const pin = document.getElementById(`pin-${id}`);
-            if(pin) pin.classList.add('active-pin');
-
-            const card = document.getElementById(`map-card-${id}`);
-            if(card) {
-                const scroller = document.getElementById('card-scroller');
-                const scrollLeft = card.offsetLeft - scroller.offsetLeft - (scroller.clientWidth / 2) + (card.clientWidth / 2);
-                scroller.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-                
-                document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-            }
-        }
-
-        function handleCardSnap() {
-            const scroller = document.getElementById('card-scroller');
-            const cards = scroller.querySelectorAll('.map-card-horizontal');
-            const center = scroller.scrollLeft + scroller.clientWidth / 2;
-            
-            let closestCard = null;
-            let minDiff = Infinity;
-            
-            cards.forEach(card => {
-                const cardCenter = card.offsetLeft - scroller.offsetLeft + card.clientWidth / 2;
-                const diff = Math.abs(center - cardCenter);
-                if (diff < minDiff) { minDiff = diff; closestCard = card; }
-            });
-
-            if (closestCard && minDiff < 100) { 
-                const id = parseInt(closestCard.id.replace('map-card-', ''));
-                if(!closestCard.classList.contains('active')){
-                    document.querySelectorAll('.map-card-horizontal').forEach(c => c.classList.remove('active'));
-                    closestCard.classList.add('active');
-                    
-                    document.querySelectorAll('.map-marker').forEach(el => el.classList.remove('active-pin'));
-                    const pin = document.getElementById(`pin-${id}`);
-                    if(pin) pin.classList.add('active-pin');
-                    
-                    const spot = facilitiesData.find(f => f.id === id);
-                    if(spot && map) {
-                       isMapFlying = true; 
-                       map.panTo([spot.lat, spot.lng], { animate: true, duration: 0.5 });
-                    }
-                }
-            }
-        }
-
-        function updateVisibleSpots() {
-            const center = map.getCenter();
-            const refLat = userCurrentPos ? userCurrentPos.lat : center.lat;
-            const refLng = userCurrentPos ? userCurrentPos.lng : center.lng;
-
-            const sorted = facilitiesData.filter(f => f.lat && activeMapCategories.has(f.category))
-                .map(f => ({ ...f, dist: getDistance(refLat, refLng, f.lat, f.lng) }))
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 30); 
-                
-            const scroller = document.getElementById('card-scroller');
-            scroller.innerHTML = sorted.map(spot => {
-                const isFav = userStatus[spot.id]?.fav;
-                const isVisited = userStatus[spot.id]?.visited;
-                const catConf = CATEGORIES[spot.category];
-                return `
-                <div id="map-card-${spot.id}" class="map-card-horizontal">
-                    <div class="flex-1" onclick="openExternalLink('${spot.url}', '${spot.name}')">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-[10px] bg-slate-100 px-2 py-1 rounded-md text-slate-500 font-bold tracking-wide">${spot.pref} ${spot.area}</span>
-                            <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-sm" style="color:${catConf.color}"><i class="fas ${catConf.icon}"></i></div>
-                        </div>
-                        <h3 class="font-bold text-base mb-1 text-slate-800 leading-tight">${spot.name}</h3>
-                        <p class="text-xs text-slate-500 font-medium mb-3">${spot.price}</p>
-                        <p class="text-[10px] text-slate-400 font-semibold"><i class="fas fa-location-dot mr-1"></i>${userCurrentPos ? (spot.dist < 1 ? Math.round(spot.dist*1000)+'m' : spot.dist.toFixed(1)+'km') : ''} </p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
-                        <button onclick="handleNav('${spot.name}', ${spot.lat}, ${spot.lng})" class="flex-1 bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition-transform active:scale-95"><i class="fas fa-location-arrow mr-1.5"></i>経路</button>
-                        <button onclick="toggleFav(${spot.id})" class="action-btn ${isFav?'active-fav':''}"><i class="fas fa-bookmark"></i></button>
-                        <button onclick="toggleVisited(${spot.id})" class="action-btn ${isVisited?'active-visited':''}"><i class="fas fa-check-circle"></i></button>
-                    </div>
+                <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--border);display:flex;gap:6px;">
+                    <button onclick="handleNav('${spot.name.replace(/'/g,"\\'")}',${spot.lat},${spot.lng})" class="card-btn card-btn-primary" aria-label="${spot.name}への経路"><i class="fas fa-location-arrow" aria-hidden="true"></i>経路</button>
+                    <button onclick="toggleFav(${spot.id})" class="action-btn ${isFav?'active-fav':''}" aria-label="${isFav?'行きたいから削除':'行きたいに追加'}" aria-pressed="${isFav?'true':'false'}">
+                        <i class="fas fa-bookmark" aria-hidden="true"></i>
+                    </button>
+                    <button onclick="toggleVisited(${spot.id})" class="action-btn ${isVisited?'active-visited':''}" aria-label="${isVisited?'行ったから削除':'行ったに追加'}" aria-pressed="${isVisited?'true':'false'}">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>
+                    </button>
                 </div>
-            `}).join('') + '<div style="flex:0 0 16px"></div>'; 
-            
-            const centerCard = document.querySelector('.map-card-horizontal');
-            if(centerCard) setTimeout(handleCardSnap, 100);
-        }
+            </div>`;
+    }).join('') + '<div style="flex:0 0 16px;"></div>';
 
-        function toggleMapFilter(cat, btn) {
-            if(activeMapCategories.has(cat)) { activeMapCategories.delete(cat); btn.classList.remove('active'); }
-            else { activeMapCategories.add(cat); btn.classList.add('active'); }
-            renderAllMarkers(); updateVisibleSpots();
-        }
+    const first=document.querySelector('.map-card-h');
+    if(first) setTimeout(handleCardSnap, 100);
+}
 
-        // ==========================================
-        // 共通機能
-        // ==========================================
-        function openExternalLink(url, name) {
-            const targetUrl = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
-            window.open(targetUrl, '_blank', 'noopener,noreferrer');
-        }
+function toggleMapFilter(cat, btn) {
+    if(activeMapCategories.has(cat)){activeMapCategories.delete(cat);btn.classList.remove('active');btn.setAttribute('aria-pressed','false');}
+    else{activeMapCategories.add(cat);btn.classList.add('active');btn.setAttribute('aria-pressed','true');}
+    renderAllMarkers(); updateVisibleSpots();
+}
 
-        function handleNav(name, lat, lng) {
-            window.tempNav = { name, lat, lng };
-            document.getElementById('map-select-modal').classList.add('show');
-        }
-        
-        function confirmNavigation(type) {
-            const t = window.tempNav;
-            if(type === 'google') window.open(`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lng}`);
-            else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
-            closeModal('map-select-modal');
-        }
+// ==========================================
+// COMMON
+// ==========================================
+function openExternalLink(url, name) {
+    const target = url ? url : `https://www.google.com/search?q=${encodeURIComponent(name)}`;
+    window.open(target, '_blank', 'noopener,noreferrer');
+}
 
-        function locateUserOnMap() {
-            if(!navigator.geolocation) return alert('位置情報が利用できません');
-            navigator.geolocation.getCurrentPosition(pos => {
-                userCurrentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                isMapFlying = true; 
-                map.flyTo([userCurrentPos.lat, userCurrentPos.lng], 13);
-                L.marker([userCurrentPos.lat, userCurrentPos.lng], {
-                    icon: L.divIcon({ html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>', className:'' })
-                }).addTo(map);
-                updateVisibleSpots();
-            });
-        }
+function handleNav(name, lat, lng) {
+    window.tempNav = {name, lat, lng};
+    document.getElementById('map-select-modal').classList.add('show');
+}
 
-        function toggleFav(id) {
-            if(!userStatus[id]) userStatus[id] = {};
-            userStatus[id].fav = !userStatus[id].fav;
-            localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-            renderList(); renderMyList(); updateVisibleSpots(); 
-        }
-        function toggleVisited(id) {
-            if(!userStatus[id]) userStatus[id] = {};
-            userStatus[id].visited = !userStatus[id].visited;
-            localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-            renderList(); renderMyList(); updateVisibleSpots(); 
-        }
+function confirmNavigation(type) {
+    const t=window.tempNav;
+    if(type==='google') window.open(`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lng}`);
+    else window.open(`geo:${t.lat},${t.lng}?q=${encodeURIComponent(t.name)}`);
+    closeModal('map-select-modal');
+}
 
-        function switchPage(p) {
-            document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
-            document.getElementById('page-'+p).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById('nav-'+p).classList.add('active');
-            if(p === 'map') setTimeout(() => { map.invalidateSize(); isMapFlying=false; updateVisibleSpots(); }, 100);
-            if(p === 'list') renderList(); // 表示時にリストを更新
-        }
-        
-        function renderMyList() {
-            const list = facilitiesData.filter(f => userStatus[f.id]?.[currentListTab]);
-            document.getElementById('mylist-container').innerHTML = list.length ? list.map(f => createListCardHTML(f)).join('') : '<div class="text-center py-20 text-slate-400 font-medium"><i class="fas fa-folder-open text-4xl mb-4 opacity-30 block"></i>リストは空です</div>';
-        }
+function locateUserOnMap() {
+    if(!navigator.geolocation) { showToast('位置情報が利用できません'); return; }
+    navigator.geolocation.getCurrentPosition(pos=>{
+        userCurrentPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        isMapFlying=true;
+        map.flyTo([userCurrentPos.lat,userCurrentPos.lng],13);
+        L.marker([userCurrentPos.lat,userCurrentPos.lng],{
+            icon:L.divIcon({html:'<div style="width:16px;height:16px;background:#3B82F6;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(59,130,246,0.4);"></div>',className:''})
+        }).addTo(map);
+        updateVisibleSpots();
+    }, ()=>{ showToast('位置情報の取得に失敗しました'); });
+}
 
-        function jumpToMap(lat, lng, id) { 
-            switchPage('map'); 
-            isMapFlying = true; 
-            map.flyTo([lat, lng], 14, {duration:0}); 
-            setTimeout(() => focusMapCard(id), 100); 
-        }
+function toggleFav(id) {
+    if(!userStatus[id]) userStatus[id]={};
+    userStatus[id].fav = !userStatus[id].fav;
+    localStorage.setItem('handimap_v3', JSON.stringify(userStatus));
+    renderList(); renderMyList(); updateVisibleSpots();
+    showToast(userStatus[id].fav ? '「行きたい」に追加しました' : '「行きたい」から削除しました');
+}
 
-        function switchListTab(t) { 
-            currentListTab = t; 
-            document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`tab-${t}`).classList.add('active');
-            renderMyList(); 
-        }
-        
-        function checkAdminPasscode() {
-            if(document.getElementById('admin-passcode').value === '19870429') {
-                document.getElementById('passcode-area').style.display = 'none';
-                document.getElementById('csv-admin-controls').classList.remove('hidden');
-            } else alert('Incorrect Passcode');
-        }
-        function openBackupModal(t) { 
-            document.getElementById('backup-modal').classList.add('show');
-            const txt = document.getElementById('backup-text');
-            const btn = document.getElementById('backup-action-btn');
-            if(t === 'export') {
-                document.getElementById('backup-title').innerText = "バックアップコード";
-                txt.value = JSON.stringify(userStatus);
-                btn.innerText = "コードをコピー";
-                btn.onclick = () => { txt.select(); document.execCommand('copy'); alert('コピー完了'); };
-            } else {
-                document.getElementById('backup-title').innerText = "データ復元";
-                txt.value = "";
-                btn.innerText = "データを復元";
-                btn.onclick = () => {
-                    try {
-                        userStatus = JSON.parse(txt.value);
-                        localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-                        renderMyList(); renderList();
-                        alert('データを復元しました'); closeModal('backup-modal');
-                    } catch(e) { alert('フォーマットが不正です'); }
-                };
+function toggleVisited(id) {
+    if(!userStatus[id]) userStatus[id]={};
+    userStatus[id].visited = !userStatus[id].visited;
+    localStorage.setItem('handimap_v3', JSON.stringify(userStatus));
+    renderList(); renderMyList(); updateVisibleSpots();
+    showToast(userStatus[id].visited ? '「行った」に追加しました' : '「行った」から削除しました');
+}
+
+function switchPage(p) {
+    document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+    document.getElementById('page-'+p).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(e=>{e.classList.remove('active');e.setAttribute('aria-selected','false');});
+    document.getElementById('nav-'+p).classList.add('active');
+    document.getElementById('nav-'+p).setAttribute('aria-selected','true');
+    if(p==='map') setTimeout(()=>{ map.invalidateSize(); isMapFlying=false; updateVisibleSpots(); },100);
+    if(p==='list') renderList();
+}
+
+function renderMyList() {
+    const list = facilitiesData.filter(f=>userStatus[f.id]?.[currentListTab]);
+    const container = document.getElementById('mylist-container');
+    container.innerHTML = list.length
+        ? list.map(f=>createListCardHTML(f)).join('')
+        : `<div class="empty-state"><i class="fas fa-${currentListTab==='fav'?'bookmark':'check-circle'}"></i><p>${currentListTab==='fav'?'行きたい施設がありません':'行った施設がありません'}</p><small>探すタブから施設を追加できます</small></div>`;
+}
+
+function jumpToMap(lat, lng, id) {
+    switchPage('map');
+    isMapFlying=true;
+    map.flyTo([lat,lng],14,{duration:0});
+    setTimeout(()=>focusMapCard(id), 100);
+}
+
+function switchListTab(t) {
+    currentListTab=t;
+    document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(`tab-${t}`).classList.add('active');
+    renderMyList();
+}
+
+// ==========================================
+// FEEDBACK
+// ==========================================
+function openFeedbackModal() {
+    document.getElementById('feedback-facility').value = '';
+    document.getElementById('feedback-text').value = '';
+    activeFbTypes.clear();
+    ['price','bf','closed','other'].forEach(t => document.getElementById(`fb-${t}`)?.classList.remove('active'));
+    document.getElementById('feedback-modal').classList.add('show');
+}
+
+function toggleFbType(t) {
+    const el = document.getElementById(`fb-${t}`);
+    if(activeFbTypes.has(t)) { activeFbTypes.delete(t); el?.classList.remove('active'); }
+    else { activeFbTypes.add(t); el?.classList.add('active'); }
+}
+
+function submitFeedback() {
+    const facility = document.getElementById('feedback-facility').value;
+    const text = document.getElementById('feedback-text').value;
+    // 実際はサーバーに送信。ここでは模擬
+    closeModal('feedback-modal');
+    showToast('フィードバックを受け付けました。ありがとうございます！');
+}
+
+// ==========================================
+// ADMIN
+// ==========================================
+function checkAdminPasscode() {
+    if(document.getElementById('admin-passcode').value==='19870429') {
+        document.getElementById('passcode-area').style.display='none';
+        document.getElementById('csv-admin-controls').style.display='block';
+    } else { showToast('パスコードが正しくありません'); }
+}
+
+function openBackupModal(t) {
+    document.getElementById('backup-modal').classList.add('show');
+    const txt=document.getElementById('backup-text');
+    const btn=document.getElementById('backup-action-btn');
+    const title=document.getElementById('backup-title');
+    if(t==='export') {
+        title.innerHTML=`<i class="fas fa-arrow-up-from-bracket" style="color:var(--primary)"></i> バックアップコード`;
+        txt.value=JSON.stringify(userStatus);
+        btn.textContent='コードをコピー';
+        btn.onclick=()=>{ txt.select(); document.execCommand('copy'); showToast('コピーしました'); };
+    } else {
+        title.innerHTML=`<i class="fas fa-download" style="color:var(--primary)"></i> データ復元`;
+        txt.value='';
+        txt.placeholder='バックアップコードを貼り付けてください';
+        btn.textContent='データを復元する';
+        btn.onclick=()=>{
+            try {
+                userStatus=JSON.parse(txt.value);
+                localStorage.setItem('handimap_v3',JSON.stringify(userStatus));
+                renderMyList(); renderList();
+                showToast('データを復元しました');
+                closeModal('backup-modal');
+            } catch(e) { showToast('フォーマットが不正です'); }
+        };
+    }
+}
+
+function downloadCSV() {
+    const rows=[['ID','施設名','都道府県','エリア','ジャンル','料金','住所','URL','緯度','経度','行きたい','行った']];
+    facilitiesData.forEach(f=>{
+        const s=userStatus[f.id]||{};
+        rows.push([f.id,f.name,f.pref,f.area,f.category,f.price,f.address,f.url,f.lat,f.lng,s.fav?'1':'0',s.visited?'1':'0']);
+    });
+    const csv='\uFEFF'+rows.map(r=>r.map(c=>`"${c||''}"`).join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`handimap_data_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
+
+function handleCSVUpload(input) {
+    const file=input.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+        try {
+            const lines=e.target.result.split(/\r\n|\n/); let count=0;
+            for(let i=1;i<lines.length;i++){
+                const cols=lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+                if(cols.length<12) continue;
+                const id=parseInt(cols[0]);
+                if(id){ if(!userStatus[id]) userStatus[id]={}; userStatus[id].fav=cols[10]==='1'; userStatus[id].visited=cols[11]==='1'; count++; }
             }
-        }
-        function downloadCSV() {
-            const rows = [["ID", "施設名", "都道府県", "エリア", "ジャンル", "料金", "住所", "URL", "緯度", "経度", "行きたい", "行った"]];
-            facilitiesData.forEach(f => {
-                const s = userStatus[f.id] || {};
-                rows.push([f.id, f.name, f.pref, f.area, f.category, f.price, f.address, f.url, f.lat, f.lng, s.fav?"1":"0", s.visited?"1":"0"]);
-            });
-            const csvContent = "\uFEFF" + rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csvContent], { type: "text/csv;charset=utf-8;" }));
-            link.download = `handimap_data_${new Date().toISOString().slice(0,10)}.csv`; link.click();
-        }
-        function handleCSVUpload(input) {
-            const file = input.files[0]; if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const lines = e.target.result.split(/\r\n|\n/); let count = 0;
-                    for(let i=1; i<lines.length; i++) {
-                        const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ''));
-                        if(cols.length < 12) continue;
-                        const id = parseInt(cols[0]);
-                        if(id) {
-                            if(!userStatus[id]) userStatus[id] = {};
-                            userStatus[id].fav = cols[10] === "1"; userStatus[id].visited = cols[11] === "1";
-                            count++;
-                        }
-                    }
-                    localStorage.setItem('handimap_v2', JSON.stringify(userStatus));
-                    renderMyList(); renderList(); alert(`${count}件のデータを更新しました`);
-                } catch(err) { alert("読込エラーが発生しました"); }
-                input.value = "";
-            };
-            reader.readAsText(file);
-        }
+            localStorage.setItem('handimap_v3',JSON.stringify(userStatus));
+            renderMyList(); renderList();
+            showToast(`${count}件のデータを更新しました`);
+        } catch(err){ showToast('読込エラーが発生しました'); }
+        input.value='';
+    };
+    reader.readAsText(file);
+}
 
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-    </script>
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// キーボードアクセシビリティ
+document.addEventListener('keydown', e=>{
+    if(e.key==='Escape') {
+        document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'));
+    }
+});
+
+// モーダルオーバーレークリックで閉じる
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+});
+</script>
 </body>
 </html>
