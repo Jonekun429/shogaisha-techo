@@ -1671,6 +1671,7 @@ let filterCare = false;
 let curTab = 'fav';
 let facilities = [];
 let isFlying = false;
+let pinnedId = null;   // 探す→地図遷移で固定表示中の施設ID
 let scrollTO;
 let activeFBTypes = new Set();
 
@@ -1824,13 +1825,20 @@ function initMap() {
     const s = MAP_STYLES.esri;
     currentTileLayer = L.tileLayer(s.url, s.options).addTo(map_inst);
     if(window.innerWidth>=768) L.control.zoom({position:'bottomright'}).addTo(map_inst);
-    map_inst.on('moveend',()=>{ if(!isFlying) updateCards(); isFlying=false; });
+    map_inst.on('moveend',()=>{
+        if(!isFlying) {
+            if(!pinnedId) updateCards();   // pinnedId中はカード再ソートしない
+        }
+        isFlying=false;
+    });
     renderMarkers();
     document.getElementById('card-scroll').addEventListener('scroll',()=>{
         clearTimeout(scrollTO); scrollTO=setTimeout(handleSnap,150);
     });
     // 地図以外タップでパネルを閉じる
     map_inst.on('click', ()=>{ document.getElementById('map-style-panel').classList.remove('open'); });
+    // ユーザーが手動で地図を動かしたらピン固定を解除
+    map_inst.on('dragstart zoomstart', ()=>{ pinnedId = null; });
 }
 
 function toggleStylePanel() {
@@ -2216,7 +2224,16 @@ function switchTab(t){curTab=t;document.querySelectorAll('.seg-btn').forEach(b=>
 function openLink(url,name){window.open(url?url:`https://www.google.com/search?q=${encodeURIComponent(name)}`,'_blank','noopener,noreferrer');}
 function handleNav(name,lat,lng){window.tmpNav={name,lat,lng};document.getElementById('m-nav').classList.add('show');}
 function confirmNav(t){const n=window.tmpNav;if(t==='google')window.open(`https://www.google.com/maps/dir/?api=1&destination=${n.lat},${n.lng}`);else window.open(`geo:${n.lat},${n.lng}?q=${encodeURIComponent(n.name)}`);closeModal('m-nav');}
-function jumpMap(lat,lng,id){switchPage('map');isFlying=true;map_inst.flyTo([lat,lng],14,{duration:0});setTimeout(()=>focusCard(id),100);}
+function jumpMap(lat,lng,id){
+    switchPage('map');
+    pinnedId = id;          // このIDを「固定表示中」としてマーク
+    isFlying = true;
+    map_inst.flyTo([lat,lng], 14, {duration:0.6});
+    map_inst.once('moveend', function(){
+        isFlying = false;
+        focusCard(id);
+    });
+}
 function toggleFav(id){if(!userStatus[id])userStatus[id]={};userStatus[id].fav=!userStatus[id].fav;save();renderList();renderMyList();updateCards();toast(userStatus[id].fav?'「行きたい」に追加':'「行きたい」から削除');}
 function toggleVis(id){if(!userStatus[id])userStatus[id]={};userStatus[id].visited=!userStatus[id].visited;save();renderList();renderMyList();updateCards();toast(userStatus[id].visited?'「行った」に追加':'「行った」から削除');}
 function save(){localStorage.setItem('handimap_v3',JSON.stringify(userStatus));}
@@ -2226,7 +2243,11 @@ function switchPage(p){
     document.getElementById('page-'+p).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
     document.getElementById('nav-'+p).classList.add('active');
-    if(p==='map')setTimeout(()=>{map_inst.invalidateSize();isFlying=false;updateCards();},100);
+    if(p==='map')setTimeout(()=>{
+        map_inst.invalidateSize();
+        isFlying=false;
+        if(!pinnedId) updateCards();  // 固定中はカード更新しない
+    },100);
     if(p==='list')renderList();
     if(p==='admin')renderAdminStats();
 }
