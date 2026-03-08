@@ -52,6 +52,15 @@ html,body{height:100%;width:100%;overflow:hidden;overscroll-behavior:none;backgr
 /* GPS BTN */
 .gps-btn{width:44px;height:44px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);color:var(--text-secondary);position:absolute;right:14px;bottom:215px;z-index:500;border:1.5px solid var(--border);transition:all 0.18s;cursor:pointer;font-size:17px;}
 .gps-btn:active{background:var(--primary-surface);color:var(--primary);}
+/* MAP STYLE SWITCHER */
+.map-style-btn{width:44px;height:44px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);color:var(--text-secondary);position:absolute;right:14px;bottom:268px;z-index:500;border:1.5px solid var(--border);transition:all 0.18s;cursor:pointer;font-size:17px;}
+.map-style-btn:active{background:var(--primary-surface);color:var(--primary);}
+.map-style-panel{position:absolute;right:66px;bottom:268px;z-index:501;background:white;border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1.5px solid var(--border);padding:6px;display:none;flex-direction:column;gap:4px;min-width:160px;}
+.map-style-panel.open{display:flex;}
+.map-style-opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-sm);font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;font-family:var(--font-ja);transition:all 0.15s;border:none;background:transparent;width:100%;text-align:left;}
+.map-style-opt:hover{background:var(--surface);}
+.map-style-opt.active-style{background:var(--primary-surface);color:var(--primary);}
+.map-style-opt .style-dot{width:28px;height:20px;border-radius:5px;flex-shrink:0;border:1px solid var(--border);}
 /* CARD SCROLLER */
 .sheet-wrap{position:absolute;bottom:16px;left:0;right:0;pointer-events:none;z-index:400;}
 .card-scroll{display:flex;gap:10px;padding:4px 14px 6px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;pointer-events:auto;scroll-behavior:smooth;}
@@ -186,6 +195,28 @@ tr:hover td{background:#f8fafc;}
         </div>
     </div>
     <button onclick="locateUser()" class="gps-btn" aria-label="現在地"><i class="fas fa-location-crosshairs"></i></button>
+    <!-- 地図スタイル切り替え -->
+    <button onclick="toggleStylePanel()" class="map-style-btn" aria-label="地図スタイル" id="style-toggle-btn">
+        <i class="fas fa-layer-group"></i>
+    </button>
+    <div id="map-style-panel" class="map-style-panel">
+        <button class="map-style-opt active-style" onclick="setMapStyle('esri')" id="sopt-esri">
+            <span class="style-dot" style="background:linear-gradient(135deg,#e8f4e8,#b8d4f0);"></span>
+            <div><div>標準（ESRI）</div><div style="font-size:10px;font-weight:400;color:var(--text-muted)">Googleマップ風・見やすい</div></div>
+        </button>
+        <button class="map-style-opt" onclick="setMapStyle('gsi')" id="sopt-gsi">
+            <span class="style-dot" style="background:linear-gradient(135deg,#f5f5dc,#d4e8c0);"></span>
+            <div><div>国土地理院</div><div style="font-size:10px;font-weight:400;color:var(--text-muted)">日本専用・最詳細</div></div>
+        </button>
+        <button class="map-style-opt" onclick="setMapStyle('osm')" id="sopt-osm">
+            <span class="style-dot" style="background:linear-gradient(135deg,#f0f8e8,#c8e4a0);"></span>
+            <div><div>OpenStreetMap</div><div style="font-size:10px;font-weight:400;color:var(--text-muted)">標準・シンプル</div></div>
+        </button>
+        <button class="map-style-opt" onclick="setMapStyle('dark')" id="sopt-dark">
+            <span class="style-dot" style="background:linear-gradient(135deg,#2d3748,#4a5568);"></span>
+            <div><div>ダーク</div><div style="font-size:10px;font-weight:400;color:var(--text-muted)">夜間・落ち着いた</div></div>
+        </button>
+    </div>
     <div id="map"></div>
     <div class="sheet-wrap">
         <div id="card-scroll" class="card-scroll"></div>
@@ -1721,16 +1752,69 @@ function dist(la1,lo1,la2,lo2) {
     return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ==================== MAP TILE STYLES ====================
+const MAP_STYLES = {
+    esri: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        options: {maxZoom:19, attribution:'© Esri, HERE, Garmin, © OpenStreetMap contributors'}
+    },
+    gsi: {
+        url: 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
+        options: {maxZoom:18, attribution:'© 国土地理院'}
+    },
+    osm: {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        options: {maxZoom:19, attribution:'© OpenStreetMap contributors'}
+    },
+    dark: {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        options: {maxZoom:19, attribution:'© CartoDB'}
+    }
+};
+
+let currentTileLayer = null;
+let currentStyleKey = 'esri';
+
 function initMap() {
     if(map_inst) return;
     map_inst = L.map('map',{zoomControl:false}).setView([35.6895,139.6917],10);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map_inst);
+    // デフォルトはESRI（Googleマップ風、日本語地名あり、高速）
+    const s = MAP_STYLES.esri;
+    currentTileLayer = L.tileLayer(s.url, s.options).addTo(map_inst);
     if(window.innerWidth>=768) L.control.zoom({position:'bottomright'}).addTo(map_inst);
     map_inst.on('moveend',()=>{ if(!isFlying) updateCards(); isFlying=false; });
     renderMarkers();
     document.getElementById('card-scroll').addEventListener('scroll',()=>{
         clearTimeout(scrollTO); scrollTO=setTimeout(handleSnap,150);
     });
+    // 地図以外タップでパネルを閉じる
+    map_inst.on('click', ()=>{ document.getElementById('map-style-panel').classList.remove('open'); });
+}
+
+function toggleStylePanel() {
+    const panel = document.getElementById('map-style-panel');
+    panel.classList.toggle('open');
+}
+
+function setMapStyle(key) {
+    if(!MAP_STYLES[key] || !map_inst) return;
+    // 現在のタイル削除
+    if(currentTileLayer) map_inst.removeLayer(currentTileLayer);
+    const s = MAP_STYLES[key];
+    currentTileLayer = L.tileLayer(s.url, s.options).addTo(map_inst);
+    currentStyleKey = key;
+    // ボタンのactive状態更新
+    ['esri','gsi','osm','dark'].forEach(k=>{
+        document.getElementById('sopt-'+k)?.classList.toggle('active-style', k===key);
+    });
+    // パネルを閉じる
+    document.getElementById('map-style-panel').classList.remove('open');
+    // ダークモード時にピンの視認性を上げる
+    document.querySelectorAll('.map-marker').forEach(el=>{
+        el.style.boxShadow = key==='dark' ? '0 3px 12px rgba(255,255,255,0.2)' : '';
+    });
+    const labels = {esri:'標準（ESRI）',gsi:'国土地理院',osm:'OpenStreetMap',dark:'ダーク'};
+    toast('地図: '+labels[key]);
 }
 
 function renderMarkers() {
