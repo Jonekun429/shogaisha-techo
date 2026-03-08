@@ -50,23 +50,23 @@ html,body{height:100%;width:100%;overflow:hidden;overscroll-behavior:none;backgr
 .chip.c-seishin{background:#F3E5F5;color:#7B1FA2;border-color:#CE93D8;}
 .chip.c-seishin.active{background:#7B1FA2;color:white;border-color:#7B1FA2;}
 /* GPS BTN */
-.gps-btn{width:44px;height:44px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);color:var(--text-secondary);position:absolute;right:14px;bottom:215px;z-index:500;border:1.5px solid var(--border);transition:all 0.18s;cursor:pointer;font-size:17px;}
+.gps-btn{width:44px;height:44px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);color:var(--text-secondary);position:absolute;right:14px;bottom:230px;z-index:500;border:1.5px solid var(--border);transition:all 0.18s;cursor:pointer;font-size:17px;}
 .gps-btn:active{background:var(--primary-surface);color:var(--primary);}
 /* MAP STYLE SWITCHER */
-.map-style-btn{width:44px;height:44px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);color:var(--text-secondary);position:absolute;right:14px;bottom:268px;z-index:500;border:1.5px solid var(--border);transition:all 0.18s;cursor:pointer;font-size:17px;}
+.map-style-btn{width:44px;height:44px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);color:var(--text-secondary);position:absolute;right:14px;bottom:283px;z-index:500;border:1.5px solid var(--border);transition:all 0.18s;cursor:pointer;font-size:17px;}
 .map-style-btn:active{background:var(--primary-surface);color:var(--primary);}
-.map-style-panel{position:absolute;right:66px;bottom:268px;z-index:501;background:white;border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1.5px solid var(--border);padding:6px;display:none;flex-direction:column;gap:4px;min-width:160px;}
+.map-style-panel{position:absolute;right:66px;bottom:283px;z-index:501;background:white;border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1.5px solid var(--border);padding:6px;display:none;flex-direction:column;gap:4px;min-width:160px;}
 .map-style-panel.open{display:flex;}
 .map-style-opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-sm);font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;font-family:var(--font-ja);transition:all 0.15s;border:none;background:transparent;width:100%;text-align:left;}
 .map-style-opt:hover{background:var(--surface);}
 .map-style-opt.active-style{background:var(--primary-surface);color:var(--primary);}
 .map-style-opt .style-dot{width:28px;height:20px;border-radius:5px;flex-shrink:0;border:1px solid var(--border);}
 /* CARD SCROLLER */
-.sheet-wrap{position:absolute;bottom:16px;left:0;right:0;pointer-events:none;z-index:400;}
-.card-scroll{display:flex;gap:10px;padding:4px 14px 6px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;pointer-events:auto;scroll-behavior:smooth;}
+.sheet-wrap{position:absolute;bottom:12px;left:0;right:0;pointer-events:none;z-index:400;}
+.card-scroll{display:flex;gap:12px;padding:8px 16px 10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;pointer-events:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
 .card-scroll::-webkit-scrollbar{display:none;}
-.map-card{flex:0 0 82%;max-width:310px;scroll-snap-align:center;background:white;border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow-lg);border:2px solid transparent;transition:all 0.28s cubic-bezier(0.4,0,0.2,1);opacity:0.5;transform:scale(0.91);display:flex;flex-direction:column;}
-.map-card.active{opacity:1;transform:scale(1);border-color:var(--primary);box-shadow:0 12px 36px rgba(0,137,123,0.18);}
+.map-card{flex:0 0 86%;max-width:340px;scroll-snap-align:center;background:white;border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-lg);border:2px solid transparent;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);opacity:0.75;transform:scale(0.95) translateY(4px);display:flex;flex-direction:column;min-height:160px;}
+.map-card.active{opacity:1;transform:scale(1) translateY(0);border-color:var(--primary);box-shadow:0 14px 40px rgba(0,137,123,0.2);}
 /* LIST */
 .list-header{background:rgba(247,249,252,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:max(14px,env(safe-area-inset-top)) 14px 12px;position:sticky;top:0;z-index:20;}
 .search-wrap{position:relative;margin-bottom:10px;}
@@ -1702,16 +1702,44 @@ function parseCSV(csv) {
 
 // ==================== CHIPS ====================
 function renderChips() {
+    // マップチップ（全カテゴリ表示）
     const mapH = Object.keys(CATS).map(k=>
         `<button class="chip active" onclick="toggleMapCat('${k}',this)"><i class="fas ${CATS[k].icon}"></i>${CATS[k].label}</button>`
     ).join('');
     document.getElementById('map-chips').innerHTML = mapH;
 
+    // リストチップ：件数0のカテゴリは非表示
+    const catCounts = {};
+    facilities.forEach(s=>{ catCounts[s.category] = (catCounts[s.category]||0)+1; });
     const listH = `<button class="chip active" onclick="applyListCat('all',this)"><i class="fas fa-layer-group"></i>すべて</button>` +
-        Object.keys(CATS).map(k=>
-            `<button class="chip" onclick="applyListCat('${k}',this)"><i class="fas ${CATS[k].icon}"></i>${CATS[k].label}</button>`
+        Object.keys(CATS).filter(k => (catCounts[k]||0) > 0).map(k=>
+            `<button class="chip" onclick="applyListCat('${k}',this)"><i class="fas ${CATS[k].icon}"></i>${CATS[k].label}<span style="margin-left:4px;font-size:10px;opacity:0.7;font-weight:400;">${catCounts[k]}</span></button>`
         ).join('');
     document.getElementById('list-chips').innerHTML = listH;
+}
+
+// 都道府県が変わったときにもチップを絞り込む
+function updateListChipsForPref(pref) {
+    const catCounts = {};
+    const targets = pref ? facilities.filter(s=>s.pref===pref) : facilities;
+    targets.forEach(s=>{ catCounts[s.category] = (catCounts[s.category]||0)+1; });
+    const chips = document.querySelectorAll('#list-chips .chip');
+    chips.forEach(chip => {
+        const onclick = chip.getAttribute('onclick')||'';
+        const m = onclick.match(/applyListCat\('([^']+)'/);
+        if(!m || m[1]==='all') return;
+        const cat = m[1];
+        const cnt = catCounts[cat]||0;
+        chip.style.display = cnt > 0 ? '' : 'none';
+        // 件数表示を更新
+        const span = chip.querySelector('span');
+        if(span) span.textContent = cnt;
+    });
+    // 現在選択中のカテゴリが0件になったら「すべて」に戻す
+    if(activeListCat !== 'all' && !(catCounts[activeListCat]||0)) {
+        activeListCat = 'all';
+        chips.forEach((c,i)=>c.classList.toggle('active', i===0));
+    }
 }
 
 function toggleMapCat(cat, btn) {
@@ -2023,9 +2051,9 @@ function cardHTML(s) {
 function escJs(s){ return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 // ==================== LIST CONTROLS ====================
-function selectPref(p){activePref=p;searchQ='';document.getElementById('search-input').value='';renderList();}
+function selectPref(p){activePref=p;searchQ='';document.getElementById('search-input').value='';updateListChipsForPref(p);renderList();}
 function selectPrefFromModal(p){closeModal('m-region');selectPref(p);}
-function clearSearch(){activePref=null;searchQ='';document.getElementById('search-input').value='';activeListCat='all';document.querySelectorAll('#list-chips .chip').forEach((c,i)=>{c.classList.toggle('active',i===0);});renderList();}
+function clearSearch(){activePref=null;searchQ='';document.getElementById('search-input').value='';activeListCat='all';updateListChipsForPref(null);document.querySelectorAll('#list-chips .chip').forEach((c,i)=>{c.classList.toggle('active',i===0);});renderList();}
 function handleSearch(v){searchQ=v;if(v.trim().length>0)activePref=null;renderList();}
 
 // ==================== REGION MODAL ====================
