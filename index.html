@@ -1652,6 +1652,11 @@ const REGIONS = {
 
 // ==================== STATE ====================
 let map_inst, markers = {};
+// ジオコードキャッシュ (localStorage: handimap_geocache)
+let geoCache = {};
+try { geoCache = JSON.parse(localStorage.getItem('handimap_geocache')) || {}; } catch(e){}
+let geocodeQueue = [];   // 未取得の施設ID待ち行列
+let geocoding = false;   // バッチ処理中フラグ
 let userStatus = {};
 try { userStatus = JSON.parse(localStorage.getItem('handimap_v3')) || {}; } catch(e){}
 let userProfile = {};
@@ -1679,6 +1684,8 @@ window.onload = function() {
     updateBanner();
     // デスクトップロゴ
     if(window.innerWidth >= 768) document.getElementById('logo-desktop').style.display = 'flex';
+    // ジオコード：座標がない施設を住所から順次取得
+    startGeocoding();
 };
 
 function parseCSV(csv) {
@@ -1856,6 +1863,8 @@ function renderMarkers() {
     Object.values(markers).forEach(m=>map_inst.removeLayer(m));
     markers={};
     facilities.forEach(s=>{
+        // geoCacheから座標を補完
+        if(!s.lat && geoCache[s.id]) { s.lat = geoCache[s.id][0]; s.lng = geoCache[s.id][1]; }
         if(!s.lat || !activeMapCats.has(s.category)) return;
         if(filterCare && !hasCare(s)) return;
         const cat = CATS[s.category]||CATS.other;
@@ -1946,6 +1955,112 @@ function updateCards() {
     const first=document.querySelector('.map-card');
     if(first) setTimeout(handleSnap,100);
 }
+
+
+// ==================== GEOCODING (Nominatim) ====================
+function startGeocoding() {
+    // 座標がなく、キャッシュにもない施設をキューに積む
+    geocodeQueue = facilities.filter(s => {
+        if(s.lat) return false;          // 既に座標あり
+        if(geoCache[s.id]) {             // キャッシュにある → 即座に反映
+            s.lat = geoCache[s.id][0];
+            s.lng = geoCache[s.id][1];
+            return false;
+        }
+        return s.address && s.address.trim().length > 0;
+    });
+
+    const cached = facilities.filter(s => s.lat).length;
+    console.log('座標あり:', cached, '/ ジオコード対象:', geocodeQueue.length);
+
+    if(geocodeQueue.length > 0) {
+        updateGeoBanner(0, geocodeQueue.length);
+        processGeoQueue();
+    }
+    // キャッシュ分でマーカー再描画
+    renderMarkers();
+    updateCards();
+}
+
+function updateGeoBanner(done, total) {
+    let el = document.getElementById('geo-banner');
+    if(!el) {
+        el = document.createElement('div');
+        el.id = 'geo-banner';
+        el.style.cssText = 'position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1A2332;color:white;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;z-index:9990;white-space:nowrap;font-family:var(--font-ja);display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+        document.body.appendChild(el);
+    }
+    const pct = Math.round(done/total*100);
+    el.innerHTML = '<i class="fas fa-map-pin" style="color:#4DB6AC;"></i>地図ピンを取得中… ' + done + '/' + total + '件 (' + pct + '%)';
+    if(done >= total) {
+        el.innerHTML = '<i class="fas fa-check" style="color:#4DB6AC;"></i>ピン取得完了！ ' + total + '件';
+        setTimeout(() => { el.remove(); }, 3000);
+    }
+}
+
+async function processGeoQueue() {
+    if(geocoding || geocodeQueue.length === 0) return;
+    geocoding = true;
+    const total = geocodeQueue.length;
+    let done = 0;
+    // Nominatim利用規約: 1秒に1リクエスト以下
+    const DELAY = 1100;
+    const BATCH_SAVE = 10; // 10件ごとにlocalStorageに保存
+
+    for(const s of geocodeQueue) {
+        try {
+            const addr = s.address.replace(/^〒[\d-]+\s*/, '').trim(); // 郵便番号除去
+            const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=jp&q=' + encodeURIComponent(addr);
+            const res = await fetch(url, {headers: {'Accept-Language':'ja', 'User-Agent':'HandiMap/1.0'}});
+            if(res.ok) {
+                const data = await res.json();
+                if(data && data[0]) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+                    s.lat = lat; s.lng = lng;
+                    geoCache[s.id] = [lat, lng];
+                    // 取得できたらすぐピンを追加
+                    addSingleMarker(s);
+                }
+            }
+        } catch(e) {
+            // ネットワークエラーはスキップ
+        }
+        done++;
+        updateGeoBanner(done, total);
+        // BATCH_SAVE件ごとにキャッシュ保存 & カード更新
+        if(done % BATCH_SAVE === 0) {
+            saveGeoCache();
+            updateCards();
+        }
+        await sleep(DELAY);
+    }
+    saveGeoCache();
+    updateCards();
+    geocoding = false;
+    console.log('ジオコーディング完了');
+}
+
+function addSingleMarker(s) {
+    if(!map_inst || !s.lat || markers[s.id]) return;
+    if(!activeMapCats.has(s.category)) return;
+    if(filterCare && !hasCare(s)) return;
+    const cat = CATS[s.category]||CATS.other;
+    const icon = L.divIcon({
+        className:'',
+        html:`<div id="pin-${s.id}" class="map-marker"><i class="fas ${cat.icon}" style="color:${cat.color}"></i></div>`,
+        iconSize:[36,36], iconAnchor:[18,42]
+    });
+    const m = L.marker([s.lat,s.lng],{icon}).addTo(map_inst);
+    m.on('click', e=>{L.DomEvent.stopPropagation(e);isFlying=true;map_inst.flyTo([s.lat,s.lng],14,{duration:0.8});focusCard(s.id);});
+    markers[s.id]=m;
+}
+
+function saveGeoCache() {
+    try { localStorage.setItem('handimap_geocache', JSON.stringify(geoCache)); } catch(e){}
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function locateUser() {
     if(!navigator.geolocation){toast('位置情報が利用できません');return;}
@@ -2194,11 +2309,10 @@ function renderAdminStats(){
     });
     document.getElementById('admin-cat-table').innerHTML=`<table><thead><tr><th>カテゴリ</th><th>件数</th></tr></thead><tbody>${catRows}</tbody></table>`;
     // 都道府県別（47都道府県 全表示・目標500件・観光人気順でスコアリング）
-    const prefCnt={};
-    facilities.forEach(s=>{if(s.pref)prefCnt[s.pref]=(prefCnt[s.pref]||0)+1;});
+    var prefCnt2={};
+    facilities.forEach(function(s){if(s.pref)prefCnt2[s.pref]=(prefCnt2[s.pref]||0)+1;});
 
-    // 観光人気スコア（外国人訪問者数・国内旅行者数等を元にした相対スコア 1〜10）
-    const TOURISM_SCORE = {
+    var TOURISM_SCORE2 = {
         '東京都':10,'大阪府':10,'京都府':10,'北海道':9,'沖縄県':9,
         '神奈川県':8,'愛知県':8,'福岡県':8,'千葉県':8,'奈良県':7,
         '静岡県':7,'兵庫県':7,'広島県':7,'長野県':7,'宮城県':6,
@@ -2211,62 +2325,61 @@ function renderAdminStats(){
         '富山県':4,'福井県':3
     };
 
-    const ALL_PREFS = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
+    var ALL_PREFS2 = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
         '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
         '新潟県','富山県','石川県','福井県','山梨県','長野県',
         '岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
         '鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県',
         '福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
 
-    const TARGET = 500;
+    var TARGET2 = 500;
 
-    // スコアリング：観光人気が高く、目標に対して未達が大きいほど上位
-    // urgency = 観光スコア × (1 - 達成率)^1.5
-    const sorted = ALL_PREFS.map(p => {
-        const cnt = prefCnt[p]||0;
-        const score = TOURISM_SCORE[p]||3;
-        const ratio = Math.min(cnt/TARGET, 1);
-        const urgency = score * Math.pow(1 - ratio, 1.5);
-        return {p, cnt, score, urgency};
-    }).sort((a,b) => b.urgency - a.urgency);
+    var sorted2 = ALL_PREFS2.map(function(p){
+        var cnt = prefCnt2[p]||0;
+        var score = TOURISM_SCORE2[p]||3;
+        var ratio = Math.min(cnt/TARGET2, 1);
+        var urgency = score * Math.pow(1-ratio, 1.5);
+        return {p:p, cnt:cnt, score:score, urgency:urgency};
+    }).sort(function(a,b){ return b.urgency - a.urgency; });
 
-    const rows = sorted.map(({p, cnt, score, urgency}) => {
-        const pct = Math.min(Math.round(cnt/TARGET*100), 100);
-        const need = Math.max(TARGET - cnt, 0);
-        const isAchieved = cnt >= TARGET;
-        const isGood = pct >= 50;
-        const barColor = isAchieved ? '#16A34A' : isGood ? '#CA8A04' : '#DC2626';
-        const bgColor  = isAchieved ? '#F0FDF4' : isGood ? '#FEFCE8' : '#FFF1F2';
-        const tagColor = isAchieved ? '#16A34A' : isGood ? '#CA8A04' : '#DC2626';
-        const tagBg    = isAchieved ? '#DCFCE7' : isGood ? '#FEF9C3' : '#FEE2E2';
-        const statusLabel = isAchieved ? '達成 ✓' : need + '件必要';
-        // 観光スター
-        const stars = '★'.repeat(Math.min(Math.round(score/2),5)) + '☆'.repeat(5-Math.min(Math.round(score/2),5));
-        return \`<div style="background:\${bgColor};border:1px solid \${barColor}30;border-radius:10px;padding:12px 14px;margin-bottom:7px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
-                <span style="font-size:14px;font-weight:900;color:#1A2332;min-width:72px;">\${p}</span>
-                <span style="font-size:10px;color:#B45309;">\${stars}</span>
-                <span style="margin-left:auto;font-size:11px;font-weight:700;background:\${tagBg};color:\${tagColor};padding:3px 9px;border-radius:999px;">\${statusLabel}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-                <div style="flex:1;height:7px;background:#E5E7EB;border-radius:999px;overflow:hidden;">
-                    <div style="width:\${pct}%;height:100%;background:\${barColor};border-radius:999px;transition:width 0.5s;"></div>
-                </div>
-                <span style="font-size:11px;font-weight:700;color:#64748B;white-space:nowrap;">\${cnt.toLocaleString()} / \${TARGET}</span>
-            </div>
-        </div>\`;
+    var notAchieved2 = sorted2.filter(function(x){ return x.cnt < TARGET2; }).length;
+    var totalNeed2 = sorted2.reduce(function(s,x){ return s + Math.max(TARGET2-x.cnt,0); }, 0);
+
+    var summaryHtml = '<div style="background:linear-gradient(135deg,var(--primary),#00695C);color:white;border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap;">'
+        + '<div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">' + notAchieved2 + '</div><div style="font-size:10px;opacity:0.85;">未達成都道府県</div></div>'
+        + '<div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">' + totalNeed2.toLocaleString() + '</div><div style="font-size:10px;opacity:0.85;">あと何件必要か</div></div>'
+        + '<div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">' + (47-notAchieved2) + '</div><div style="font-size:10px;opacity:0.85;">目標達成済み</div></div>'
+        + '</div>';
+
+    var rowsHtml = sorted2.map(function(item){
+        var p=item.p, cnt=item.cnt, score=item.score;
+        var pct = Math.min(Math.round(cnt/TARGET2*100), 100);
+        var need = Math.max(TARGET2-cnt, 0);
+        var isAchieved = cnt >= TARGET2;
+        var isGood = pct >= 50;
+        var barColor = isAchieved ? '#16A34A' : isGood ? '#CA8A04' : '#DC2626';
+        var bgColor  = isAchieved ? '#F0FDF4' : isGood ? '#FEFCE8' : '#FFF1F2';
+        var tagColor = isAchieved ? '#16A34A' : isGood ? '#CA8A04' : '#DC2626';
+        var tagBg    = isAchieved ? '#DCFCE7' : isGood ? '#FEF9C3' : '#FEE2E2';
+        var statusLabel = isAchieved ? '達成 ✓' : need + '件必要';
+        var starFull = Math.min(Math.round(score/2), 5);
+        var stars = '★'.repeat(starFull) + '☆'.repeat(5-starFull);
+        return '<div style="background:' + bgColor + ';border:1px solid ' + barColor + '30;border-radius:10px;padding:12px 14px;margin-bottom:7px;">'
+            + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">'
+            + '<span style="font-size:14px;font-weight:900;color:#1A2332;min-width:72px;">' + p + '</span>'
+            + '<span style="font-size:10px;color:#B45309;">' + stars + '</span>'
+            + '<span style="margin-left:auto;font-size:11px;font-weight:700;background:' + tagBg + ';color:' + tagColor + ';padding:3px 9px;border-radius:999px;">' + statusLabel + '</span>'
+            + '</div>'
+            + '<div style="display:flex;align-items:center;gap:8px;">'
+            + '<div style="flex:1;height:7px;background:#E5E7EB;border-radius:999px;overflow:hidden;">'
+            + '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:999px;"></div>'
+            + '</div>'
+            + '<span style="font-size:11px;font-weight:700;color:#64748B;white-space:nowrap;">' + cnt.toLocaleString() + ' / ' + TARGET2 + '</span>'
+            + '</div>'
+            + '</div>';
     }).join('');
 
-    // 未達成数サマリー
-    const notAchieved = sorted.filter(x=>x.cnt<TARGET).length;
-    const totalNeed = sorted.reduce((s,x)=>s+Math.max(TARGET-x.cnt,0),0);
-    const summary = \`<div style="background:linear-gradient(135deg,var(--primary),#00695C);color:white;border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap;">
-        <div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">\${notAchieved}</div><div style="font-size:10px;opacity:0.85;">未達成都道府県</div></div>
-        <div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">\${totalNeed.toLocaleString()}</div><div style="font-size:10px;opacity:0.85;">あと何件必要か</div></div>
-        <div style="text-align:center;flex:1;"><div style="font-size:22px;font-weight:900;">\${47-notAchieved}</div><div style="font-size:10px;opacity:0.85;">目標達成済み</div></div>
-    </div>\`;
-
-    document.getElementById('admin-pref-table').innerHTML = summary + rows;
+    document.getElementById('admin-pref-table').innerHTML = summaryHtml + rowsHtml;
 }
 
 function downloadCSV(){
